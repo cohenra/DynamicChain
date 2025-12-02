@@ -23,8 +23,7 @@ export const productService = {
    * Get all products
    */
   async getProducts(): Promise<Product[]> {
-    const response = await api.get<Product[]>('/api/products');
-    return response.data;
+    const response = await api.get<Product[]>('/api/products');    return response.data;
   },
 
   /**
