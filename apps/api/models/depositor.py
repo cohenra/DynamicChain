@@ -1,22 +1,21 @@
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 from sqlalchemy import String, Integer, ForeignKey, DateTime, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
 
 
-class Product(Base):
-    """Product model with dynamic attributes support."""
+class Depositor(Base):
+    """Depositor model - represents clients/product owners in 3PL model."""
 
-    __tablename__ = "products"
+    __tablename__ = "depositors"
 
     # Table constraints
     __table_args__ = (
-        UniqueConstraint('tenant_id', 'sku', name='uq_tenant_sku'),
-        Index('ix_products_tenant_id', 'tenant_id'),
-        Index('ix_products_sku', 'sku'),
-        Index('ix_products_depositor_id', 'depositor_id'),
+        UniqueConstraint('tenant_id', 'code', name='uq_tenant_depositor_code'),
+        Index('ix_depositors_tenant_id', 'tenant_id'),
+        Index('ix_depositors_code', 'code'),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -25,15 +24,9 @@ class Product(Base):
         ForeignKey("tenants.id", ondelete="CASCADE"),
         nullable=False
     )
-    depositor_id: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        ForeignKey("depositors.id", ondelete="CASCADE"),
-        nullable=True  # Nullable for migration purposes
-    )
-    sku: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    barcode: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    custom_attributes: Mapped[Dict[str, Any]] = mapped_column(
+    code: Mapped[str] = mapped_column(String(100), nullable=False)
+    contact_info: Mapped[Dict[str, Any]] = mapped_column(
         JSONB,
         nullable=False,
         default=dict,
@@ -52,8 +45,12 @@ class Product(Base):
     )
 
     # Relationships
-    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="products")
-    depositor: Mapped[Optional["Depositor"]] = relationship("Depositor", back_populates="products")
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="depositors")
+    products: Mapped[list["Product"]] = relationship(
+        "Product",
+        back_populates="depositor",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
-        return f"<Product(id={self.id}, sku='{self.sku}', name='{self.name}')>"
+        return f"<Depositor(id={self.id}, code='{self.code}', name='{self.name}')>"

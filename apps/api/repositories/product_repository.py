@@ -45,16 +45,18 @@ class ProductRepository:
         self,
         tenant_id: int,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        depositor_id: Optional[int] = None
     ) -> List[Product]:
-        """List all products for a tenant with pagination."""
-        result = await self.db.execute(
-            select(Product)
-            .where(Product.tenant_id == tenant_id)
-            .offset(skip)
-            .limit(limit)
-            .order_by(Product.created_at.desc())
-        )
+        """List all products for a tenant with pagination and optional depositor filter."""
+        query = select(Product).where(Product.tenant_id == tenant_id)
+
+        if depositor_id is not None:
+            query = query.where(Product.depositor_id == depositor_id)
+
+        query = query.offset(skip).limit(limit).order_by(Product.created_at.desc())
+
+        result = await self.db.execute(query)
         return list(result.scalars().all())
 
     async def count(self, tenant_id: int) -> int:
