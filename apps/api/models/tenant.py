@@ -23,6 +23,11 @@ class Tenant(Base):
         back_populates="tenant",
         cascade="all, delete-orphan"
     )
+    products: Mapped[list["Product"]] = relationship(
+        "Product",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name='{self.name}')>"
