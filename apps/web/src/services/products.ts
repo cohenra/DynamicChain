@@ -3,6 +3,7 @@ import { api } from './api';
 export interface Product {
   id: number;
   tenant_id: number;
+  depositor_id: number;
   sku: string;
   name: string;
   barcode: string | null;
@@ -12,6 +13,7 @@ export interface Product {
 }
 
 export interface ProductCreate {
+  depositor_id: number;
   sku: string;
   name: string;
   barcode?: string | null;

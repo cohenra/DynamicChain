@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, Warehouse, FileText, LayoutDashboard } from 'lucide-react';
+import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2 } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -15,6 +15,8 @@ export default function Layout() {
   const menuItems = [
     { icon: LayoutDashboard, label: 'דשבורד', path: '/' },
     { icon: Package, label: 'מוצרים', path: '/products' },
+    { icon: Users, label: 'מאחסנים', path: '/depositors' },
+    { icon: Building2, label: 'מחסנים', path: '/warehouses' },
     { icon: Warehouse, label: 'מיקומים', path: '/locations' },
     { icon: FileText, label: 'חשבוניות', path: '/invoices' },
   ];

@@ -5,6 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Depositors from './pages/Depositors';
+import Warehouses from './pages/Warehouses';
 import { useAuthStore } from './store/authStore';
 
 const queryClient = new QueryClient({
@@ -37,6 +39,8 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="products" element={<Products />} />
+            <Route path="depositors" element={<Depositors />} />
+            <Route path="warehouses" element={<Warehouses />} />
             <Route path="locations" element={<div className="text-center p-8">מיקומים - בפיתוח</div>} />
             <Route path="invoices" element={<div className="text-center p-8">חשבוניות - בפיתוח</div>} />
           </Route>
