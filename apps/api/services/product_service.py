@@ -49,6 +49,7 @@ class ProductService:
             sku=product_data.sku,
             name=product_data.name,
             barcode=product_data.barcode,
+            depositor_id=product_data.depositor_id,
             custom_attributes=product_data.custom_attributes
         )
 
@@ -89,15 +90,17 @@ class ProductService:
         self,
         tenant_id: int,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        depositor_id: Optional[int] = None
     ) -> List[Product]:
         """
-        List all products for a tenant with pagination.
+        List all products for a tenant with pagination and optional depositor filter.
 
         Args:
             tenant_id: ID of the tenant
             skip: Number of records to skip
             limit: Maximum number of records to return
+            depositor_id: Optional depositor ID to filter products
 
         Returns:
             List of Product instances
@@ -105,7 +108,8 @@ class ProductService:
         return await self.product_repo.list_products(
             tenant_id=tenant_id,
             skip=skip,
-            limit=limit
+            limit=limit,
+            depositor_id=depositor_id
         )
 
     async def update_product(
@@ -149,6 +153,8 @@ class ProductService:
             product.name = product_data.name
         if product_data.barcode is not None:
             product.barcode = product_data.barcode
+        if product_data.depositor_id is not None:
+            product.depositor_id = product_data.depositor_id
         if product_data.custom_attributes is not None:
             product.custom_attributes = product_data.custom_attributes
 

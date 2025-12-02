@@ -8,6 +8,7 @@ class ProductBase(BaseModel):
     sku: str = Field(..., min_length=1, max_length=255, description="Product SKU")
     name: str = Field(..., min_length=1, max_length=255, description="Product name")
     barcode: Optional[str] = Field(None, max_length=255, description="Product barcode")
+    depositor_id: Optional[int] = Field(None, description="Depositor ID (product owner)")
     custom_attributes: Dict[str, Any] = Field(
         default_factory=dict,
         description="Dynamic product attributes (color, size, material, etc.)"
@@ -24,6 +25,7 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = Field(None, min_length=1, max_length=255)
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     barcode: Optional[str] = Field(None, max_length=255)
+    depositor_id: Optional[int] = None
     custom_attributes: Optional[Dict[str, Any]] = None
 
 

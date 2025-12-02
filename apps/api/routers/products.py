@@ -46,6 +46,7 @@ async def create_product(
 async def list_products(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    depositor_id: int | None = Query(None, description="Filter by depositor ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> List[ProductResponse]:
@@ -53,10 +54,12 @@ async def list_products(
     List all products for the authenticated user's tenant.
 
     Supports pagination via skip and limit parameters.
+    Can filter by depositor_id to get products belonging to a specific depositor.
 
     Args:
         skip: Number of records to skip (default: 0)
         limit: Maximum records to return (default: 100, max: 1000)
+        depositor_id: Optional depositor ID to filter products
         current_user: Authenticated user from JWT token
         db: Database session
 
@@ -70,7 +73,8 @@ async def list_products(
     products = await product_service.list_products(
         tenant_id=current_user.tenant_id,
         skip=skip,
-        limit=limit
+        limit=limit,
+        depositor_id=depositor_id
     )
     return [ProductResponse.model_validate(product) for product in products]
 
