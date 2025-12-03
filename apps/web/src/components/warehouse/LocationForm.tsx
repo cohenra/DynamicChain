@@ -19,12 +19,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import {
+  locationService,
   Location,
   LocationCreate,
   LocationUpdate,
-  LocationType,
-  LocationUsage,
 } from '@/services/locations';
 import { Zone } from '@/services/zones';
 
@@ -47,14 +47,26 @@ export function LocationForm({
 }: LocationFormProps) {
   const { t } = useTranslation();
 
+  // שליפת נתונים דינמית עבור הדרופ-דאונים
+  const { data: types, isLoading: isLoadingTypes } = useQuery({
+    queryKey: ['locationTypes'],
+    queryFn: locationService.getLocationTypes,
+  });
+
+  const { data: usages, isLoading: isLoadingUsages } = useQuery({
+    queryKey: ['locationUsages'],
+    queryFn: locationService.getLocationUsages,
+  });
+
   const formSchema = z.object({
     zone_id: z.string().min(1, t('locations.zoneRequired')),
     name: z.string().min(1, t('locations.nameRequired')),
     aisle: z.string().min(1, t('locations.aisleRequired')),
     bay: z.string().min(1, t('locations.bayRequired')),
     level: z.string().min(1, t('locations.levelRequired')),
-    type: z.nativeEnum(LocationType, { required_error: t('locations.typeRequired') }),
-    usage: z.nativeEnum(LocationUsage, { required_error: t('locations.usageRequired') }),
+    slot: z.string().min(1, t('locations.slotRequired')),
+    type_id: z.string().min(1, t('locations.typeRequired')),
+    usage_id: z.string().min(1, t('locations.usageRequired')),
     pick_sequence: z.string().optional(),
   });
 
@@ -66,8 +78,9 @@ export function LocationForm({
       aisle: location?.aisle || '',
       bay: location?.bay || '',
       level: location?.level || '',
-      type: location?.type || LocationType.SHELF,
-      usage: location?.usage || LocationUsage.STORAGE,
+      slot: location?.slot || '',
+      type_id: location?.type_id.toString() || '',
+      usage_id: location?.usage_id.toString() || '',
       pick_sequence: location?.pick_sequence.toString() || '0',
     },
   });
@@ -76,6 +89,8 @@ export function LocationForm({
     const data = {
       ...values,
       zone_id: parseInt(values.zone_id),
+      type_id: parseInt(values.type_id),
+      usage_id: parseInt(values.usage_id),
       pick_sequence: parseInt(values.pick_sequence || '0'),
     };
 
@@ -86,9 +101,13 @@ export function LocationForm({
     }
   };
 
+  const isLoadingData = isLoadingTypes || isLoadingUsages;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-6">
+        
+        {/* בחירת אזור */}
         <FormField
           control={form.control}
           name="zone_id"
@@ -114,6 +133,7 @@ export function LocationForm({
           )}
         />
 
+        {/* שם המיקום */}
         <FormField
           control={form.control}
           name="name"
@@ -121,74 +141,80 @@ export function LocationForm({
             <FormItem>
               <FormLabel>{t('locations.name')}</FormLabel>
               <FormControl>
-                <Input placeholder="A-01-01" {...field} />
+                <Input placeholder="A-01-01-01" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-3 gap-4">
+        {/* היררכיה - 4 רמות */}
+        <div className="grid grid-cols-4 gap-2">
           <FormField
             control={form.control}
             name="aisle"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('locations.aisle')}</FormLabel>
-                <FormControl>
-                  <Input placeholder="A" {...field} />
-                </FormControl>
+                <FormControl><Input placeholder="A" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="bay"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('locations.bay')}</FormLabel>
-                <FormControl>
-                  <Input placeholder="01" {...field} />
-                </FormControl>
+                <FormControl><Input placeholder="01" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="level"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('locations.level')}</FormLabel>
-                <FormControl>
-                  <Input placeholder="01" {...field} />
-                </FormControl>
+                <FormControl><Input placeholder="01" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="slot"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('locations.slot')}</FormLabel>
+                <FormControl><Input placeholder="01" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        {/* בחירת סוג מיקום דינמית */}
         <FormField
           control={form.control}
-          name="type"
+          name="type_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('locations.type')}</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingData}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder={isLoadingData ? t('common.loading') : ''} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value={LocationType.SHELF}>{t('locations.typeSHELF')}</SelectItem>
-                  <SelectItem value={LocationType.PALLET_RACK}>{t('locations.typePALLET_RACK')}</SelectItem>
-                  <SelectItem value={LocationType.FLOOR}>{t('locations.typeFLOOR')}</SelectItem>
-                  <SelectItem value={LocationType.CAGED}>{t('locations.typeCAGED')}</SelectItem>
+                  {types?.map((type) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -196,25 +222,25 @@ export function LocationForm({
           )}
         />
 
+        {/* בחירת שימוש מיקום דינמית */}
         <FormField
           control={form.control}
-          name="usage"
+          name="usage_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('locations.usage')}</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingData}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder={isLoadingData ? t('common.loading') : ''} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value={LocationUsage.PICKING}>{t('locations.usagePICKING')}</SelectItem>
-                  <SelectItem value={LocationUsage.STORAGE}>{t('locations.usageSTORAGE')}</SelectItem>
-                  <SelectItem value={LocationUsage.INBOUND}>{t('locations.usageINBOUND')}</SelectItem>
-                  <SelectItem value={LocationUsage.OUTBOUND}>{t('locations.usageOUTBOUND')}</SelectItem>
-                  <SelectItem value={LocationUsage.HANDOFF}>{t('locations.usageHANDOFF')}</SelectItem>
-                  <SelectItem value={LocationUsage.QUARANTINE}>{t('locations.usageQUARANTINE')}</SelectItem>
+                  {usages?.map((usage) => (
+                    <SelectItem key={usage.id} value={usage.id.toString()}>
+                      {usage.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
