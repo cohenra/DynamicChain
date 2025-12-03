@@ -11,11 +11,21 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ProductCreate } from '@/services/products';
-import { X, Plus } from 'lucide-react';
+import { depositorService } from '@/services/depositors';
+import { X, Plus, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 const productSchema = z.object({
+  depositor_id: z.string().min(1, 'מאחסן הוא שדה חובה'),
   sku: z.string().min(1, 'מק״ט הוא שדה חובה'),
   name: z.string().min(1, 'שם הוא שדה חובה'),
   barcode: z.string().optional(),
@@ -37,9 +47,19 @@ interface ProductFormProps {
 export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
 
+  // Fetch depositors
+  const {
+    data: depositors,
+    isLoading: isLoadingDepositors,
+  } = useQuery({
+    queryKey: ['depositors'],
+    queryFn: depositorService.getDepositors,
+  });
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
+      depositor_id: '',
       sku: '',
       name: '',
       barcode: '',
@@ -78,6 +98,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
     );
 
     const productData: ProductCreate = {
+      depositor_id: parseInt(values.depositor_id, 10),
       sku: values.sku,
       name: values.name,
       barcode: values.barcode || null,
@@ -91,6 +112,45 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         {/* Standard Fields */}
+        <FormField
+          control={form.control}
+          name="depositor_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>מאחסן</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading || isLoadingDepositors}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingDepositors ? 'טוען...' : 'בחר מאחסן'} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {isLoadingDepositors ? (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ) : depositors && depositors.length > 0 ? (
+                    depositors.map((depositor) => (
+                      <SelectItem key={depositor.id} value={depositor.id.toString()}>
+                        {depositor.name} ({depositor.code})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+                      אין מאחסנים זמינים
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="sku"
