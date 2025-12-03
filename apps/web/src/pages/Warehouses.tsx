@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, WarehouseCreate, Warehouse } from '@/services/warehouses';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, XCircle, Pencil, Trash2 } from 'lucide-react';
+import { Plus, XCircle, Pencil, Trash2, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -44,6 +45,7 @@ export default function Warehouses() {
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // Create schema with translations
   const warehouseSchema = useMemo(
@@ -210,6 +212,14 @@ export default function Warehouses() {
                   <TableCell className="max-w-md truncate">{warehouse.address}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/warehouses/${warehouse.id}`)}
+                        title={t('common.view')}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

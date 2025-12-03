@@ -48,6 +48,16 @@ class Tenant(Base):
         back_populates="tenant",
         cascade="all, delete-orphan"
     )
+    zones: Mapped[list["Zone"]] = relationship(
+        "Zone",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+    locations: Mapped[list["Location"]] = relationship(
+        "Location",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name='{self.name}')>"
