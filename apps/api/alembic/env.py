@@ -11,6 +11,9 @@ from alembic import context
 from database import Base
 from models import Tenant, User, Product, Depositor, Warehouse, UomDefinition, ProductUOM, Zone, Location
 
+from models.location_type_definition import LocationTypeDefinition
+from models.location_usage_definition import LocationUsageDefinition
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
