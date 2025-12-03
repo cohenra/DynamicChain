@@ -147,6 +147,7 @@
     "enterZipcode": "הזן מיקוד",
     "nameRequired": "שם הוא שדה חובה",
     "codeRequired": "קוד הוא שדה חובה",
+    "addressRequired": "כתובת הוא שדה חובה",
     "editWarehouse": "ערוך מחסן",
     "editWarehouseDescription": "ערוך את פרטי המחסן"
   },

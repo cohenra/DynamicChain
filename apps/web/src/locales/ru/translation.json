@@ -147,6 +147,7 @@
     "enterZipcode": "Введите почтовый индекс",
     "nameRequired": "Название обязательно для заполнения",
     "codeRequired": "Код обязателен для заполнения",
+    "addressRequired": "Адрес обязателен для заполнения",
     "editWarehouse": "Редактировать склад",
     "editWarehouseDescription": "Редактировать данные склада"
   },

@@ -5,9 +5,12 @@ export interface Depositor {
   tenant_id: number;
   name: string;
   code: string;
-  contact_name: string | null;
-  contact_phone: string | null;
-  contact_email: string | null;
+  contact_info: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    [key: string]: any;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -15,9 +18,12 @@ export interface Depositor {
 export interface DepositorCreate {
   name: string;
   code: string;
-  contact_name?: string | null;
-  contact_phone?: string | null;
-  contact_email?: string | null;
+  contact_info?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    [key: string]: any;
+  };
 }
 
 export const depositorService = {

@@ -5,10 +5,7 @@ export interface Warehouse {
   tenant_id: number;
   name: string;
   code: string;
-  address: string | null;
-  city: string | null;
-  country: string | null;
-  zipcode: string | null;
+  address: string;
   created_at: string;
   updated_at: string;
 }
@@ -16,10 +13,7 @@ export interface Warehouse {
 export interface WarehouseCreate {
   name: string;
   code: string;
-  address?: string | null;
-  city?: string | null;
-  country?: string | null;
-  zipcode?: string | null;
+  address: string;
 }
 
 export const warehouseService = {
