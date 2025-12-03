@@ -3,7 +3,6 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.product import Product
-from models.product_uom import ProductUOM
 
 
 class ProductRepository:
@@ -17,12 +16,17 @@ class ProductRepository:
         self.db.add(product)
         await self.db.flush()
         await self.db.refresh(product)
-        return product
+        # כדי למנוע קריסה, אנחנו שולפים את המוצר מחדש עם כל הקישורים שלו
+        return await self.get_by_id(product.id, product.tenant_id)
 
     async def get_by_id(self, product_id: int, tenant_id: int) -> Optional[Product]:
         """Get a product by ID with tenant isolation."""
         result = await self.db.execute(
-            select(Product).where(
+            select(Product)
+            .options(selectinload(Product.uoms))  # טעינה מוקדמת של UOMs
+            .options(selectinload(Product.base_uom)) # טעינה מוקדמת של יחידת בסיס
+            .options(selectinload(Product.depositor)) # טעינה מוקדמת של מאחסן
+            .where(
                 and_(
                     Product.id == product_id,
                     Product.tenant_id == tenant_id
@@ -34,7 +38,8 @@ class ProductRepository:
     async def get_by_sku(self, sku: str, tenant_id: int) -> Optional[Product]:
         """Get a product by SKU within a tenant."""
         result = await self.db.execute(
-            select(Product).where(
+            select(Product)
+            .where(
                 and_(
                     Product.sku == sku,
                     Product.tenant_id == tenant_id
@@ -51,16 +56,10 @@ class ProductRepository:
         depositor_id: Optional[int] = None
     ) -> List[Product]:
         """List all products for a tenant with pagination and optional depositor filter."""
-        query = select(Product).where(Product.tenant_id == tenant_id)
+        query = select(Product).options(selectinload(Product.uoms)).options(selectinload(Product.base_uom)).where(Product.tenant_id == tenant_id)
 
         if depositor_id is not None:
             query = query.where(Product.depositor_id == depositor_id)
-
-        # Eager load UOMs with their UOM definitions, and base UOM definition
-        query = query.options(
-            selectinload(Product.uoms).selectinload(ProductUOM.uom),
-            selectinload(Product.base_uom)
-        )
 
         query = query.offset(skip).limit(limit).order_by(Product.created_at.desc())
 
@@ -79,7 +78,7 @@ class ProductRepository:
         """Update an existing product."""
         await self.db.flush()
         await self.db.refresh(product)
-        return product
+        return await self.get_by_id(product.id, product.tenant_id)
 
     async def delete(self, product: Product) -> None:
         """Delete a product."""
