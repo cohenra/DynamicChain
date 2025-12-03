@@ -2,10 +2,13 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Layout() {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     logout();
@@ -13,12 +16,12 @@ export default function Layout() {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'דשבורד', path: '/' },
-    { icon: Package, label: 'מוצרים', path: '/products' },
-    { icon: Users, label: 'מאחסנים', path: '/depositors' },
-    { icon: Building2, label: 'מחסנים', path: '/warehouses' },
-    { icon: Warehouse, label: 'מיקומים', path: '/locations' },
-    { icon: FileText, label: 'חשבוניות', path: '/invoices' },
+    { icon: LayoutDashboard, label: t('layout.dashboard'), path: '/' },
+    { icon: Package, label: t('layout.products'), path: '/products' },
+    { icon: Users, label: t('layout.depositors'), path: '/depositors' },
+    { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },
+    { icon: Warehouse, label: t('layout.locations'), path: '/locations' },
+    { icon: FileText, label: t('layout.invoices'), path: '/invoices' },
   ];
 
   return (
@@ -26,11 +29,14 @@ export default function Layout() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 h-16 flex items-center px-6">
         <div className="flex items-center justify-between w-full">
-          <h1 className="text-xl font-bold text-primary">LogiSnap</h1>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="ml-2 h-4 w-4" />
-            התנתק
-          </Button>
+          <h1 className="text-xl font-bold text-primary">{t('layout.appName')}</h1>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="ml-2 h-4 w-4" />
+              {t('auth.logout')}
+            </Button>
+          </div>
         </div>
       </header>
 

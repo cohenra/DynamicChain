@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { warehouseService, WarehouseCreate } from '@/services/warehouses';
+import { warehouseService, WarehouseCreate, Warehouse } from '@/services/warehouses';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -26,25 +26,40 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Plus, XCircle } from 'lucide-react';
+import { Plus, XCircle, Pencil, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useTranslation } from 'react-i18next';
 
-const warehouseSchema = z.object({
-  name: z.string().min(1, 'שם הוא שדה חובה'),
-  code: z.string().min(1, 'קוד הוא שדה חובה'),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  country: z.string().optional(),
-  zipcode: z.string().optional(),
-});
-
-type WarehouseFormValues = z.infer<typeof warehouseSchema>;
+type WarehouseFormValues = {
+  name: string;
+  code: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  zipcode?: string;
+};
 
 export default function Warehouses() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  // Create schema with translations
+  const warehouseSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, t('warehouses.nameRequired')),
+        code: z.string().min(1, t('warehouses.codeRequired')),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        country: z.string().optional(),
+        zipcode: z.string().optional(),
+      }),
+    [t]
+  );
 
   // Fetch warehouses
   const {
@@ -63,7 +78,28 @@ export default function Warehouses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       setIsSheetOpen(false);
+      setEditingWarehouse(null);
       form.reset();
+    },
+  });
+
+  // Update warehouse mutation
+  const updateWarehouseMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: WarehouseCreate }) =>
+      warehouseService.updateWarehouse(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      setIsSheetOpen(false);
+      setEditingWarehouse(null);
+      form.reset();
+    },
+  });
+
+  // Delete warehouse mutation
+  const deleteWarehouseMutation = useMutation({
+    mutationFn: warehouseService.deleteWarehouse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
     },
   });
 
@@ -79,7 +115,39 @@ export default function Warehouses() {
     },
   });
 
-  const handleCreateWarehouse = (values: WarehouseFormValues) => {
+  const handleAddNew = () => {
+    setEditingWarehouse(null);
+    form.reset({
+      name: '',
+      code: '',
+      address: '',
+      city: '',
+      country: '',
+      zipcode: '',
+    });
+    setIsSheetOpen(true);
+  };
+
+  const handleEdit = (warehouse: Warehouse) => {
+    setEditingWarehouse(warehouse);
+    form.reset({
+      name: warehouse.name,
+      code: warehouse.code,
+      address: warehouse.address || '',
+      city: warehouse.city || '',
+      country: warehouse.country || '',
+      zipcode: warehouse.zipcode || '',
+    });
+    setIsSheetOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm(t('common.delete') + '?')) {
+      deleteWarehouseMutation.mutate(id);
+    }
+  };
+
+  const handleSubmit = (values: WarehouseFormValues) => {
     const data: WarehouseCreate = {
       name: values.name,
       code: values.code,
@@ -88,22 +156,28 @@ export default function Warehouses() {
       country: values.country || null,
       zipcode: values.zipcode || null,
     };
-    createWarehouseMutation.mutate(data);
+
+    if (editingWarehouse) {
+      updateWarehouseMutation.mutate({ id: editingWarehouse.id, data });
+    } else {
+      createWarehouseMutation.mutate(data);
+    }
   };
+
+  const isSubmitting = createWarehouseMutation.isPending || updateWarehouseMutation.isPending;
+  const submitError = createWarehouseMutation.error || updateWarehouseMutation.error;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">מחסנים</h1>
-          <p className="text-muted-foreground mt-2">
-            נהל את המחסנים במערכת
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('warehouses.title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('warehouses.description')}</p>
         </div>
-        <Button onClick={() => setIsSheetOpen(true)}>
+        <Button onClick={handleAddNew}>
           <Plus className="ml-2 h-4 w-4" />
-          הוסף מחסן
+          {t('warehouses.addWarehouse')}
         </Button>
       </div>
 
@@ -113,25 +187,25 @@ export default function Warehouses() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">טוען מחסנים...</p>
+              <p className="text-muted-foreground">{t('warehouses.loading')}</p>
             </div>
           </div>
         ) : isError ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <XCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
-              <p className="text-destructive font-medium">שגיאה בטעינת המחסנים</p>
+              <p className="text-destructive font-medium">{t('warehouses.loadingError')}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {error instanceof Error ? error.message : 'אירעה שגיאה לא צפויה'}
+                {error instanceof Error ? error.message : t('common.unexpectedError')}
               </p>
             </div>
           </div>
         ) : warehouses && warehouses.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <p className="text-muted-foreground">אין מחסנים להצגה</p>
+              <p className="text-muted-foreground">{t('warehouses.noWarehouses')}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                התחל על ידי הוספת המחסן הראשון שלך
+                {t('warehouses.addFirstWarehouse')}
               </p>
             </div>
           </div>
@@ -139,12 +213,13 @@ export default function Warehouses() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>שם</TableHead>
-                <TableHead>קוד</TableHead>
-                <TableHead>כתובת</TableHead>
-                <TableHead>עיר</TableHead>
-                <TableHead>מדינה</TableHead>
-                <TableHead>מיקוד</TableHead>
+                <TableHead>{t('warehouses.name')}</TableHead>
+                <TableHead>{t('warehouses.code')}</TableHead>
+                <TableHead>{t('warehouses.address')}</TableHead>
+                <TableHead>{t('warehouses.city')}</TableHead>
+                <TableHead>{t('warehouses.country')}</TableHead>
+                <TableHead>{t('warehouses.zipcode')}</TableHead>
+                <TableHead className="text-right">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -172,6 +247,27 @@ export default function Warehouses() {
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(warehouse)}
+                        title={t('common.edit')}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(warehouse.id)}
+                        title={t('common.delete')}
+                        disabled={deleteWarehouseMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -179,29 +275,33 @@ export default function Warehouses() {
         )}
       </div>
 
-      {/* Add Warehouse Sheet */}
+      {/* Add/Edit Warehouse Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>הוסף מחסן חדש</SheetTitle>
+            <SheetTitle>
+              {editingWarehouse ? t('warehouses.editWarehouse') : t('warehouses.addNewWarehouse')}
+            </SheetTitle>
             <SheetDescription>
-              מלא את פרטי המחסן וצור רשומה חדשה במערכת
+              {editingWarehouse
+                ? t('warehouses.editWarehouseDescription')
+                : t('warehouses.addWarehouseDescription')}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateWarehouse)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>שם</FormLabel>
+                      <FormLabel>{t('warehouses.name')}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          placeholder="הזן שם מחסן"
-                          disabled={createWarehouseMutation.isPending}
+                          placeholder={t('warehouses.enterName')}
+                          disabled={isSubmitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -214,12 +314,12 @@ export default function Warehouses() {
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>קוד</FormLabel>
+                      <FormLabel>{t('warehouses.code')}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          placeholder="הזן קוד מחסן"
-                          disabled={createWarehouseMutation.isPending}
+                          placeholder={t('warehouses.enterCode')}
+                          disabled={isSubmitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -228,7 +328,7 @@ export default function Warehouses() {
                 />
 
                 <div className="pt-4 border-t">
-                  <h3 className="text-sm font-medium mb-4">מיקום (אופציונלי)</h3>
+                  <h3 className="text-sm font-medium mb-4">{t('warehouses.locationOptional')}</h3>
 
                   <div className="space-y-4">
                     <FormField
@@ -236,12 +336,12 @@ export default function Warehouses() {
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>כתובת</FormLabel>
+                          <FormLabel>{t('warehouses.address')}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="הזן כתובת"
-                              disabled={createWarehouseMutation.isPending}
+                              placeholder={t('warehouses.enterAddress')}
+                              disabled={isSubmitting}
                             />
                           </FormControl>
                           <FormMessage />
@@ -254,12 +354,12 @@ export default function Warehouses() {
                       name="city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>עיר</FormLabel>
+                          <FormLabel>{t('warehouses.city')}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="הזן עיר"
-                              disabled={createWarehouseMutation.isPending}
+                              placeholder={t('warehouses.enterCity')}
+                              disabled={isSubmitting}
                             />
                           </FormControl>
                           <FormMessage />
@@ -272,12 +372,12 @@ export default function Warehouses() {
                       name="country"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>מדינה</FormLabel>
+                          <FormLabel>{t('warehouses.country')}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="הזן מדינה"
-                              disabled={createWarehouseMutation.isPending}
+                              placeholder={t('warehouses.enterCountry')}
+                              disabled={isSubmitting}
                             />
                           </FormControl>
                           <FormMessage />
@@ -290,12 +390,12 @@ export default function Warehouses() {
                       name="zipcode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>מיקוד</FormLabel>
+                          <FormLabel>{t('warehouses.zipcode')}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="הזן מיקוד"
-                              disabled={createWarehouseMutation.isPending}
+                              placeholder={t('warehouses.enterZipcode')}
+                              disabled={isSubmitting}
                             />
                           </FormControl>
                           <FormMessage />
@@ -306,19 +406,21 @@ export default function Warehouses() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={createWarehouseMutation.isPending}>
-                    {createWarehouseMutation.isPending ? 'שומר...' : 'שמור מחסן'}
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? t('common.saving') : t('warehouses.saveWarehouse')}
                   </Button>
                 </div>
               </form>
             </Form>
 
-            {createWarehouseMutation.isError && (
+            {submitError && (
               <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                 <p className="text-sm text-destructive">
-                  {createWarehouseMutation.error instanceof Error
-                    ? createWarehouseMutation.error.message
-                    : 'שגיאה ביצירת המחסן'}
+                  {submitError instanceof Error
+                    ? submitError.message
+                    : editingWarehouse
+                    ? t('warehouses.updateError')
+                    : t('warehouses.createError')}
                 </p>
               </div>
             )}

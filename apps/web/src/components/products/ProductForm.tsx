@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
 import {
   Form,
   FormControl,
@@ -21,17 +22,15 @@ import {
 import { ProductCreate } from '@/services/products';
 import { depositorService } from '@/services/depositors';
 import { X, Plus, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-const productSchema = z.object({
-  depositor_id: z.string().min(1, 'מאחסן הוא שדה חובה'),
-  sku: z.string().min(1, 'מק״ט הוא שדה חובה'),
-  name: z.string().min(1, 'שם הוא שדה חובה'),
-  barcode: z.string().optional(),
-});
-
-type ProductFormValues = z.infer<typeof productSchema>;
+type ProductFormValues = {
+  depositor_id: string;
+  sku: string;
+  name: string;
+  barcode?: string;
+};
 
 interface CustomAttribute {
   id: string;
@@ -46,6 +45,19 @@ interface ProductFormProps {
 
 export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
+  const { t } = useTranslation();
+
+  // Create schema with translations
+  const productSchema = useMemo(
+    () =>
+      z.object({
+        depositor_id: z.string().min(1, t('products.depositorRequired')),
+        sku: z.string().min(1, t('products.skuRequired')),
+        name: z.string().min(1, t('products.nameRequired')),
+        barcode: z.string().optional(),
+      }),
+    [t]
+  );
 
   // Fetch depositors
   const {
@@ -117,7 +129,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
           name="depositor_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>מאחסן</FormLabel>
+              <FormLabel>{t('products.depositor')}</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
@@ -125,7 +137,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder={isLoadingDepositors ? 'טוען...' : 'בחר מאחסן'} />
+                    <SelectValue placeholder={isLoadingDepositors ? t('common.loading') : t('products.selectDepositor')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -141,7 +153,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
                     ))
                   ) : (
                     <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-                      אין מאחסנים זמינים
+                      {t('products.noDepositors')}
                     </div>
                   )}
                 </SelectContent>
@@ -156,9 +168,9 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
           name="sku"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>מק״ט</FormLabel>
+              <FormLabel>{t('products.sku')}</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="הזן מק״ט" disabled={isLoading} />
+                <Input {...field} placeholder={t('products.enterSku')} disabled={isLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -170,9 +182,9 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>שם המוצר</FormLabel>
+              <FormLabel>{t('products.name')}</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="הזן שם מוצר" disabled={isLoading} />
+                <Input {...field} placeholder={t('products.enterName')} disabled={isLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -184,9 +196,9 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
           name="barcode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ברקוד (אופציונלי)</FormLabel>
+              <FormLabel>{t('products.barcodeOptional')}</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="הזן ברקוד" disabled={isLoading} />
+                <Input {...field} placeholder={t('products.enterBarcode')} disabled={isLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -196,7 +208,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
         {/* Dynamic Attributes Section */}
         <div className="space-y-4 pt-4 border-t">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">תכונות מותאמות אישית</h3>
+            <h3 className="text-sm font-medium">{t('products.customAttributes')}</h3>
             <Button
               type="button"
               variant="outline"
@@ -205,20 +217,20 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
               disabled={isLoading}
             >
               <Plus className="ml-2 h-4 w-4" />
-              הוסף תכונה
+              {t('products.addAttribute')}
             </Button>
           </div>
 
           {customAttributes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              לא הוגדרו תכונות מותאמות אישית
+              {t('products.noCustomAttributesDefined')}
             </p>
           ) : (
             <div className="space-y-3">
               {customAttributes.map((attr) => (
                 <div key={attr.id} className="flex items-center gap-2">
                   <Input
-                    placeholder="מפתח (למשל: צבע)"
+                    placeholder={t('products.keyPlaceholder')}
                     value={attr.key}
                     onChange={(e) =>
                       updateCustomAttribute(attr.id, 'key', e.target.value)
@@ -228,7 +240,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
                   />
                   <span className="text-muted-foreground">-</span>
                   <Input
-                    placeholder="ערך (למשל: כחול)"
+                    placeholder={t('products.valuePlaceholder')}
                     value={attr.value}
                     onChange={(e) =>
                       updateCustomAttribute(attr.id, 'value', e.target.value)
@@ -254,7 +266,7 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
         {/* Submit Button */}
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'שומר...' : 'שמור מוצר'}
+            {isLoading ? t('common.saving') : t('products.saveProduct')}
           </Button>
         </div>
       </form>

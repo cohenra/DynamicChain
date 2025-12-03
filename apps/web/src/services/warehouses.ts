@@ -38,4 +38,19 @@ export const warehouseService = {
     const response = await api.post<Warehouse>('/api/warehouses/', data);
     return response.data;
   },
+
+  /**
+   * Update a warehouse
+   */
+  async updateWarehouse(id: number, data: WarehouseCreate): Promise<Warehouse> {
+    const response = await api.put<Warehouse>(`/api/warehouses/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a warehouse
+   */
+  async deleteWarehouse(id: number): Promise<void> {
+    await api.delete(`/api/warehouses/${id}`);
+  },
 };
