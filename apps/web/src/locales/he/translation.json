@@ -53,6 +53,10 @@
   "products": {
     "title": "מוצרים",
     "description": "נהל את מוצרי המלאי שלך עם תכונות מותאמות אישית",
+    "tabs": {
+      "catalog": "קטלוג פריטים",
+      "uoms": "הגדרת יחידות מידה"
+    },
     "addProduct": "הוסף מוצר",
     "addNewProduct": "הוסף מוצר חדש",
     "addProductDescription": "מלא את פרטי המוצר והוסף תכונות מותאמות אישית לפי הצורך",
@@ -157,5 +161,29 @@
     "russian": "Русский",
     "arabic": "العربية",
     "selectLanguage": "בחר שפה"
+  },
+  "uomDefinitions": {
+    "title": "יחידות מידה",
+    "description": "הגדרת סוגי אריזות (למשל: משטח, קרטון, יחידה)",
+    "addUom": "הוסף סוג יחידה",
+    "editUom": "ערוך יחידה",
+    "code": "קוד יחידה",
+    "name": "שם יחידה",
+    "codePlaceholder": "לדוגמה: PLT, CS",
+    "namePlaceholder": "לדוגמה: משטח, ארגז",
+    "addDescription": "הוסף הגדרה חדשה למערכת",
+    "editDescription": "עדכון פרטי יחידה",
+    "noUoms": "לא הוגדרו יחידות מידה עדיין",
+    "createSuccess": "יחידת מידה נוצרה בהצלחה",
+    "createSuccessDescription": "יחידת המידה התוספה למערכת",
+    "createError": "שגיאה ביצירת יחידת מידה",
+    "updateSuccess": "יחידת מידה עודכנה בהצלחה",
+    "updateSuccessDescription": "יחידת המידה עודכנה במערכת",
+    "updateError": "שגיאה בעדכון יחידת מידה",
+    "deleteSuccess": "יחידת מידה נמחקה בהצלחה",
+    "deleteSuccessDescription": "יחידת המידה הוסרה מהמערכת",
+    "deleteError": "שגיאה במחיקת יחידת מידה",
+    "deleteConfirmTitle": "למחוק יחידת מידה?",
+    "deleteConfirmDescription": "פעולה זו עלולה להשפיע על מוצרים המשתמשים ביחידה זו."
   }
 }

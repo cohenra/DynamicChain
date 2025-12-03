@@ -25,7 +25,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { ProductForm } from '@/components/products/ProductForm';
+import { UomDefinitionsTable } from '@/components/products/UomDefinitionsTable';
 import { Plus, XCircle } from 'lucide-react';
 
 export default function Products() {
@@ -61,117 +68,139 @@ export default function Products() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
-          <p className="text-muted-foreground mt-2">
-            {t('products.description')}
-          </p>
-        </div>
-        <Button onClick={() => setIsSheetOpen(true)}>
-          <Plus className="ml-2 h-4 w-4" />
-          {t('products.addProduct')}
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
+        <p className="text-muted-foreground mt-2">
+          {t('products.description')}
+        </p>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white rounded-lg border">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">{t('products.loading')}</p>
-            </div>
-          </div>
-        ) : isError ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <XCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
-              <p className="text-destructive font-medium">{t('products.loadingError')}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {error instanceof Error ? error.message : t('common.unexpectedError')}
+      {/* Tabs */}
+      <Tabs defaultValue="catalog" className="w-full">
+        <TabsList>
+          <TabsTrigger value="catalog">{t('products.tabs.catalog')}</TabsTrigger>
+          <TabsTrigger value="uoms">{t('products.tabs.uoms')}</TabsTrigger>
+        </TabsList>
+
+        {/* Tab 1: Product Catalog */}
+        <TabsContent value="catalog" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-muted-foreground">
+                {t('products.description')}
               </p>
             </div>
+            <Button onClick={() => setIsSheetOpen(true)}>
+              <Plus className="ml-2 h-4 w-4" />
+              {t('products.addProduct')}
+            </Button>
           </div>
-        ) : products && products.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <p className="text-muted-foreground">{t('products.noProducts')}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {t('products.addFirstProduct')}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('products.sku')}</TableHead>
-                <TableHead>{t('products.name')}</TableHead>
-                <TableHead>{t('products.barcode')}</TableHead>
-                <TableHead>{t('products.customAttributesHeader')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products?.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.sku}</TableCell>
-                  <TableCell>{product.name}</TableCell>
-                  <TableCell>
-                    {product.barcode || (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const attributes = product.custom_attributes || {};
-                      const entries = Object.entries(attributes);
 
-                      if (entries.length === 0) {
-                        return <span className="text-muted-foreground text-sm">{t('products.noCustomAttributes')}</span>;
-                      }
+          {/* Products Table */}
+          <div className="bg-white rounded-lg border">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">{t('products.loading')}</p>
+                </div>
+              </div>
+            ) : isError ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <XCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
+                  <p className="text-destructive font-medium">{t('products.loadingError')}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {error instanceof Error ? error.message : t('common.unexpectedError')}
+                  </p>
+                </div>
+              </div>
+            ) : products && products.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <p className="text-muted-foreground">{t('products.noProducts')}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {t('products.addFirstProduct')}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('products.sku')}</TableHead>
+                    <TableHead>{t('products.name')}</TableHead>
+                    <TableHead>{t('products.barcode')}</TableHead>
+                    <TableHead>{t('products.customAttributesHeader')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products?.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.sku}</TableCell>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell>
+                        {product.barcode || (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const attributes = product.custom_attributes || {};
+                          const entries = Object.entries(attributes);
 
-                      // Show first 2 attributes as badges
-                      const visibleAttributes = entries.slice(0, 2);
-                      const remainingCount = entries.length - 2;
+                          if (entries.length === 0) {
+                            return <span className="text-muted-foreground text-sm">{t('products.noCustomAttributes')}</span>;
+                          }
 
-                      return (
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {visibleAttributes.map(([key, value]) => (
-                            <Badge key={key} variant="secondary" className="text-xs">
-                              {key}: {String(value)}
-                            </Badge>
-                          ))}
-                          {remainingCount > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-xs cursor-help">
-                                    +{remainingCount} {t('products.moreAttributes')}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <div className="space-y-1">
-                                    {entries.slice(2).map(([key, value]) => (
-                                      <div key={key} className="text-xs">
-                                        <span className="font-semibold">{key}:</span> {String(value)}
+                          // Show first 2 attributes as badges
+                          const visibleAttributes = entries.slice(0, 2);
+                          const remainingCount = entries.length - 2;
+
+                          return (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {visibleAttributes.map(([key, value]) => (
+                                <Badge key={key} variant="secondary" className="text-xs">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                              {remainingCount > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className="text-xs cursor-help">
+                                        +{remainingCount} {t('products.moreAttributes')}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <div className="space-y-1">
+                                        {entries.slice(2).map(([key, value]) => (
+                                          <div key={key} className="text-xs">
+                                            <span className="font-semibold">{key}:</span> {String(value)}
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Tab 2: UOM Definitions */}
+        <TabsContent value="uoms" className="space-y-4">
+          <UomDefinitionsTable />
+        </TabsContent>
+      </Tabs>
 
       {/* Add Product Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>

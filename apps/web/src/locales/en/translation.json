@@ -34,8 +34,7 @@
     "depositors": "Depositors",
     "warehouses": "Warehouses",
     "locations": "Locations",
-    "invoices": "Invoices",
-    "uomDefinitions": "Units of Measure"
+    "invoices": "Invoices"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -56,6 +55,10 @@
   "products": {
     "title": "Products",
     "description": "Manage your inventory products with custom attributes",
+    "tabs": {
+      "catalog": "Product Catalog",
+      "uoms": "Units of Measure"
+    },
     "addProduct": "Add Product",
     "addNewProduct": "Add New Product",
     "addProductDescription": "Fill in the product details and add custom attributes as needed",

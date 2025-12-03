@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2, Settings } from 'lucide-react';
+import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -22,7 +22,6 @@ export default function Layout() {
     { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },
     { icon: Warehouse, label: t('layout.locations'), path: '/locations' },
     { icon: FileText, label: t('layout.invoices'), path: '/invoices' },
-    { icon: Settings, label: t('layout.uomDefinitions'), path: '/settings/uoms' },
   ];
 
   return (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { uomDefinitionService, UomDefinitionCreate } from '@/services/uom-definitions';
+import { uomDefinitionService } from '@/services/uom-definitions';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ const uomSchema = z.object({
 
 type UomFormData = z.infer<typeof uomSchema>;
 
-export default function UomDefinitions() {
+export function UomDefinitionsTable() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingUom, setEditingUom] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
@@ -162,12 +162,11 @@ export default function UomDefinitions() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('uomDefinitions.title')}</h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground">
             {t('uomDefinitions.description')}
           </p>
         </div>
@@ -318,6 +317,6 @@ export default function UomDefinitions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
