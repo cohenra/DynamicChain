@@ -393,11 +393,21 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
               <Package className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-sm font-medium">{t('products.packagingHierarchy')}</h3>
             </div>
-            <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-              {t('products.packagingHierarchyDescription')}
-              <br />
-              <span className="font-medium">💡 {t('products.addPackaging')}</span> - יתאפשר מיד לאחר יצירת המוצר
-            </p>
+            <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-4 rounded-md border border-blue-200 dark:border-blue-800">
+              <p className="mb-2">{t('products.packagingHierarchyDescription')}</p>
+              <div className="bg-white dark:bg-slate-900 p-3 rounded border mt-3">
+                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">💡 הוספת אריזות</p>
+                <p>
+                  לאחר יצירת המוצר, תוכל להוסיף רמות אריזה (למשל: ארגז, משטח) עם פרטים מלאים:
+                </p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
+                  <li><strong>סוג אריזה:</strong> בחירה מרשימה מוגדרת</li>
+                  <li><strong>מכיל (יח' בסיס):</strong> כמות יחידות בכל אריזה</li>
+                  <li><strong>ברקוד אריזה:</strong> ברקוד ייחודי לאריזה</li>
+                  <li><strong>מידות ומשקל:</strong> פרטים פיזיים של האריזה</li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
 

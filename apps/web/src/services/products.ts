@@ -37,8 +37,16 @@ export const productService = {
    * Get all products
    */
   async getProducts(): Promise<Product[]> {
-    const response = await api.get<Product[]>('/api/products/'); 
-  return response.data;
+    const response = await api.get<Product[]>('/api/products/');
+    return response.data;
+  },
+
+  /**
+   * Get a single product by ID
+   */
+  async getProduct(id: number): Promise<Product> {
+    const response = await api.get<Product>(`/api/products/${id}`);
+    return response.data;
   },
 
   /**
@@ -47,5 +55,20 @@ export const productService = {
   async createProduct(data: ProductCreate): Promise<Product> {
     const response = await api.post<Product>('/api/products/', data);
     return response.data;
+  },
+
+  /**
+   * Update an existing product
+   */
+  async updateProduct(id: number, data: ProductCreate): Promise<Product> {
+    const response = await api.put<Product>(`/api/products/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a product
+   */
+  async deleteProduct(id: number): Promise<void> {
+    await api.delete(`/api/products/${id}`);
   },
 };
