@@ -10,6 +10,7 @@ from alembic import context
 # Import the Base and all models
 from database import Base
 from models import Tenant, User, Product, ProductUOM
+from models import Tenant, User, Product, Depositor, Warehouse, UomDefinition, ProductUOM
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
