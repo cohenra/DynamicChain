@@ -1,6 +1,7 @@
 from typing import Optional, List
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from models.product_uom import ProductUOM
 
 
@@ -71,6 +72,7 @@ class ProductUOMRepository:
         """List all ProductUOMs for a specific product with tenant isolation."""
         result = await self.db.execute(
             select(ProductUOM)
+            .options(selectinload(ProductUOM.uom))
             .where(
                 and_(
                     ProductUOM.product_id == product_id,

@@ -105,7 +105,30 @@ async def list_product_uoms_by_product(
         product_id=product_id,
         tenant_id=current_user.tenant_id
     )
-    return [ProductUOMResponse.model_validate(uom) for uom in product_uoms]
+
+    # Manually construct responses to include UOM name and code
+    result = []
+    for uom in product_uoms:
+        uom_dict = {
+            "id": uom.id,
+            "product_id": uom.product_id,
+            "tenant_id": uom.tenant_id,
+            "uom_id": uom.uom_id,
+            "conversion_factor": uom.conversion_factor,
+            "barcode": uom.barcode,
+            "length": uom.length,
+            "width": uom.width,
+            "height": uom.height,
+            "volume": uom.volume,
+            "weight": uom.weight,
+            "created_at": uom.created_at,
+            "updated_at": uom.updated_at,
+            "uom_name": uom.uom.name if uom.uom else None,
+            "uom_code": uom.uom.code if uom.uom else None
+        }
+        result.append(ProductUOMResponse(**uom_dict))
+
+    return result
 
 
 @router.get("/{uom_id}", response_model=ProductUOMResponse)
