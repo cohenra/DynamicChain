@@ -6,10 +6,11 @@ from models.location import LocationType, LocationUsage
 
 class LocationBase(BaseModel):
     """Base schema for Location with common fields."""
-    name: str = Field(..., min_length=1, max_length=100, description="Location barcode name (e.g., 'A-01-01')")
+    name: str = Field(..., min_length=1, max_length=100, description="Location barcode name (e.g., 'A-01-01-01')")
     aisle: str = Field(..., min_length=1, max_length=50, description="Aisle identifier (e.g., 'A')")
     bay: str = Field(..., min_length=1, max_length=50, description="Bay identifier (e.g., '01')")
     level: str = Field(..., min_length=1, max_length=50, description="Level identifier (e.g., '01')")
+    slot: str = Field(..., min_length=1, max_length=50, description="Slot/Bin identifier (e.g., '01')")
     type: LocationType = Field(..., description="Location type (SHELF, PALLET_RACK, FLOOR, CAGED)")
     usage: LocationUsage = Field(..., description="Location usage (PICKING, STORAGE, INBOUND, OUTBOUND, HANDOFF, QUARANTINE)")
     pick_sequence: int = Field(default=0, description="Pick sequence for walk path sorting")
@@ -27,6 +28,7 @@ class LocationUpdate(BaseModel):
     aisle: Optional[str] = Field(None, min_length=1, max_length=50)
     bay: Optional[str] = Field(None, min_length=1, max_length=50)
     level: Optional[str] = Field(None, min_length=1, max_length=50)
+    slot: Optional[str] = Field(None, min_length=1, max_length=50)
     type: Optional[LocationType] = None
     usage: Optional[LocationUsage] = None
     pick_sequence: Optional[int] = None
@@ -60,6 +62,8 @@ class LocationBulkCreateConfig(BaseModel):
     bay_end: int = Field(..., ge=1, description="Ending bay number")
     level_start: int = Field(..., ge=1, description="Starting level number")
     level_end: int = Field(..., ge=1, description="Ending level number")
+    slot_start: int = Field(..., ge=1, description="Starting slot number")
+    slot_end: int = Field(..., ge=1, description="Ending slot number")
     type: LocationType = Field(..., description="Location type for all generated locations")
     usage: LocationUsage = Field(..., description="Location usage for all generated locations")
     pick_sequence_start: int = Field(default=0, description="Starting pick sequence number")

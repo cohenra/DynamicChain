@@ -25,6 +25,7 @@ export interface Location {
   aisle: string;
   bay: string;
   level: string;
+  slot: string;
   type: LocationType;
   usage: LocationUsage;
   pick_sequence: number;
@@ -39,6 +40,7 @@ export interface LocationCreate {
   aisle: string;
   bay: string;
   level: string;
+  slot: string;
   type: LocationType;
   usage: LocationUsage;
   pick_sequence?: number;
@@ -49,6 +51,7 @@ export interface LocationUpdate {
   aisle?: string;
   bay?: string;
   level?: string;
+  slot?: string;
   type?: LocationType;
   usage?: LocationUsage;
   pick_sequence?: number;
@@ -62,6 +65,8 @@ export interface LocationBulkCreateConfig {
   bay_end: number;
   level_start: number;
   level_end: number;
+  slot_start: number;
+  slot_end: number;
   type: LocationType;
   usage: LocationUsage;
   pick_sequence_start?: number;
