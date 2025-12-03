@@ -105,7 +105,7 @@ export function LocationForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-6 pb-20">
         
         {/* בחירת אזור */}
         <FormField
@@ -148,7 +148,7 @@ export function LocationForm({
           )}
         />
 
-        {/* היררכיה - 4 רמות */}
+        {/* היררכיה - 4 רמות (כולל איתור/Slot) */}
         <div className="grid grid-cols-4 gap-2">
           <FormField
             control={form.control}
