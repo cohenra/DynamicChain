@@ -5,7 +5,6 @@ from sqlalchemy.orm import selectinload
 from models.product import Product
 from models.product_uom import ProductUOM
 
-
 class ProductRepository:
     """Repository for Product database operations with tenant isolation."""
 
@@ -17,16 +16,17 @@ class ProductRepository:
         self.db.add(product)
         await self.db.flush()
         await self.db.refresh(product)
-        # כדי למנוע קריסה, אנחנו שולפים את המוצר מחדש עם כל הקישורים שלו
         return await self.get_by_id(product.id, product.tenant_id)
 
     async def get_by_id(self, product_id: int, tenant_id: int) -> Optional[Product]:
         """Get a product by ID with tenant isolation."""
         result = await self.db.execute(
             select(Product)
-            .options(selectinload(Product.uoms))  # טעינה מוקדמת של UOMs
-            .options(selectinload(Product.base_uom)) # טעינה מוקדמת של יחידת בסיס
-            .options(selectinload(Product.depositor)) # טעינה מוקדמת של מאחסן
+            .options(
+                selectinload(Product.uoms).selectinload(ProductUOM.uom), # טעינה מקוננת קריטית
+                selectinload(Product.base_uom),
+                selectinload(Product.depositor)
+            )
             .where(
                 and_(
                     Product.id == product_id,
@@ -56,16 +56,12 @@ class ProductRepository:
         limit: int = 100,
         depositor_id: Optional[int] = None
     ) -> List[Product]:
-        """List all products for a tenant with pagination and optional depositor filter."""
-        query = (
-            select(Product)
-            .options(
-                selectinload(Product.uoms).selectinload(ProductUOM.uom),
-                selectinload(Product.base_uom),
-                selectinload(Product.depositor)
-            )
-            .where(Product.tenant_id == tenant_id)
-        )
+        """List all products for a tenant."""
+        query = select(Product).options(
+            selectinload(Product.uoms).selectinload(ProductUOM.uom),
+            selectinload(Product.base_uom),
+            selectinload(Product.depositor)
+        ).where(Product.tenant_id == tenant_id)
 
         if depositor_id is not None:
             query = query.where(Product.depositor_id == depositor_id)
@@ -86,7 +82,7 @@ class ProductRepository:
     async def update(self, product: Product) -> Product:
         """Update an existing product."""
         await self.db.flush()
-        await self.db.refresh(product)
+        # כאן היה הבאג - אנחנו שולפים מחדש כדי לקבל את כל הנתונים המקושרים
         return await self.get_by_id(product.id, product.tenant_id)
 
     async def delete(self, product: Product) -> None:
