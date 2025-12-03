@@ -128,68 +128,44 @@ export default function Products() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('products.sku')}</TableHead>
-                    <TableHead>{t('products.name')}</TableHead>
-                    <TableHead>{t('products.barcode')}</TableHead>
-                    <TableHead>{t('products.customAttributesHeader')}</TableHead>
+                    <TableHead className="text-start">{t('products.sku')}</TableHead>
+                    <TableHead className="text-start">{t('products.name')}</TableHead>
+                    <TableHead className="text-start">{t('products.packagingHierarchyColumn')}</TableHead>
+                    <TableHead className="text-start">{t('products.barcode')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products?.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.sku}</TableCell>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell>
-                        {product.barcode || (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const attributes = product.custom_attributes || {};
-                          const entries = Object.entries(attributes);
+                  {products?.map((product) => {
+                    // Build packaging hierarchy string
+                    const uoms = product.uoms || [];
+                    const sortedUoms = [...uoms].sort((a, b) => a.conversion_factor - b.conversion_factor);
 
-                          if (entries.length === 0) {
-                            return <span className="text-muted-foreground text-sm">{t('products.noCustomAttributes')}</span>;
-                          }
+                    let hierarchyText = '';
+                    if (sortedUoms.length > 0) {
+                      hierarchyText = sortedUoms
+                        .map(uom => `${uom.uom_name} (${uom.conversion_factor})`)
+                        .join(' | ');
+                    }
 
-                          // Show first 2 attributes as badges
-                          const visibleAttributes = entries.slice(0, 2);
-                          const remainingCount = entries.length - 2;
-
-                          return (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {visibleAttributes.map(([key, value]) => (
-                                <Badge key={key} variant="secondary" className="text-xs">
-                                  {key}: {String(value)}
-                                </Badge>
-                              ))}
-                              {remainingCount > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge variant="outline" className="text-xs cursor-help">
-                                        +{remainingCount} {t('products.moreAttributes')}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                      <div className="space-y-1">
-                                        {entries.slice(2).map(([key, value]) => (
-                                          <div key={key} className="text-xs">
-                                            <span className="font-semibold">{key}:</span> {String(value)}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium text-start">{product.sku}</TableCell>
+                        <TableCell className="text-start">{product.name}</TableCell>
+                        <TableCell className="text-start">
+                          {hierarchyText ? (
+                            <span className="text-sm">{hierarchyText}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-start">
+                          {product.barcode || (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}

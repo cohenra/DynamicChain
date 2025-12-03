@@ -53,6 +53,13 @@ interface CustomAttribute {
   value: string;
 }
 
+interface PackagingLevel {
+  id: string;
+  uom_id: string;
+  quantity: string;
+  barcode: string;
+}
+
 interface ProductFormProps {
   onSubmit: (data: ProductCreate) => void;
   isLoading?: boolean;
@@ -62,6 +69,7 @@ interface ProductFormProps {
 
 export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: ProductFormProps) {
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
+  const [packagingLevels, setPackagingLevels] = useState<PackagingLevel[]>([]);
   const [uomDialogOpen, setUomDialogOpen] = useState(false);
   const [editingUom, setEditingUom] = useState<ProductUOM | null>(null);
   const { t } = useTranslation();
@@ -171,6 +179,25 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
     setCustomAttributes(
       customAttributes.map((attr) =>
         attr.id === id ? { ...attr, [field]: value } : attr
+      )
+    );
+  };
+
+  const addPackagingLevel = () => {
+    setPackagingLevels([
+      ...packagingLevels,
+      { id: Math.random().toString(36).substr(2, 9), uom_id: '', quantity: '', barcode: '' },
+    ]);
+  };
+
+  const removePackagingLevel = (id: string) => {
+    setPackagingLevels(packagingLevels.filter((level) => level.id !== id));
+  };
+
+  const updatePackagingLevel = (id: string, field: 'uom_id' | 'quantity' | 'barcode', value: string) => {
+    setPackagingLevels(
+      packagingLevels.map((level) =>
+        level.id === id ? { ...level, [field]: value } : level
       )
     );
   };
@@ -308,56 +335,79 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="base_uom_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('products.baseUnit')}</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                disabled={isLoading || isLoadingUomDefinitions}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={isLoadingUomDefinitions ? t('common.loading') : t('products.selectBaseUnit')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {isLoadingUomDefinitions ? (
-                    <div className="flex items-center justify-center py-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ) : uomDefinitions && uomDefinitions.length > 0 ? (
-                    uomDefinitions.map((uom) => (
-                      <SelectItem key={uom.id} value={uom.id.toString()}>
-                        {uom.name} ({uom.code})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-                      <p className="mb-2">{t('products.noUomsDefined')}</p>
-                      <Link to="/products?tab=uoms" className="text-primary hover:underline inline-flex items-center gap-1">
-                        <Settings className="h-3 w-3" />
-                        {t('products.goToSettings')}
-                      </Link>
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Step 1: Base Unit */}
+        <div className="space-y-4 pt-4 border-t">
+          <div>
+            <h3 className="text-sm font-medium mb-1">{t('products.baseUnit')}</h3>
+            <p className="text-xs text-muted-foreground">{t('products.baseUnitDescription')}</p>
+          </div>
 
-        {/* Packaging & UOMs Section (Edit Mode Only) */}
+          <FormField
+            control={form.control}
+            name="base_uom_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('products.selectBaseUnit')}</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isLoading || isLoadingUomDefinitions}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingUomDefinitions ? t('common.loading') : t('products.selectBaseUnit')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {isLoadingUomDefinitions ? (
+                      <div className="flex items-center justify-center py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : uomDefinitions && uomDefinitions.length > 0 ? (
+                      uomDefinitions.map((uom) => (
+                        <SelectItem key={uom.id} value={uom.id.toString()}>
+                          {uom.name} ({uom.code})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+                        <p className="mb-2">{t('products.noUomsDefined')}</p>
+                        <Link to="/products?tab=uoms" className="text-primary hover:underline inline-flex items-center gap-1">
+                          <Settings className="h-3 w-3" />
+                          {t('products.goToSettings')}
+                        </Link>
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Step 2: Packaging Levels Note (Create Mode) */}
+        {mode === 'create' && (
+          <div className="space-y-2 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-sm font-medium">{t('products.packagingHierarchy')}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+              {t('products.packagingHierarchyDescription')}
+              <br />
+              <span className="font-medium">💡 {t('products.addPackaging')}</span> - יתאפשר מיד לאחר יצירת המוצר
+            </p>
+          </div>
+        )}
+
+        {/* Step 2: Packaging & UOMs Section (Edit Mode) */}
         {mode === 'edit' && product?.id && (
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                <h3 className="text-sm font-medium">{t('products.packagingAndUOMs')}</h3>
+                <h3 className="text-sm font-medium">{t('products.packagingHierarchy')}</h3>
               </div>
               <Button
                 type="button"
@@ -367,7 +417,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                 disabled={isLoadingUOMs}
               >
                 <Plus className="ml-2 h-4 w-4" />
-                {t('products.addUOM')}
+                {t('products.addPackaging')}
               </Button>
             </div>
 

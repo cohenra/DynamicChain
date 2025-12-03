@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -31,12 +31,26 @@ class ProductUpdate(BaseModel):
     custom_attributes: Optional[Dict[str, Any]] = None
 
 
+class ProductUOMInfo(BaseModel):
+    """Minimal ProductUOM info for product response."""
+    id: int
+    uom_id: int
+    uom_name: str
+    uom_code: str
+    conversion_factor: float
+    barcode: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ProductResponse(ProductBase):
     """Schema for product response."""
     id: int
     tenant_id: int
     created_at: datetime
     updated_at: datetime
+    uoms: List[ProductUOMInfo] = Field(default_factory=list, description="List of configured UOMs for this product")
 
     class Config:
         from_attributes = True
