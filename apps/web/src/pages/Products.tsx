@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productService, ProductCreate } from '@/services/products';
+import { productService, ProductCreate, Product } from '@/services/products';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
@@ -31,12 +31,25 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ProductForm } from '@/components/products/ProductForm';
 import { UomDefinitionsTable } from '@/components/products/UomDefinitionsTable';
-import { Plus, XCircle } from 'lucide-react';
+import { Plus, XCircle, Edit, Trash2, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Products() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -55,14 +68,71 @@ export default function Products() {
   const createProductMutation = useMutation({
     mutationFn: productService.createProduct,
     onSuccess: () => {
-      // Invalidate and refetch products
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsSheetOpen(false);
+      toast.success(t('products.createSuccess'));
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || t('products.createError'));
+    },
+  });
+
+  // Update product mutation
+  const updateProductMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ProductCreate }) =>
+      productService.updateProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsSheetOpen(false);
+      setEditingProduct(null);
+      toast.success(t('products.updateSuccess'));
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || t('products.updateError'));
+    },
+  });
+
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: (id: number) => productService.deleteProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setDeletingProduct(null);
+      toast.success(t('products.deleteSuccess'));
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || t('products.deleteError'));
     },
   });
 
   const handleCreateProduct = (data: ProductCreate) => {
-    createProductMutation.mutate(data);
+    if (editingProduct) {
+      updateProductMutation.mutate({ id: editingProduct.id, data });
+    } else {
+      createProductMutation.mutate(data);
+    }
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsSheetOpen(true);
+  };
+
+  const handleDeleteProduct = (product: Product) => {
+    setDeletingProduct(product);
+  };
+
+  const confirmDelete = () => {
+    if (deletingProduct) {
+      deleteProductMutation.mutate(deletingProduct.id);
+    }
+  };
+
+  const handleSheetOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+      setEditingProduct(null);
+    }
   };
 
   return (
@@ -128,15 +198,16 @@ export default function Products() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-start">{t('products.sku')}</TableHead>
-                    <TableHead className="text-start">{t('products.name')}</TableHead>
-                    <TableHead className="text-start">{t('products.packagingHierarchyColumn')}</TableHead>
-                    <TableHead className="text-start">{t('products.barcode')}</TableHead>
+                    <TableHead className="text-right">{t('products.sku')}</TableHead>
+                    <TableHead className="text-right">{t('products.name')}</TableHead>
+                    <TableHead className="text-right">{t('products.packagingHierarchyColumn')}</TableHead>
+                    <TableHead className="text-left">{t('products.barcode')}</TableHead>
+                    <TableHead className="text-center sticky left-0 bg-background">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products?.map((product) => {
-                    // Build packaging hierarchy string
+                    // Build packaging hierarchy string with arrow notation
                     const uoms = product.uoms || [];
                     const sortedUoms = [...uoms].sort((a, b) => a.conversion_factor - b.conversion_factor);
 
@@ -144,24 +215,44 @@ export default function Products() {
                     if (sortedUoms.length > 0) {
                       hierarchyText = sortedUoms
                         .map(uom => `${uom.uom_name} (${uom.conversion_factor})`)
-                        .join(' | ');
+                        .join(' ← ');
                     }
 
                     return (
                       <TableRow key={product.id}>
-                        <TableCell className="font-medium text-start">{product.sku}</TableCell>
-                        <TableCell className="text-start">{product.name}</TableCell>
-                        <TableCell className="text-start">
+                        <TableCell className="font-medium text-right">{product.sku}</TableCell>
+                        <TableCell className="text-right">{product.name}</TableCell>
+                        <TableCell className="text-right">
                           {hierarchyText ? (
-                            <span className="text-sm">{hierarchyText}</span>
+                            <span className="text-sm font-mono">{hierarchyText}</span>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-start">
+                        <TableCell className="text-left font-mono">
                           {product.barcode || (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-center sticky left-0 bg-background">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditProduct(product)}
+                              title={t('common.edit')}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteProduct(product)}
+                              title={t('common.delete')}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -178,32 +269,56 @@ export default function Products() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Product Sheet */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      {/* Add/Edit Product Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
         <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{t('products.addNewProduct')}</SheetTitle>
+            <SheetTitle>
+              {editingProduct ? t('products.editProduct') : t('products.addNewProduct')}
+            </SheetTitle>
             <SheetDescription>
-              {t('products.addProductDescription')}
+              {editingProduct
+                ? t('products.editProductDescription')
+                : t('products.addProductDescription')}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">
             <ProductForm
               onSubmit={handleCreateProduct}
-              isLoading={createProductMutation.isPending}
+              isLoading={createProductMutation.isPending || updateProductMutation.isPending}
+              product={editingProduct}
+              mode={editingProduct ? 'edit' : 'create'}
             />
-            {createProductMutation.isError && (
-              <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">
-                  {createProductMutation.error instanceof Error
-                    ? createProductMutation.error.message
-                    : t('products.createError')}
-                </p>
-              </div>
-            )}
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingProduct}
+        onOpenChange={(open) => !open && setDeletingProduct(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('products.deleteConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('products.deleteConfirmDescription', {
+                name: deletingProduct?.name,
+                sku: deletingProduct?.sku,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProductMutation.isPending ? t('common.loading') : t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

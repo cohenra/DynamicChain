@@ -14,6 +14,13 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -21,7 +28,10 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { ProductUOM, ProductUOMCreate, ProductUOMUpdate } from '@/services/product-uoms';
+import { uomDefinitionService } from '@/services/uom-definitions';
 import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 
 interface UOMDialogProps {
   open: boolean;
@@ -33,7 +43,7 @@ interface UOMDialogProps {
 }
 
 type UOMFormValues = {
-  uom_name: string;
+  uom_id: string;
   conversion_factor: string;
   barcode?: string;
   length?: string;
@@ -52,20 +62,29 @@ export function UOMDialog({
 }: UOMDialogProps) {
   const { t } = useTranslation();
 
+  // Fetch UOM definitions
+  const {
+    data: uomDefinitions,
+    isLoading: isLoadingUomDefinitions,
+  } = useQuery({
+    queryKey: ['uomDefinitions'],
+    queryFn: uomDefinitionService.getUomDefinitions,
+  });
+
   // Create schema with translations
   const uomSchema = useMemo(
     () =>
       z.object({
-        uom_name: z.string().min(1, t('products.uoms.nameRequired')),
+        uom_id: z.string().min(1, t('products.uoms.packagingTypeRequired')),
         conversion_factor: z
           .string()
           .min(1, t('products.uoms.conversionFactorRequired'))
           .refine(
             (val) => {
               const num = parseFloat(val);
-              return !isNaN(num) && num > 0;
+              return !isNaN(num) && num > 1;
             },
-            { message: t('products.uoms.conversionFactorMustBePositive') }
+            { message: t('products.uoms.conversionFactorMustBeGreaterThanOne') }
           ),
         barcode: z.string().optional(),
         length: z
@@ -119,7 +138,7 @@ export function UOMDialog({
   const form = useForm<UOMFormValues>({
     resolver: zodResolver(uomSchema),
     defaultValues: {
-      uom_name: '',
+      uom_id: '',
       conversion_factor: '',
       barcode: '',
       length: '',
@@ -151,7 +170,7 @@ export function UOMDialog({
     if (open) {
       if (uom) {
         form.reset({
-          uom_name: uom.uom_name,
+          uom_id: uom.uom_id.toString(),
           conversion_factor: uom.conversion_factor.toString(),
           barcode: uom.barcode || '',
           length: uom.length?.toString() || '',
@@ -161,7 +180,7 @@ export function UOMDialog({
         });
       } else {
         form.reset({
-          uom_name: '',
+          uom_id: '',
           conversion_factor: '',
           barcode: '',
           length: '',
@@ -175,7 +194,7 @@ export function UOMDialog({
 
   const handleSubmit = (values: UOMFormValues) => {
     const data: any = {
-      uom_name: values.uom_name,
+      uom_id: parseInt(values.uom_id, 10),
       conversion_factor: parseFloat(values.conversion_factor),
       barcode: values.barcode || null,
       length: values.length ? parseFloat(values.length) : null,
@@ -206,40 +225,62 @@ export function UOMDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6">
-            {/* UOM Name */}
+            {/* Packaging Type (UOM Definition) */}
             <FormField
               control={form.control}
-              name="uom_name"
+              name="uom_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('products.uoms.name')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder={t('products.uoms.namePlaceholder')}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
+                  <FormLabel>{t('products.uoms.packagingType')}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isLoading || isLoadingUomDefinitions}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingUomDefinitions ? t('common.loading') : t('products.selectPackagingUnit')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {isLoadingUomDefinitions ? (
+                        <div className="flex items-center justify-center py-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      ) : uomDefinitions && uomDefinitions.length > 0 ? (
+                        uomDefinitions.map((uomDef) => (
+                          <SelectItem key={uomDef.id} value={uomDef.id.toString()}>
+                            {uomDef.name} ({uomDef.code})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+                          {t('products.noUomsDefined')}
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormDescription>
-                    {t('products.uoms.nameDescription')}
+                    {t('products.uoms.packagingTypeDescription')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Conversion Factor */}
+            {/* Conversion Factor (Contains) */}
             <FormField
               control={form.control}
               name="conversion_factor"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('products.uoms.conversionFactor')}</FormLabel>
+                  <FormLabel className="text-base font-semibold">{t('products.uoms.contains')}</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       type="number"
-                      step="0.01"
+                      step="1"
+                      min="2"
                       placeholder={t('products.uoms.conversionFactorPlaceholder')}
                       disabled={isLoading}
                     />
