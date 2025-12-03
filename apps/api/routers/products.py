@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
-from schemas.product import ProductCreate, ProductUpdate, ProductResponse
+from schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductUOMInfo
 from services.product_service import ProductService
 from auth.dependencies import get_current_user
 from models.user import User
@@ -76,7 +76,37 @@ async def list_products(
         limit=limit,
         depositor_id=depositor_id
     )
-    return [ProductResponse.model_validate(product) for product in products]
+
+    # Manually construct responses to include UOM info
+    result = []
+    for product in products:
+        uoms_info = [
+            ProductUOMInfo(
+                id=uom.id,
+                uom_id=uom.uom_id,
+                uom_name=uom.uom.name,
+                uom_code=uom.uom.code,
+                conversion_factor=uom.conversion_factor,
+                barcode=uom.barcode
+            )
+            for uom in product.uoms
+        ]
+        product_dict = {
+            "id": product.id,
+            "tenant_id": product.tenant_id,
+            "depositor_id": product.depositor_id,
+            "sku": product.sku,
+            "name": product.name,
+            "barcode": product.barcode,
+            "base_uom_id": product.base_uom_id,
+            "custom_attributes": product.custom_attributes,
+            "created_at": product.created_at,
+            "updated_at": product.updated_at,
+            "uoms": uoms_info
+        }
+        result.append(ProductResponse(**product_dict))
+
+    return result
 
 
 @router.get("/{product_id}", response_model=ProductResponse)

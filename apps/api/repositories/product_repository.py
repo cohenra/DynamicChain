@@ -1,7 +1,9 @@
 from typing import Optional, List
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from models.product import Product
+from models.product_uom import ProductUOM
 
 
 class ProductRepository:
@@ -53,6 +55,12 @@ class ProductRepository:
 
         if depositor_id is not None:
             query = query.where(Product.depositor_id == depositor_id)
+
+        # Eager load UOMs with their UOM definitions, and base UOM definition
+        query = query.options(
+            selectinload(Product.uoms).selectinload(ProductUOM.uom),
+            selectinload(Product.base_uom)
+        )
 
         query = query.offset(skip).limit(limit).order_by(Product.created_at.desc())
 
