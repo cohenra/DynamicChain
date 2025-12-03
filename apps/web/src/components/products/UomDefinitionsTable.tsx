@@ -283,7 +283,7 @@ export function UomDefinitionsTable() {
                 disabled={createMutation.isPending || updateMutation.isPending}
                 className="flex-1"
               >
-                {editingUom ? t('common.update') : t('common.create')}
+                {editingUom ? t('uomDefinitions.saveBtn') : t('uomDefinitions.createBtn')}
               </Button>
               <Button
                 type="button"

@@ -31,8 +31,10 @@ import {
 import { Product, ProductCreate } from '@/services/products';
 import { depositorService } from '@/services/depositors';
 import { productUOMService, ProductUOM, ProductUOMCreate, ProductUOMUpdate } from '@/services/product-uoms';
-import { X, Plus, Loader2, Edit, Trash2, Package } from 'lucide-react';
+import { uomDefinitionService } from '@/services/uom-definitions';
+import { X, Plus, Loader2, Edit, Trash2, Package, Settings } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UOMDialog } from './UOMDialog';
 import { toast } from 'sonner';
@@ -42,7 +44,7 @@ type ProductFormValues = {
   sku: string;
   name: string;
   barcode?: string;
-  base_unit?: string;
+  base_uom_id?: string;
 };
 
 interface CustomAttribute {
@@ -73,7 +75,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
         sku: z.string().min(1, t('products.skuRequired')),
         name: z.string().min(1, t('products.nameRequired')),
         barcode: z.string().optional(),
-        base_unit: z.string().optional(),
+        base_uom_id: z.string().optional(),
       }),
     [t]
   );
@@ -87,6 +89,15 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
     queryFn: depositorService.getDepositors,
   });
 
+  // Fetch UOM definitions
+  const {
+    data: uomDefinitions,
+    isLoading: isLoadingUomDefinitions,
+  } = useQuery({
+    queryKey: ['uomDefinitions'],
+    queryFn: uomDefinitionService.getUomDefinitions,
+  });
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -94,7 +105,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
       sku: product?.sku || '',
       name: product?.name || '',
       barcode: product?.barcode || '',
-      base_unit: product?.base_unit || '',
+      base_uom_id: product?.base_uom_id?.toString() || '',
     },
   });
 
@@ -181,7 +192,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
       sku: values.sku,
       name: values.name,
       barcode: values.barcode || null,
-      base_unit: values.base_unit || null,
+      base_uom_id: values.base_uom_id ? parseInt(values.base_uom_id, 10) : null,
       custom_attributes: customAttrsObject,
     };
 
@@ -299,16 +310,42 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
 
         <FormField
           control={form.control}
-          name="base_unit"
+          name="base_uom_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('products.baseUnitOptional')}</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder={t('products.enterBaseUnit')} disabled={isLoading} />
-              </FormControl>
-              <FormDescription>
-                {t('products.baseUnitDescription')}
-              </FormDescription>
+              <FormLabel>{t('products.baseUnit')}</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading || isLoadingUomDefinitions}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingUomDefinitions ? t('common.loading') : t('products.selectBaseUnit')} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {isLoadingUomDefinitions ? (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ) : uomDefinitions && uomDefinitions.length > 0 ? (
+                    uomDefinitions.map((uom) => (
+                      <SelectItem key={uom.id} value={uom.id.toString()}>
+                        {uom.name} ({uom.code})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+                      <p className="mb-2">{t('products.noUomsDefined')}</p>
+                      <Link to="/products?tab=uoms" className="text-primary hover:underline inline-flex items-center gap-1">
+                        <Settings className="h-3 w-3" />
+                        {t('products.goToSettings')}
+                      </Link>
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
