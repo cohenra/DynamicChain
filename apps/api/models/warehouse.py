@@ -39,6 +39,16 @@ class Warehouse(Base):
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="warehouses")
+    zones: Mapped[list["Zone"]] = relationship(
+        "Zone",
+        back_populates="warehouse",
+        cascade="all, delete-orphan"
+    )
+    locations: Mapped[list["Location"]] = relationship(
+        "Location",
+        back_populates="warehouse",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Warehouse(id={self.id}, code='{self.code}', name='{self.name}')>"
