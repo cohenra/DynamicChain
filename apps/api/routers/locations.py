@@ -89,7 +89,7 @@ async def bulk_create_locations(
 async def list_locations(
     warehouse_id: Optional[int] = Query(None, description="Filter by warehouse ID"),
     zone_id: Optional[int] = Query(None, description="Filter by zone ID"),
-    usage: Optional[str] = Query(None, description="Filter by usage type (PICKING, STORAGE, etc.)"),
+    usage_id: Optional[int] = Query(None, description="Filter by usage definition ID"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
     current_user: User = Depends(get_current_user),
@@ -98,12 +98,12 @@ async def list_locations(
     """
     List all locations for the authenticated user's tenant.
 
-    Supports filtering by warehouse, zone, usage, and pagination.
+    Supports filtering by warehouse, zone, usage_id, and pagination.
 
     Args:
         warehouse_id: Optional warehouse ID to filter locations
         zone_id: Optional zone ID to filter locations
-        usage: Optional usage type to filter (PICKING, STORAGE, INBOUND, OUTBOUND, HANDOFF, QUARANTINE)
+        usage_id: Optional usage definition ID to filter
         skip: Number of records to skip (default: 0)
         limit: Maximum records to return (default: 100, max: 1000)
         current_user: Authenticated user from JWT token
@@ -113,7 +113,6 @@ async def list_locations(
         List[LocationResponse]: List of locations for this tenant
 
     Raises:
-        400: If usage value is invalid
         401: If user is not authenticated
     """
     location_service = LocationService(db)
@@ -121,7 +120,7 @@ async def list_locations(
         tenant_id=current_user.tenant_id,
         warehouse_id=warehouse_id,
         zone_id=zone_id,
-        usage=usage,
+        usage_id=usage_id,
         skip=skip,
         limit=limit
     )
