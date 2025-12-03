@@ -147,6 +147,7 @@
     "enterZipcode": "أدخل الرمز البريدي",
     "nameRequired": "الاسم حقل مطلوب",
     "codeRequired": "الرمز حقل مطلوب",
+    "addressRequired": "العنوان حقل مطلوب",
     "editWarehouse": "تعديل المستودع",
     "editWarehouseDescription": "تعديل تفاصيل المستودع"
   },

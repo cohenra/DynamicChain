@@ -147,6 +147,7 @@
     "enterZipcode": "Enter zip code",
     "nameRequired": "Name is a required field",
     "codeRequired": "Code is a required field",
+    "addressRequired": "Address is a required field",
     "editWarehouse": "Edit Warehouse",
     "editWarehouseDescription": "Edit warehouse details"
   },

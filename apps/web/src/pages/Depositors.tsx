@@ -129,9 +129,9 @@ export default function Depositors() {
     form.reset({
       name: depositor.name,
       code: depositor.code,
-      contact_name: depositor.contact_name || '',
-      contact_phone: depositor.contact_phone || '',
-      contact_email: depositor.contact_email || '',
+      contact_name: depositor.contact_info?.name || '',
+      contact_phone: depositor.contact_info?.phone || '',
+      contact_email: depositor.contact_info?.email || '',
     });
     setIsSheetOpen(true);
   };
@@ -146,9 +146,11 @@ export default function Depositors() {
     const data: DepositorCreate = {
       name: values.name,
       code: values.code,
-      contact_name: values.contact_name || null,
-      contact_phone: values.contact_phone || null,
-      contact_email: values.contact_email || null,
+      contact_info: {
+        name: values.contact_name || '',
+        phone: values.contact_phone || '',
+        email: values.contact_email || '',
+      },
     };
 
     if (editingDepositor) {
@@ -221,17 +223,17 @@ export default function Depositors() {
                   <TableCell className="font-medium">{depositor.name}</TableCell>
                   <TableCell>{depositor.code}</TableCell>
                   <TableCell>
-                    {depositor.contact_name || (
+                    {depositor.contact_info?.name || (
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    {depositor.contact_phone || (
+                    {depositor.contact_info?.phone || (
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    {depositor.contact_email || (
+                    {depositor.contact_info?.email || (
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>

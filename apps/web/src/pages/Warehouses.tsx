@@ -26,6 +26,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, XCircle, Pencil, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,10 +36,7 @@ import { useTranslation } from 'react-i18next';
 type WarehouseFormValues = {
   name: string;
   code: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  zipcode?: string;
+  address: string;
 };
 
 export default function Warehouses() {
@@ -53,10 +51,7 @@ export default function Warehouses() {
       z.object({
         name: z.string().min(1, t('warehouses.nameRequired')),
         code: z.string().min(1, t('warehouses.codeRequired')),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        country: z.string().optional(),
-        zipcode: z.string().optional(),
+        address: z.string().min(1, t('warehouses.addressRequired')),
       }),
     [t]
   );
@@ -109,9 +104,6 @@ export default function Warehouses() {
       name: '',
       code: '',
       address: '',
-      city: '',
-      country: '',
-      zipcode: '',
     },
   });
 
@@ -121,9 +113,6 @@ export default function Warehouses() {
       name: '',
       code: '',
       address: '',
-      city: '',
-      country: '',
-      zipcode: '',
     });
     setIsSheetOpen(true);
   };
@@ -133,10 +122,7 @@ export default function Warehouses() {
     form.reset({
       name: warehouse.name,
       code: warehouse.code,
-      address: warehouse.address || '',
-      city: warehouse.city || '',
-      country: warehouse.country || '',
-      zipcode: warehouse.zipcode || '',
+      address: warehouse.address,
     });
     setIsSheetOpen(true);
   };
@@ -151,10 +137,7 @@ export default function Warehouses() {
     const data: WarehouseCreate = {
       name: values.name,
       code: values.code,
-      address: values.address || null,
-      city: values.city || null,
-      country: values.country || null,
-      zipcode: values.zipcode || null,
+      address: values.address,
     };
 
     if (editingWarehouse) {
@@ -216,9 +199,6 @@ export default function Warehouses() {
                 <TableHead>{t('warehouses.name')}</TableHead>
                 <TableHead>{t('warehouses.code')}</TableHead>
                 <TableHead>{t('warehouses.address')}</TableHead>
-                <TableHead>{t('warehouses.city')}</TableHead>
-                <TableHead>{t('warehouses.country')}</TableHead>
-                <TableHead>{t('warehouses.zipcode')}</TableHead>
                 <TableHead className="text-right">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -227,26 +207,7 @@ export default function Warehouses() {
                 <TableRow key={warehouse.id}>
                   <TableCell className="font-medium">{warehouse.name}</TableCell>
                   <TableCell>{warehouse.code}</TableCell>
-                  <TableCell>
-                    {warehouse.address || (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {warehouse.city || (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {warehouse.country || (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {warehouse.zipcode || (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
+                  <TableCell className="max-w-md truncate">{warehouse.address}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button
@@ -327,83 +288,24 @@ export default function Warehouses() {
                   )}
                 />
 
-                <div className="pt-4 border-t">
-                  <h3 className="text-sm font-medium mb-4">{t('warehouses.locationOptional')}</h3>
-
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('warehouses.address')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={t('warehouses.enterAddress')}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('warehouses.city')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={t('warehouses.enterCity')}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('warehouses.country')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={t('warehouses.enterCountry')}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="zipcode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('warehouses.zipcode')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={t('warehouses.enterZipcode')}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('warehouses.address')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder={t('warehouses.enterAddress')}
+                          disabled={isSubmitting}
+                          rows={4}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="flex justify-end pt-4">
                   <Button type="submit" disabled={isSubmitting}>
