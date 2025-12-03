@@ -33,6 +33,7 @@ class Product(Base):
     sku: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     barcode: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    base_unit: Mapped[str | None] = mapped_column(String(50), nullable=True)
     custom_attributes: Mapped[Dict[str, Any]] = mapped_column(
         JSONB,
         nullable=False,
@@ -54,6 +55,11 @@ class Product(Base):
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="products")
     depositor: Mapped[Optional["Depositor"]] = relationship("Depositor", back_populates="products")
+    uoms: Mapped[list["ProductUOM"]] = relationship(
+        "ProductUOM",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Product(id={self.id}, sku='{self.sku}', name='{self.name}')>"

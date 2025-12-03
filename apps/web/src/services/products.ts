@@ -7,6 +7,7 @@ export interface Product {
   sku: string;
   name: string;
   barcode: string | null;
+  base_unit: string | null;
   custom_attributes: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -17,6 +18,7 @@ export interface ProductCreate {
   sku: string;
   name: string;
   barcode?: string | null;
+  base_unit?: string | null;
   custom_attributes?: Record<string, any>;
 }
 
