@@ -53,6 +53,10 @@
   "products": {
     "title": "Товары",
     "description": "Управляйте товарами на складе с пользовательскими атрибутами",
+    "tabs": {
+      "catalog": "Каталог товаров",
+      "uoms": "Единицы измерения"
+    },
     "addProduct": "Добавить товар",
     "addNewProduct": "Добавить новый товар",
     "addProductDescription": "Заполните данные товара и добавьте пользовательские атрибуты при необходимости",
@@ -157,5 +161,29 @@
     "russian": "Русский",
     "arabic": "العربية",
     "selectLanguage": "Выбрать язык"
+  },
+  "uomDefinitions": {
+    "title": "Единицы измерения",
+    "description": "Управление типами упаковки",
+    "addUom": "Добавить ЕИ",
+    "editUom": "Редактировать ЕИ",
+    "code": "Код",
+    "name": "Название",
+    "codePlaceholder": "Например: PLT, BOX",
+    "namePlaceholder": "Например: Паллет, Коробка",
+    "addDescription": "Создать новую единицу измерения",
+    "editDescription": "Обновить данные единицы измерения",
+    "noUoms": "Единицы измерения не определены",
+    "createSuccess": "ЕИ создана успешно",
+    "createSuccessDescription": "Единица измерения добавлена",
+    "createError": "Ошибка создания ЕИ",
+    "updateSuccess": "ЕИ обновлена успешно",
+    "updateSuccessDescription": "Единица измерения обновлена",
+    "updateError": "Ошибка обновления ЕИ",
+    "deleteSuccess": "ЕИ удалена успешно",
+    "deleteSuccessDescription": "Единица измерения удалена",
+    "deleteError": "Ошибка удаления ЕИ",
+    "deleteConfirmTitle": "Удалить ЕИ?",
+    "deleteConfirmDescription": "Это действие необратимо."
   }
 }

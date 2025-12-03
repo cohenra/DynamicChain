@@ -53,6 +53,10 @@
   "products": {
     "title": "المنتجات",
     "description": "إدارة منتجات المخزون مع سمات مخصصة",
+    "tabs": {
+      "catalog": "كتالوج المنتجات",
+      "uoms": "وحدات القياس"
+    },
     "addProduct": "إضافة منتج",
     "addNewProduct": "إضافة منتج جديد",
     "addProductDescription": "املأ تفاصيل المنتج وأضف سمات مخصصة حسب الحاجة",
@@ -157,5 +161,29 @@
     "russian": "Русский",
     "arabic": "العربية",
     "selectLanguage": "اختر اللغة"
+  },
+  "uomDefinitions": {
+    "title": "وحدات القياس",
+    "description": "إدارة وحدات القياس",
+    "addUom": "إضافة وحدة",
+    "editUom": "تعديل الوحدة",
+    "code": "الرمز",
+    "name": "الاسم",
+    "codePlaceholder": "مثال: BOX, PLT",
+    "namePlaceholder": "مثال: صندوق، منصة",
+    "addDescription": "إنشاء وحدة قياس جديدة",
+    "editDescription": "تحديث تفاصيل وحدة القياس",
+    "noUoms": "لا توجد وحدات قياس",
+    "createSuccess": "تم إنشاء وحدة القياس بنجاح",
+    "createSuccessDescription": "تم إضافة وحدة القياس",
+    "createError": "خطأ في إنشاء وحدة القياس",
+    "updateSuccess": "تم تحديث وحدة القياس بنجاح",
+    "updateSuccessDescription": "تم تحديث وحدة القياس",
+    "updateError": "خطأ في تحديث وحدة القياس",
+    "deleteSuccess": "تم حذف وحدة القياس بنجاح",
+    "deleteSuccessDescription": "تم إزالة وحدة القياس",
+    "deleteError": "خطأ في حذف وحدة القياس",
+    "deleteConfirmTitle": "حذف وحدة القياس؟",
+    "deleteConfirmDescription": "لا يمكن التراجع عن هذا الإجراء."
   }
 }
