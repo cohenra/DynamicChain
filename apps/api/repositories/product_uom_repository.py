@@ -29,18 +29,18 @@ class ProductUOMRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_product_and_name(
+    async def get_by_product_and_uom_id(
         self,
         product_id: int,
-        uom_name: str,
+        uom_id: int,
         tenant_id: int
     ) -> Optional[ProductUOM]:
-        """Get a ProductUOM by product_id and uom_name with tenant isolation."""
+        """Get a ProductUOM by product_id and uom_id with tenant isolation."""
         result = await self.db.execute(
             select(ProductUOM).where(
                 and_(
                     ProductUOM.product_id == product_id,
-                    ProductUOM.uom_name == uom_name,
+                    ProductUOM.uom_id == uom_id,
                     ProductUOM.tenant_id == tenant_id
                 )
             )

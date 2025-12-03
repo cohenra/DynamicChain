@@ -4,7 +4,7 @@ export interface ProductUOM {
   id: number;
   product_id: number;
   tenant_id: number;
-  uom_name: string;
+  uom_id: number;
   conversion_factor: number;
   barcode: string | null;
   length: number | null;
@@ -18,7 +18,7 @@ export interface ProductUOM {
 
 export interface ProductUOMCreate {
   product_id: number;
-  uom_name: string;
+  uom_id: number;
   conversion_factor: number;
   barcode?: string | null;
   length?: number | null;
@@ -29,7 +29,7 @@ export interface ProductUOMCreate {
 }
 
 export interface ProductUOMUpdate {
-  uom_name?: string;
+  uom_id?: number;
   conversion_factor?: number;
   barcode?: string | null;
   length?: number | null;

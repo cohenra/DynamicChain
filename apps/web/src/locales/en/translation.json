@@ -34,7 +34,8 @@
     "depositors": "Depositors",
     "warehouses": "Warehouses",
     "locations": "Locations",
-    "invoices": "Invoices"
+    "invoices": "Invoices",
+    "uomDefinitions": "Units of Measure"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -198,5 +199,29 @@
     "russian": "Русский",
     "arabic": "العربية",
     "selectLanguage": "Select Language"
+  },
+  "uomDefinitions": {
+    "title": "Units of Measure",
+    "description": "Manage standardized units of measure used across products",
+    "addUom": "Add UOM",
+    "editUom": "Edit UOM",
+    "code": "Code",
+    "name": "Name",
+    "codePlaceholder": "e.g., BOX, PLT, EA",
+    "namePlaceholder": "e.g., Box, Pallet, Each",
+    "addDescription": "Create a new unit of measure definition",
+    "editDescription": "Update unit of measure details",
+    "noUoms": "No units of measure defined. Add your first UOM to get started.",
+    "createSuccess": "UOM created successfully",
+    "createSuccessDescription": "The unit of measure has been added",
+    "createError": "Failed to create UOM",
+    "updateSuccess": "UOM updated successfully",
+    "updateSuccessDescription": "The unit of measure has been updated",
+    "updateError": "Failed to update UOM",
+    "deleteSuccess": "UOM deleted successfully",
+    "deleteSuccessDescription": "The unit of measure has been removed",
+    "deleteError": "Failed to delete UOM",
+    "deleteConfirmTitle": "Delete Unit of Measure?",
+    "deleteConfirmDescription": "This action cannot be undone. Products using this UOM may be affected."
   }
 }
