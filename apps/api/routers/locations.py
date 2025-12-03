@@ -58,8 +58,8 @@ async def bulk_create_locations(
     """
     Bulk create locations from a range configuration.
 
-    Generates multiple locations based on aisle, bay range, and level range.
-    Example: Aisle A, Bays 1-10, Levels 1-5 creates locations A-01-01 through A-10-05.
+    Generates multiple locations based on aisle, bay range, level range, and slot range.
+    Example: Aisle A, Bays 1-10, Levels 1-5, Slots 1-2 creates locations A-01-01-01 through A-10-05-02.
 
     Args:
         config: Bulk creation configuration with ranges and settings

@@ -1,8 +1,15 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, WarehouseCreate, Warehouse } from '@/services/warehouses';
 import { Button } from '@/components/ui/button';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getExpandedRowModel,
+  ColumnDef,
+  flexRender,
+  ExpandedState,
+} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -28,11 +35,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, XCircle, Pencil, Trash2, Eye } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, XCircle, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useTranslation } from 'react-i18next';
+import { ZonesTab } from '@/components/warehouse/ZonesTab';
+import { LocationsTab } from '@/components/warehouse/LocationsTab';
 
 type WarehouseFormValues = {
   name: string;
@@ -43,9 +53,9 @@ type WarehouseFormValues = {
 export default function Warehouses() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [expanded, setExpanded] = useState<ExpandedState>({});
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   // Create schema with translations
   const warehouseSchema = useMemo(
@@ -149,6 +159,79 @@ export default function Warehouses() {
     }
   };
 
+  // Define columns with row expansion
+  const columns: ColumnDef<Warehouse>[] = [
+    {
+      id: 'expander',
+      header: () => null,
+      cell: ({ row }) => {
+        return row.getCanExpand() ? (
+          <button
+            onClick={row.getToggleExpandedHandler()}
+            className="cursor-pointer"
+          >
+            {row.getIsExpanded() ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        ) : null;
+      },
+    },
+    {
+      accessorKey: 'name',
+      header: t('warehouses.name'),
+      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+    },
+    {
+      accessorKey: 'code',
+      header: t('warehouses.code'),
+    },
+    {
+      accessorKey: 'address',
+      header: t('warehouses.address'),
+      cell: ({ row }) => <span className="max-w-md truncate">{row.original.address}</span>,
+    },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(row.original)}
+            title={t('common.edit')}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(row.original.id)}
+            title={t('common.delete')}
+            disabled={deleteWarehouseMutation.isPending}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const table = useReactTable({
+    data: warehouses || [],
+    columns,
+    state: {
+      expanded,
+    },
+    onExpandedChange: setExpanded,
+    getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => true,
+  });
+
   const isSubmitting = createWarehouseMutation.isPending || updateWarehouseMutation.isPending;
   const submitError = createWarehouseMutation.error || updateWarehouseMutation.error;
 
@@ -197,49 +280,51 @@ export default function Warehouses() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>{t('warehouses.name')}</TableHead>
-                <TableHead>{t('warehouses.code')}</TableHead>
-                <TableHead>{t('warehouses.address')}</TableHead>
-                <TableHead className="text-right">{t('common.actions')}</TableHead>
-              </TableRow>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className={header.id === 'actions' ? 'text-right' : ''}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
             </TableHeader>
             <TableBody>
-              {warehouses?.map((warehouse) => (
-                <TableRow key={warehouse.id}>
-                  <TableCell className="font-medium">{warehouse.name}</TableCell>
-                  <TableCell>{warehouse.code}</TableCell>
-                  <TableCell className="max-w-md truncate">{warehouse.address}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/warehouses/${warehouse.id}`)}
-                        title={t('common.view')}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(warehouse)}
-                        title={t('common.edit')}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(warehouse.id)}
-                        title={t('common.delete')}
-                        disabled={deleteWarehouseMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+              {table.getRowModel().rows.map((row) => (
+                <Fragment key={row.id}>
+                  <TableRow>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className={cell.column.id === 'actions' ? 'text-right' : ''}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {row.getIsExpanded() && (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="p-0">
+                        <div className="bg-gray-50 dark:bg-gray-900 p-6">
+                          <Tabs defaultValue="zones" className="w-full">
+                            <TabsList>
+                              <TabsTrigger value="zones">{t('zones.title')}</TabsTrigger>
+                              <TabsTrigger value="locations">{t('locations.title')}</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="zones" className="mt-6">
+                              <ZonesTab warehouseId={row.original.id} />
+                            </TabsContent>
+
+                            <TabsContent value="locations" className="mt-6">
+                              <LocationsTab warehouseId={row.original.id} />
+                            </TabsContent>
+                          </Tabs>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
               ))}
             </TableBody>
           </Table>

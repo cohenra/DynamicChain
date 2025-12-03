@@ -79,6 +79,7 @@ class LocationService:
             aisle=location_data.aisle,
             bay=location_data.bay,
             level=location_data.level,
+            slot=location_data.slot,
             type=location_data.type,
             usage=location_data.usage,
             pick_sequence=location_data.pick_sequence
@@ -139,43 +140,52 @@ class LocationService:
                 detail="Level end must be greater than or equal to level start"
             )
 
+        if config.slot_end < config.slot_start:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Slot end must be greater than or equal to slot start"
+            )
+
         # Generate locations
         locations = []
         pick_sequence = config.pick_sequence_start
 
         for bay_num in range(config.bay_start, config.bay_end + 1):
             for level_num in range(config.level_start, config.level_end + 1):
-                bay_str = str(bay_num).zfill(2)  # Zero-pad to 2 digits
-                level_str = str(level_num).zfill(2)  # Zero-pad to 2 digits
-                location_name = f"{config.aisle}-{bay_str}-{level_str}"
+                for slot_num in range(config.slot_start, config.slot_end + 1):
+                    bay_str = str(bay_num).zfill(2)  # Zero-pad to 2 digits
+                    level_str = str(level_num).zfill(2)  # Zero-pad to 2 digits
+                    slot_str = str(slot_num).zfill(2)  # Zero-pad to 2 digits
+                    location_name = f"{config.aisle}-{bay_str}-{level_str}-{slot_str}"
 
-                # Check if location already exists
-                existing = await self.location_repo.get_by_name(
-                    name=location_name,
-                    warehouse_id=config.warehouse_id,
-                    tenant_id=tenant_id
-                )
-
-                if existing:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Location '{location_name}' already exists in this warehouse"
+                    # Check if location already exists
+                    existing = await self.location_repo.get_by_name(
+                        name=location_name,
+                        warehouse_id=config.warehouse_id,
+                        tenant_id=tenant_id
                     )
 
-                location = Location(
-                    tenant_id=tenant_id,
-                    warehouse_id=config.warehouse_id,
-                    zone_id=config.zone_id,
-                    name=location_name,
-                    aisle=config.aisle,
-                    bay=bay_str,
-                    level=level_str,
-                    type=config.type,
-                    usage=config.usage,
-                    pick_sequence=pick_sequence
-                )
-                locations.append(location)
-                pick_sequence += 1
+                    if existing:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Location '{location_name}' already exists in this warehouse"
+                        )
+
+                    location = Location(
+                        tenant_id=tenant_id,
+                        warehouse_id=config.warehouse_id,
+                        zone_id=config.zone_id,
+                        name=location_name,
+                        aisle=config.aisle,
+                        bay=bay_str,
+                        level=level_str,
+                        slot=slot_str,
+                        type=config.type,
+                        usage=config.usage,
+                        pick_sequence=pick_sequence
+                    )
+                    locations.append(location)
+                    pick_sequence += 1
 
         # Bulk create all locations
         return await self.location_repo.bulk_create(locations)
@@ -300,6 +310,8 @@ class LocationService:
             location.bay = location_data.bay
         if location_data.level is not None:
             location.level = location_data.level
+        if location_data.slot is not None:
+            location.slot = location_data.slot
         if location_data.type is not None:
             location.type = location_data.type
         if location_data.usage is not None:

@@ -40,10 +40,11 @@ class Location(Base):
     tenant_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    name: Mapped[str] = mapped_column(String(100), nullable=False)  # Barcode like A-01-01
+    name: Mapped[str] = mapped_column(String(100), nullable=False)  # Barcode like A-01-01-01
     aisle: Mapped[str] = mapped_column(String(50), nullable=False)
     bay: Mapped[str] = mapped_column(String(50), nullable=False)
     level: Mapped[str] = mapped_column(String(50), nullable=False)
+    slot: Mapped[str] = mapped_column(String(50), nullable=False)
     type: Mapped[LocationType] = mapped_column(
         Enum(LocationType, name="location_type_enum"), nullable=False
     )
@@ -63,7 +64,7 @@ class Location(Base):
 
     # Constraints
     __table_args__ = (
-        UniqueConstraint("tenant_id", "warehouse_id", "name", name="uq_location_name_per_warehouse"),
+        UniqueConstraint("warehouse_id", "name", name="uq_location_name_per_warehouse"),
         Index("ix_locations_tenant_id", "tenant_id"),
         Index("ix_locations_warehouse_id", "warehouse_id"),
         Index("ix_locations_zone_id", "zone_id"),
