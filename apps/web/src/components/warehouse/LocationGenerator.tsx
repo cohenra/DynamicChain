@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,7 +29,7 @@ import {
 } from '@/services/locations';
 import { Zone } from '@/services/zones';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowDownUp, Route } from 'lucide-react';
 
 interface LocationGeneratorProps {
   warehouseId: number;
@@ -64,6 +65,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
     type_id: z.string().min(1, t('locations.typeRequired')),
     usage_id: z.string().min(1, t('locations.usageRequired')),
     pick_sequence_start: z.string().optional(),
+    picking_strategy: z.enum(['ASCENDING', 'SNAKE_ODD_EVEN']), // שדה חדש לאסטרטגיה
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,6 +82,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
       type_id: '',
       usage_id: '',
       pick_sequence_start: '0',
+      picking_strategy: 'ASCENDING', // ברירת מחדל: רגיל
     },
   });
 
@@ -130,6 +133,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
       type_id: parseInt(values.type_id),
       usage_id: parseInt(values.usage_id),
       pick_sequence_start: parseInt(values.pick_sequence_start || '0'),
+      picking_strategy: values.picking_strategy, // שליחת האסטרטגיה לשרת
     };
 
     bulkCreateMutation.mutate(config);
@@ -144,7 +148,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
   return (
     <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6 pb-20">
           
           <FormField
             control={form.control}
@@ -215,7 +219,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             )} />
           </div>
 
-          {/* Slot Range - NEW */}
+          {/* Slot Range */}
           <div className="grid grid-cols-2 gap-4">
             <FormField control={form.control} name="slot_start" render={({ field }) => (
               <FormItem>
@@ -231,40 +235,104 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             )} />
           </div>
 
-          {/* Type & Usage - Dynamic */}
-          <FormField
-            control={form.control}
-            name="type_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('locations.type')}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    {types?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Picking Strategy Section */}
+          <div className="bg-muted/30 p-4 rounded-lg border border-muted">
+            <div className="flex items-center gap-2 mb-4">
+              <Route className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-sm">הגדרות מסלול ליקוט</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="picking_strategy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>אסטרטגיית מספור</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ASCENDING">
+                          <div className="flex items-center gap-2">
+                            <ArrowDownUp className="h-4 w-4" />
+                            <span>רגיל (עולה תמיד)</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="SNAKE_ODD_EVEN">
+                          <div className="flex items-center gap-2">
+                            <Route className="h-4 w-4" />
+                            <span>נחש (Z-Pick יעיל)</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-xs">
+                      {field.value === 'ASCENDING' 
+                        ? 'מספור עולה בכל המפרצים (פחות יעיל למלגזה)'
+                        : 'עולה במפרץ אי-זוגי, יורד במפרץ זוגי (חוסך נסיעה)'}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="usage_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('locations.usage')}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    {usages?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="pick_sequence_start"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('locations.pickSequenceStart')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" {...field} />
+                    </FormControl>
+                    <FormDescription className="text-xs">מספר התחלתי לרצף</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Type & Usage */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="type_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('locations.type')}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {types?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="usage_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('locations.usage')}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {usages?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <Card>
             <CardContent className="pt-6">
