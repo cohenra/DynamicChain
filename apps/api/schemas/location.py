@@ -11,8 +11,8 @@ class LocationBase(BaseModel):
     bay: str = Field(..., min_length=1, max_length=50, description="Bay identifier (e.g., '01')")
     level: str = Field(..., min_length=1, max_length=50, description="Level identifier (e.g., '01')")
     slot: str = Field(..., min_length=1, max_length=50, description="Slot/Bin identifier (e.g., '01')")
-    type: LocationType = Field(..., description="Location type (SHELF, PALLET_RACK, FLOOR, CAGED)")
-    usage: LocationUsage = Field(..., description="Location usage (PICKING, STORAGE, INBOUND, OUTBOUND, HANDOFF, QUARANTINE)")
+    type_id: int = Field(..., description="ID of the location type definition")
+    usage_id: int = Field(..., description="ID of the location usage definition")
     pick_sequence: int = Field(default=0, description="Pick sequence for walk path sorting")
 
 
@@ -29,8 +29,8 @@ class LocationUpdate(BaseModel):
     bay: Optional[str] = Field(None, min_length=1, max_length=50)
     level: Optional[str] = Field(None, min_length=1, max_length=50)
     slot: Optional[str] = Field(None, min_length=1, max_length=50)
-    type: Optional[LocationType] = None
-    usage: Optional[LocationUsage] = None
+    type_id: Optional[int] = None
+    usage_id: Optional[int] = None
     pick_sequence: Optional[int] = None
 
 
@@ -64,9 +64,10 @@ class LocationBulkCreateConfig(BaseModel):
     level_end: int = Field(..., ge=1, description="Ending level number")
     slot_start: int = Field(..., ge=1, description="Starting slot number")
     slot_end: int = Field(..., ge=1, description="Ending slot number")
-    type: LocationType = Field(..., description="Location type for all generated locations")
-    usage: LocationUsage = Field(..., description="Location usage for all generated locations")
+    type_id: int = Field(..., description="ID of the location type definition for all generated locations")
+    usage_id: int = Field(..., description="ID of the location usage definition for all generated locations")
     pick_sequence_start: int = Field(default=0, description="Starting pick sequence number")
+    picking_strategy: str = Field(default="ASCENDING", description="Pick sequence generation strategy (ASCENDING, SNAKE_ODD_EVEN)")
 
 
 class LocationBulkCreateResponse(BaseModel):

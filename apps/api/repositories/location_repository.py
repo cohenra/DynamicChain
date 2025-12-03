@@ -2,7 +2,7 @@ from typing import Optional, List
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from models.location import Location, LocationUsage
+from models.location import Location
 
 
 class LocationRepository:
@@ -80,7 +80,7 @@ class LocationRepository:
         tenant_id: int,
         warehouse_id: Optional[int] = None,
         zone_id: Optional[int] = None,
-        usage: Optional[LocationUsage] = None,
+        usage_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 100
     ) -> List[Location]:
@@ -100,8 +100,8 @@ class LocationRepository:
         if zone_id is not None:
             query = query.where(Location.zone_id == zone_id)
 
-        if usage is not None:
-            query = query.where(Location.usage == usage)
+        if usage_id is not None:
+            query = query.where(Location.usage_id == usage_id)
 
         query = query.offset(skip).limit(limit).order_by(Location.pick_sequence, Location.name)
 
@@ -113,7 +113,7 @@ class LocationRepository:
         tenant_id: int,
         warehouse_id: Optional[int] = None,
         zone_id: Optional[int] = None,
-        usage: Optional[LocationUsage] = None
+        usage_id: Optional[int] = None
     ) -> int:
         """Count total locations for a tenant with optional filters."""
         query = select(func.count(Location.id)).where(Location.tenant_id == tenant_id)
@@ -124,8 +124,8 @@ class LocationRepository:
         if zone_id is not None:
             query = query.where(Location.zone_id == zone_id)
 
-        if usage is not None:
-            query = query.where(Location.usage == usage)
+        if usage_id is not None:
+            query = query.where(Location.usage_id == usage_id)
 
         result = await self.db.execute(query)
         return result.scalar_one()

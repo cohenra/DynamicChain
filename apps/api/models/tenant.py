@@ -48,6 +48,16 @@ class Tenant(Base):
         back_populates="tenant",
         cascade="all, delete-orphan"
     )
+    location_type_definitions: Mapped[list["LocationTypeDefinition"]] = relationship(
+        "LocationTypeDefinition",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+    location_usage_definitions: Mapped[list["LocationUsageDefinition"]] = relationship(
+        "LocationUsageDefinition",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
     zones: Mapped[list["Zone"]] = relationship(
         "Zone",
         back_populates="tenant",
