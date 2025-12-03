@@ -5,7 +5,6 @@ import {
   Location,
   LocationCreate,
   LocationUpdate,
-  LocationUsage,
 } from '@/services/locations';
 import { zoneService } from '@/services/zones';
 import { Button } from '@/components/ui/button';
@@ -64,7 +63,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
   const [filterZoneId, setFilterZoneId] = useState<number | undefined>();
-  const [filterUsage, setFilterUsage] = useState<LocationUsage | undefined>();
+  const [filterUsageId, setFilterUsageId] = useState<number | undefined>();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -74,14 +73,20 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     queryFn: () => zoneService.getZones(warehouseId),
   });
 
+  // Fetch usages for filter
+  const { data: usages } = useQuery({
+    queryKey: ['locationUsages'],
+    queryFn: locationService.getLocationUsages,
+  });
+
   // Fetch locations
   const { data: locations, isLoading, isError } = useQuery({
-    queryKey: ['locations', warehouseId, filterZoneId, filterUsage],
+    queryKey: ['locations', warehouseId, filterZoneId, filterUsageId],
     queryFn: () =>
       locationService.getLocations({
         warehouse_id: warehouseId,
         zone_id: filterZoneId,
-        usage: filterUsage,
+        usage_id: filterUsageId,
       }),
   });
 
@@ -131,18 +136,6 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
   });
 
-  // Usage badge variant
-  const getUsageBadgeVariant = (usage: LocationUsage) => {
-    switch (usage) {
-      case LocationUsage.PICKING:
-        return 'default';
-      case LocationUsage.STORAGE:
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
   // Table columns
   const columns: ColumnDef<Location>[] = [
     {
@@ -155,18 +148,20 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       cell: ({ row }) => getZoneName(row.original.zone_id),
     },
     {
-      accessorKey: 'usage',
+      accessorKey: 'usage_id',
       header: t('locations.usage'),
-      cell: ({ row }) => (
-        <Badge variant={getUsageBadgeVariant(row.original.usage)}>
-          {t(`locations.usage${row.original.usage}`)}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        // מנסים למצוא את השם מתוך רשימת השימושים שנטענה
+        const usageName = usages?.find(u => u.id === row.original.usage_id)?.name;
+        // אם הגיע מה-Backend עם ה-Definition (תלוי במימוש ה-API)
+        const defName = row.original.usage_definition?.name;
+        return <Badge variant="outline">{defName || usageName || row.original.usage_id}</Badge>;
+      },
     },
     {
-      accessorKey: 'type',
+      accessorKey: 'type_id',
       header: t('locations.type'),
-      cell: ({ row }) => t(`locations.type${row.original.type}`),
+      cell: ({ row }) => row.original.type_definition?.name || row.original.type_id,
     },
     {
       accessorKey: 'pick_sequence',
@@ -278,20 +273,19 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </Select>
 
         <Select
-          value={filterUsage || 'all'}
-          onValueChange={(value) => setFilterUsage(value === 'all' ? undefined : (value as LocationUsage))}
+          value={filterUsageId?.toString() || 'all'}
+          onValueChange={(value) => setFilterUsageId(value === 'all' ? undefined : parseInt(value))}
         >
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder={t('locations.filterByUsage')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('common.all')}</SelectItem>
-            <SelectItem value={LocationUsage.PICKING}>{t('locations.usagePICKING')}</SelectItem>
-            <SelectItem value={LocationUsage.STORAGE}>{t('locations.usageSTORAGE')}</SelectItem>
-            <SelectItem value={LocationUsage.INBOUND}>{t('locations.usageINBOUND')}</SelectItem>
-            <SelectItem value={LocationUsage.OUTBOUND}>{t('locations.usageOUTBOUND')}</SelectItem>
-            <SelectItem value={LocationUsage.HANDOFF}>{t('locations.usageHANDOFF')}</SelectItem>
-            <SelectItem value={LocationUsage.QUARANTINE}>{t('locations.usageQUARANTINE')}</SelectItem>
+            {usages?.map((usage) => (
+              <SelectItem key={usage.id} value={usage.id.toString()}>
+                {usage.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -334,9 +328,9 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </Table>
       </div>
 
-      {/* Location Form Sheet */}
+      {/* Location Form Sheet - Added overflow-y-auto */}
       <Sheet open={isSheetOpen} onOpenChange={handleCloseSheet}>
-        <SheetContent>
+        <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
               {editingLocation ? t('locations.editLocation') : t('locations.addLocation')}
@@ -358,7 +352,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
 
       {/* Location Generator Sheet */}
       <Sheet open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
-        <SheetContent className="sm:max-w-[600px]">
+        <SheetContent className="sm:max-w-[600px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{t('locations.generator')}</SheetTitle>
             <SheetDescription>{t('locations.generatorDescription')}</SheetDescription>
