@@ -4,7 +4,6 @@ from sqlalchemy import String, Integer, Float, ForeignKey, DateTime, UniqueConst
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
-
 class ProductUOM(Base):
     """Product Unit of Measure model for packaging levels."""
 
@@ -63,5 +62,14 @@ class ProductUOM(Base):
         foreign_keys=[uom_id]
     )
 
+    # Properties for Pydantic Serialization (The Fix!)
+    @property
+    def uom_name(self) -> str:
+        return self.uom.name if self.uom else ""
+
+    @property
+    def uom_code(self) -> str:
+        return self.uom.code if self.uom else ""
+
     def __repr__(self) -> str:
-        return f"<ProductUOM(id={self.id}, product_id={self.product_id}, uom_id={self.uom_id}, conversion_factor={self.conversion_factor})>"
+        return f"<ProductUOM(id={self.id}, product_id={self.product_id}, uom_id={self.uom_id})>"
