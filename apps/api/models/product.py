@@ -33,7 +33,11 @@ class Product(Base):
     sku: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     barcode: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    base_unit: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    base_uom_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("uom_definitions.id", ondelete="SET NULL"),
+        nullable=True
+    )
     custom_attributes: Mapped[Dict[str, Any]] = mapped_column(
         JSONB,
         nullable=False,
@@ -55,6 +59,11 @@ class Product(Base):
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="products")
     depositor: Mapped[Optional["Depositor"]] = relationship("Depositor", back_populates="products")
+    base_uom: Mapped[Optional["UomDefinition"]] = relationship(
+        "UomDefinition",
+        back_populates="products",
+        foreign_keys=[base_uom_id]
+    )
     uoms: Mapped[list["ProductUOM"]] = relationship(
         "ProductUOM",
         back_populates="product",

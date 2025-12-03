@@ -49,7 +49,7 @@ class ProductService:
             sku=product_data.sku,
             name=product_data.name,
             barcode=product_data.barcode,
-            base_unit=product_data.base_unit,
+            base_uom_id=product_data.base_uom_id,
             depositor_id=product_data.depositor_id,
             custom_attributes=product_data.custom_attributes
         )
@@ -154,8 +154,8 @@ class ProductService:
             product.name = product_data.name
         if product_data.barcode is not None:
             product.barcode = product_data.barcode
-        if product_data.base_unit is not None:
-            product.base_unit = product_data.base_unit
+        if product_data.base_uom_id is not None:
+            product.base_uom_id = product_data.base_uom_id
         if product_data.depositor_id is not None:
             product.depositor_id = product_data.depositor_id
         if product_data.custom_attributes is not None:

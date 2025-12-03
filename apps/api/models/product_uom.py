@@ -12,7 +12,7 @@ class ProductUOM(Base):
 
     # Table constraints
     __table_args__ = (
-        UniqueConstraint('product_id', 'uom_name', name='uq_product_uom_name'),
+        UniqueConstraint('product_id', 'uom_id', name='uq_product_uom_id'),
         UniqueConstraint('tenant_id', 'barcode', name='uq_tenant_barcode'),
         Index('ix_product_uoms_product_id', 'product_id'),
         Index('ix_product_uoms_tenant_id', 'tenant_id'),
@@ -30,7 +30,11 @@ class ProductUOM(Base):
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False
     )
-    uom_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    uom_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("uom_definitions.id", ondelete="CASCADE"),
+        nullable=False
+    )
     conversion_factor: Mapped[float] = mapped_column(Float, nullable=False)
     barcode: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     length: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -53,6 +57,11 @@ class ProductUOM(Base):
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="product_uoms")
     product: Mapped["Product"] = relationship("Product", back_populates="uoms")
+    uom: Mapped["UomDefinition"] = relationship(
+        "UomDefinition",
+        back_populates="product_uoms",
+        foreign_keys=[uom_id]
+    )
 
     def __repr__(self) -> str:
-        return f"<ProductUOM(id={self.id}, product_id={self.product_id}, uom_name='{self.uom_name}', conversion_factor={self.conversion_factor})>"
+        return f"<ProductUOM(id={self.id}, product_id={self.product_id}, uom_id={self.uom_id}, conversion_factor={self.conversion_factor})>"

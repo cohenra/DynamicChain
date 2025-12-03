@@ -8,7 +8,7 @@ class ProductBase(BaseModel):
     sku: str = Field(..., min_length=1, max_length=255, description="Product SKU")
     name: str = Field(..., min_length=1, max_length=255, description="Product name")
     barcode: Optional[str] = Field(None, max_length=255, description="Product barcode")
-    base_unit: Optional[str] = Field(None, max_length=50, description="Base unit name (e.g., Bottle, Each)")
+    base_uom_id: Optional[int] = Field(None, description="Base Unit of Measure ID from UOM definitions")
     depositor_id: Optional[int] = Field(None, description="Depositor ID (product owner)")
     custom_attributes: Dict[str, Any] = Field(
         default_factory=dict,
@@ -26,7 +26,7 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = Field(None, min_length=1, max_length=255)
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     barcode: Optional[str] = Field(None, max_length=255)
-    base_unit: Optional[str] = Field(None, max_length=50)
+    base_uom_id: Optional[int] = Field(None, description="Base Unit of Measure ID from UOM definitions")
     depositor_id: Optional[int] = None
     custom_attributes: Optional[Dict[str, Any]] = None
 

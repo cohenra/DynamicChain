@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class ProductUOMBase(BaseModel):
     """Base schema for ProductUOM with common fields."""
-    uom_name: str = Field(..., min_length=1, max_length=100, description="Unit of Measure name (e.g., Box, Case, Pallet)")
+    uom_id: int = Field(..., description="UOM Definition ID from UOM definitions")
     conversion_factor: float = Field(..., gt=0, description="How many base units are in this UOM (must be > 0)")
     barcode: Optional[str] = Field(None, max_length=255, description="Barcode specific to this package")
     length: Optional[float] = Field(None, gt=0, description="Length in cm")
@@ -38,7 +38,7 @@ class ProductUOMCreate(ProductUOMBase):
 
 class ProductUOMUpdate(BaseModel):
     """Schema for updating an existing ProductUOM."""
-    uom_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    uom_id: Optional[int] = Field(None, description="UOM Definition ID from UOM definitions")
     conversion_factor: Optional[float] = Field(None, gt=0)
     barcode: Optional[str] = Field(None, max_length=255)
     length: Optional[float] = Field(None, gt=0)

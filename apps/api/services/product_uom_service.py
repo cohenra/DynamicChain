@@ -44,16 +44,16 @@ class ProductUOMService:
                 detail=f"Product with ID {uom_data.product_id} not found"
             )
 
-        # Check if UOM name already exists for this product
-        existing_uom = await self.product_uom_repo.get_by_product_and_name(
+        # Check if UOM ID already exists for this product
+        existing_uom = await self.product_uom_repo.get_by_product_and_uom_id(
             product_id=uom_data.product_id,
-            uom_name=uom_data.uom_name,
+            uom_id=uom_data.uom_id,
             tenant_id=tenant_id
         )
         if existing_uom:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"UOM '{uom_data.uom_name}' already exists for this product"
+                detail=f"This UOM already exists for this product"
             )
 
         # Check barcode uniqueness if provided
@@ -75,7 +75,7 @@ class ProductUOMService:
         product_uom = ProductUOM(
             tenant_id=tenant_id,
             product_id=uom_data.product_id,
-            uom_name=uom_data.uom_name,
+            uom_id=uom_data.uom_id,
             conversion_factor=uom_data.conversion_factor,
             barcode=uom_data.barcode,
             length=uom_data.length,
@@ -198,19 +198,19 @@ class ProductUOMService:
         # Get existing ProductUOM
         product_uom = await self.get_product_uom(uom_id, tenant_id)
 
-        # Check UOM name uniqueness if being updated
-        if uom_data.uom_name and uom_data.uom_name != product_uom.uom_name:
-            existing_uom = await self.product_uom_repo.get_by_product_and_name(
+        # Check UOM ID uniqueness if being updated
+        if uom_data.uom_id and uom_data.uom_id != product_uom.uom_id:
+            existing_uom = await self.product_uom_repo.get_by_product_and_uom_id(
                 product_id=product_uom.product_id,
-                uom_name=uom_data.uom_name,
+                uom_id=uom_data.uom_id,
                 tenant_id=tenant_id
             )
             if existing_uom:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"UOM '{uom_data.uom_name}' already exists for this product"
+                    detail=f"This UOM already exists for this product"
                 )
-            product_uom.uom_name = uom_data.uom_name
+            product_uom.uom_id = uom_data.uom_id
 
         # Check barcode uniqueness if being updated
         if uom_data.barcode and uom_data.barcode != product_uom.barcode:
