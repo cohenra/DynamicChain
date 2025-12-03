@@ -80,8 +80,8 @@ class LocationService:
             bay=location_data.bay,
             level=location_data.level,
             slot=location_data.slot,
-            type=location_data.type,
-            usage=location_data.usage,
+            type_id=location_data.type_id,
+            usage_id=location_data.usage_id,
             pick_sequence=location_data.pick_sequence
         )
 
@@ -146,9 +146,20 @@ class LocationService:
                 detail="Slot end must be greater than or equal to slot start"
             )
 
-        # Generate locations
+        # Generate locations with picking strategy
         locations = []
-        pick_sequence = config.pick_sequence_start
+
+        # Calculate pick sequences based on strategy
+        if config.picking_strategy == "SNAKE_ODD_EVEN":
+            pick_sequences = self._calculate_snake_odd_even_sequences(
+                config.bay_start, config.bay_end,
+                config.level_start, config.level_end,
+                config.slot_start, config.slot_end,
+                config.pick_sequence_start
+            )
+        else:  # Default: ASCENDING
+            pick_sequences = {}
+            pick_sequence = config.pick_sequence_start
 
         for bay_num in range(config.bay_start, config.bay_end + 1):
             for level_num in range(config.level_start, config.level_end + 1):
@@ -171,6 +182,13 @@ class LocationService:
                             detail=f"Location '{location_name}' already exists in this warehouse"
                         )
 
+                    # Get pick sequence based on strategy
+                    if config.picking_strategy == "SNAKE_ODD_EVEN":
+                        current_pick_seq = pick_sequences.get((bay_num, level_num, slot_num), pick_sequence)
+                    else:
+                        current_pick_seq = pick_sequence
+                        pick_sequence += 1
+
                     location = Location(
                         tenant_id=tenant_id,
                         warehouse_id=config.warehouse_id,
@@ -180,15 +198,72 @@ class LocationService:
                         bay=bay_str,
                         level=level_str,
                         slot=slot_str,
-                        type=config.type,
-                        usage=config.usage,
-                        pick_sequence=pick_sequence
+                        type_id=config.type_id,
+                        usage_id=config.usage_id,
+                        pick_sequence=current_pick_seq
                     )
                     locations.append(location)
-                    pick_sequence += 1
 
         # Bulk create all locations
         return await self.location_repo.bulk_create(locations)
+
+    def _calculate_snake_odd_even_sequences(
+        self,
+        bay_start: int,
+        bay_end: int,
+        level_start: int,
+        level_end: int,
+        slot_start: int,
+        slot_end: int,
+        start_seq: int
+    ) -> dict:
+        """
+        Calculate pick sequences using Z-picking (snake odd/even) strategy.
+
+        This strategy creates an efficient picking path by:
+        - Going up odd slots/levels in ascending order
+        - Coming down even slots/levels in descending order
+        - Creating a snake pattern that minimizes travel distance
+
+        Args:
+            bay_start, bay_end: Bay range
+            level_start, level_end: Level range
+            slot_start, slot_end: Slot range
+            start_seq: Starting sequence number
+
+        Returns:
+            Dictionary mapping (bay, level, slot) tuples to pick sequence numbers
+        """
+        sequences = {}
+        current_seq = start_seq
+
+        for bay_num in range(bay_start, bay_end + 1):
+            # Determine if this bay is odd or even
+            bay_is_odd = (bay_num % 2 == 1)
+
+            # For odd bays, go ascending (bottom to top)
+            # For even bays, go descending (top to bottom)
+            level_range = (
+                range(level_start, level_end + 1) if bay_is_odd
+                else range(level_end, level_start - 1, -1)
+            )
+
+            for level_num in level_range:
+                # Determine if this level is odd or even
+                level_is_odd = (level_num % 2 == 1)
+
+                # For odd levels, go ascending (left to right)
+                # For even levels, go descending (right to left)
+                slot_range = (
+                    range(slot_start, slot_end + 1) if level_is_odd
+                    else range(slot_end, slot_start - 1, -1)
+                )
+
+                for slot_num in slot_range:
+                    sequences[(bay_num, level_num, slot_num)] = current_seq
+                    current_seq += 1
+
+        return sequences
 
     async def get_location(
         self,
@@ -226,7 +301,7 @@ class LocationService:
         tenant_id: int,
         warehouse_id: Optional[int] = None,
         zone_id: Optional[int] = None,
-        usage: Optional[str] = None,
+        usage_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 100
     ) -> List[Location]:
@@ -237,31 +312,18 @@ class LocationService:
             tenant_id: ID of the tenant
             warehouse_id: Optional warehouse ID to filter by
             zone_id: Optional zone ID to filter by
-            usage: Optional usage type to filter by
+            usage_id: Optional usage definition ID to filter by
             skip: Number of records to skip
             limit: Maximum number of records to return
 
         Returns:
             List of Location instances
         """
-        from models.location import LocationUsage
-
-        # Convert usage string to enum if provided
-        usage_enum = None
-        if usage:
-            try:
-                usage_enum = LocationUsage(usage)
-            except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid usage value: {usage}"
-                )
-
         return await self.location_repo.list_locations(
             tenant_id=tenant_id,
             warehouse_id=warehouse_id,
             zone_id=zone_id,
-            usage=usage_enum,
+            usage_id=usage_id,
             skip=skip,
             limit=limit
         )
@@ -312,10 +374,10 @@ class LocationService:
             location.level = location_data.level
         if location_data.slot is not None:
             location.slot = location_data.slot
-        if location_data.type is not None:
-            location.type = location_data.type
-        if location_data.usage is not None:
-            location.usage = location_data.usage
+        if location_data.type_id is not None:
+            location.type_id = location_data.type_id
+        if location_data.usage_id is not None:
+            location.usage_id = location_data.usage_id
         if location_data.pick_sequence is not None:
             location.pick_sequence = location_data.pick_sequence
 

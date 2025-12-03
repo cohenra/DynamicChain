@@ -9,8 +9,11 @@ if TYPE_CHECKING:
     from models.tenant import Tenant
     from models.warehouse import Warehouse
     from models.zone import Zone
+    from models.location_type_definition import LocationTypeDefinition
+    from models.location_usage_definition import LocationUsageDefinition
 
 
+# Legacy enums - kept for reference and backwards compatibility
 class LocationType(str, enum.Enum):
     SHELF = "SHELF"
     PALLET_RACK = "PALLET_RACK"
@@ -45,11 +48,11 @@ class Location(Base):
     bay: Mapped[str] = mapped_column(String(50), nullable=False)
     level: Mapped[str] = mapped_column(String(50), nullable=False)
     slot: Mapped[str] = mapped_column(String(50), nullable=False)
-    type: Mapped[LocationType] = mapped_column(
-        Enum(LocationType, name="location_type_enum"), nullable=False
+    type_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("location_type_definitions.id", ondelete="RESTRICT"), nullable=False, index=True
     )
-    usage: Mapped[LocationUsage] = mapped_column(
-        Enum(LocationUsage, name="location_usage_enum"), nullable=False
+    usage_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("location_usage_definitions.id", ondelete="RESTRICT"), nullable=False, index=True
     )
     pick_sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -61,6 +64,16 @@ class Location(Base):
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="locations")
     warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="locations")
     zone: Mapped["Zone"] = relationship("Zone", back_populates="locations")
+    type_definition: Mapped["LocationTypeDefinition"] = relationship(
+        "LocationTypeDefinition",
+        back_populates="locations",
+        foreign_keys=[type_id]
+    )
+    usage_definition: Mapped["LocationUsageDefinition"] = relationship(
+        "LocationUsageDefinition",
+        back_populates="locations",
+        foreign_keys=[usage_id]
+    )
 
     # Constraints
     __table_args__ = (
@@ -68,8 +81,9 @@ class Location(Base):
         Index("ix_locations_tenant_id", "tenant_id"),
         Index("ix_locations_warehouse_id", "warehouse_id"),
         Index("ix_locations_zone_id", "zone_id"),
-        Index("ix_locations_usage", "usage"),
+        Index("ix_locations_type_id", "type_id"),
+        Index("ix_locations_usage_id", "usage_id"),
     )
 
     def __repr__(self):
-        return f"<Location(id={self.id}, name={self.name}, usage={self.usage.value})>"
+        return f"<Location(id={self.id}, name={self.name}, usage_id={self.usage_id})>"

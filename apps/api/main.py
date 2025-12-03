@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from routers import auth_router, products_router, depositors_router, warehouses_router, product_uoms_router, uom_definitions_router, zones_router, locations_router
+from routers import auth_router, products_router, depositors_router, warehouses_router, product_uoms_router, uom_definitions_router, zones_router, locations_router, location_type_definitions_router, location_usage_definitions_router
 
 
 # Create FastAPI app
@@ -29,6 +29,8 @@ app.include_router(depositors_router)
 app.include_router(warehouses_router)
 app.include_router(product_uoms_router)
 app.include_router(uom_definitions_router)
+app.include_router(location_type_definitions_router)
+app.include_router(location_usage_definitions_router)
 app.include_router(zones_router)
 app.include_router(locations_router)
 
