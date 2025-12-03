@@ -42,7 +42,6 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
   const { t } = useTranslation();
   const [previewCount, setPreviewCount] = useState(0);
 
-  // שליפת נתונים דינמית
   const { data: types } = useQuery({
     queryKey: ['locationTypes'],
     queryFn: locationService.getLocationTypes,
@@ -65,7 +64,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
     type_id: z.string().min(1, t('locations.typeRequired')),
     usage_id: z.string().min(1, t('locations.usageRequired')),
     pick_sequence_start: z.string().optional(),
-    picking_strategy: z.enum(['ASCENDING', 'SNAKE_ODD_EVEN']), // שדה חדש לאסטרטגיה
+    picking_strategy: z.enum(['ASCENDING', 'SNAKE_ODD_EVEN']),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -82,7 +81,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
       type_id: '',
       usage_id: '',
       pick_sequence_start: '0',
-      picking_strategy: 'ASCENDING', // ברירת מחדל: רגיל
+      picking_strategy: 'ASCENDING',
     },
   });
 
@@ -133,7 +132,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
       type_id: parseInt(values.type_id),
       usage_id: parseInt(values.usage_id),
       pick_sequence_start: parseInt(values.pick_sequence_start || '0'),
-      picking_strategy: values.picking_strategy, // שליחת האסטרטגיה לשרת
+      picking_strategy: values.picking_strategy,
     };
 
     bulkCreateMutation.mutate(config);
@@ -146,7 +145,8 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
   };
 
   return (
-    <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+    // השינוי הוא כאן: הסרנו את max-h ו-overflow-y-auto
+    <div className="pr-2">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6 pb-20">
           
@@ -187,7 +187,6 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             )}
           />
 
-          {/* Bay Range */}
           <div className="grid grid-cols-2 gap-4">
             <FormField control={form.control} name="bay_start" render={({ field }) => (
               <FormItem>
@@ -203,7 +202,6 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             )} />
           </div>
 
-          {/* Level Range */}
           <div className="grid grid-cols-2 gap-4">
             <FormField control={form.control} name="level_start" render={({ field }) => (
               <FormItem>
@@ -219,7 +217,6 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             )} />
           </div>
 
-          {/* Slot Range */}
           <div className="grid grid-cols-2 gap-4">
             <FormField control={form.control} name="slot_start" render={({ field }) => (
               <FormItem>
@@ -235,7 +232,6 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             )} />
           </div>
 
-          {/* Picking Strategy Section */}
           <div className="bg-muted/30 p-4 rounded-lg border border-muted">
             <div className="flex items-center gap-2 mb-4">
               <Route className="h-5 w-5 text-primary" />
@@ -297,42 +293,39 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
             </div>
           </div>
 
-          {/* Type & Usage */}
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="type_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('locations.type')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {types?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="type_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('locations.type')}</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {types?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="usage_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('locations.usage')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {usages?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="usage_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('locations.usage')}</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {usages?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <Card>
             <CardContent className="pt-6">
