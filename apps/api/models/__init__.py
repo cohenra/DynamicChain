@@ -3,6 +3,8 @@ from models.user import User
 from models.product import Product
 from models.depositor import Depositor
 from models.warehouse import Warehouse
+# --- וודא שהשורות האלו קיימות ---
+from models.uom_definition import UomDefinition
 from models.product_uom import ProductUOM
 
-__all__ = ["Tenant", "User", "Product", "Depositor", "Warehouse", "ProductUOM"]
+__all__ = ["Tenant", "User", "Product", "Depositor", "Warehouse", "UomDefinition", "ProductUOM"]
