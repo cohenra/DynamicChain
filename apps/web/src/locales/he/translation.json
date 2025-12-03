@@ -6,11 +6,14 @@
     "cancel": "בטל",
     "delete": "מחק",
     "edit": "ערוך",
+    "create": "צור",
+    "update": "עדכן",
     "actions": "פעולות",
     "optional": "אופציונלי",
     "noData": "אין נתונים להצגה",
     "error": "שגיאה",
     "unexpectedError": "אירעה שגיאה לא צפויה",
+    "loadingError": "שגיאה בטעינה",
     "search": "חיפוש",
     "filter": "סינון",
     "close": "סגור"
@@ -86,7 +89,31 @@
     "noDepositors": "אין מאחסנים זמינים",
     "skuRequired": "מק״ט הוא שדה חובה",
     "nameRequired": "שם הוא שדה חובה",
-    "depositorRequired": "מאחסן הוא שדה חובה"
+    "depositorRequired": "מאחסן הוא שדה חובה",
+    "baseUnit": "יחידת מידה בסיסית",
+    "selectBaseUnit": "בחר יחידת בסיס",
+    "noUomsDefined": "לא הוגדרו יחידות מידה",
+    "goToSettings": "עבור להגדרות",
+    "baseUnitOptional": "יחידת מידה בסיסית (אופציונלי)",
+    "enterBaseUnit": "הזן יחידת מידה",
+    "baseUnitDescription": "יחידת המידה הבסיסית של המוצר",
+    "packagingAndUOMs": "אריזות ויחידות מידה",
+    "addUOM": "הוסף אריזה",
+    "noUOMsDefined": "לא הוגדרו אריזות",
+    "uoms": {
+      "name": "שם",
+      "conversionFactor": "מקדם המרה",
+      "barcode": "ברקוד",
+      "dimensions": "מידות",
+      "weight": "משקל",
+      "createSuccess": "אריזה נוצרה בהצלחה",
+      "createError": "שגיאה ביצירת אריזה",
+      "updateSuccess": "אריזה עודכנה בהצלחה",
+      "updateError": "שגיאה בעדכון אריזה",
+      "deleteSuccess": "אריזה נמחקה בהצלחה",
+      "deleteError": "שגיאה במחיקת אריזה",
+      "confirmDelete": "האם למחוק אריזה זו?"
+    }
   },
   "depositors": {
     "title": "מאחסנים",
@@ -184,6 +211,8 @@
     "deleteSuccessDescription": "יחידת המידה הוסרה מהמערכת",
     "deleteError": "שגיאה במחיקת יחידת מידה",
     "deleteConfirmTitle": "למחוק יחידת מידה?",
-    "deleteConfirmDescription": "פעולה זו עלולה להשפיע על מוצרים המשתמשים ביחידה זו."
+    "deleteConfirmDescription": "פעולה זו עלולה להשפיע על מוצרים המשתמשים ביחידה זו.",
+    "saveBtn": "שמור הגדרה",
+    "createBtn": "צור יחידה חדשה"
   }
 }
