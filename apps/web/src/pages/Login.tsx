@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ export default function Login() {
       await login({ email, password });
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'שגיאה בהתחברות');
+      setError(err.response?.data?.detail || t('auth.loginError'));
     } finally {
       setLoading(false);
     }
@@ -32,14 +34,14 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>התחברות למערכת</CardTitle>
-          <CardDescription>הזן את פרטי ההתחברות שלך</CardDescription>
+          <CardTitle>{t('auth.login')}</CardTitle>
+          <CardDescription>{t('auth.loginDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
-                דוא"ל
+                {t('auth.email')}
               </label>
               <Input
                 id="email"
@@ -53,7 +55,7 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
-                סיסמה
+                {t('auth.password')}
               </label>
               <Input
                 id="password"
@@ -71,7 +73,7 @@ export default function Login() {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'מתחבר...' : 'התחבר'}
+              {loading ? t('auth.loggingIn') : t('auth.loginButton')}
             </Button>
           </form>
         </CardContent>

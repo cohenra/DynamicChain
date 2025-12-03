@@ -36,4 +36,19 @@ export const depositorService = {
     const response = await api.post<Depositor>('/api/depositors/', data);
     return response.data;
   },
+
+  /**
+   * Update a depositor
+   */
+  async updateDepositor(id: number, data: DepositorCreate): Promise<Depositor> {
+    const response = await api.put<Depositor>(`/api/depositors/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a depositor
+   */
+  async deleteDepositor(id: number): Promise<void> {
+    await api.delete(`/api/depositors/${id}`);
+  },
 };

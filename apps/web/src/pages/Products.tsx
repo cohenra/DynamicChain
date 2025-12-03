@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, ProductCreate } from '@/services/products';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,7 @@ import { Plus, XCircle } from 'lucide-react';
 export default function Products() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // Fetch products
   const {
@@ -61,14 +63,14 @@ export default function Products() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">מוצרים</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
           <p className="text-muted-foreground mt-2">
-            נהל את מוצרי המלאי שלך עם תכונות מותאמות אישית
+            {t('products.description')}
           </p>
         </div>
         <Button onClick={() => setIsSheetOpen(true)}>
           <Plus className="ml-2 h-4 w-4" />
-          הוסף מוצר
+          {t('products.addProduct')}
         </Button>
       </div>
 
@@ -78,25 +80,25 @@ export default function Products() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">טוען מוצרים...</p>
+              <p className="text-muted-foreground">{t('products.loading')}</p>
             </div>
           </div>
         ) : isError ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <XCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
-              <p className="text-destructive font-medium">שגיאה בטעינת המוצרים</p>
+              <p className="text-destructive font-medium">{t('products.loadingError')}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {error instanceof Error ? error.message : 'אירעה שגיאה לא צפויה'}
+                {error instanceof Error ? error.message : t('common.unexpectedError')}
               </p>
             </div>
           </div>
         ) : products && products.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <p className="text-muted-foreground">אין מוצרים להצגה</p>
+              <p className="text-muted-foreground">{t('products.noProducts')}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                התחל על ידי הוספת המוצר הראשון שלך
+                {t('products.addFirstProduct')}
               </p>
             </div>
           </div>
@@ -104,10 +106,10 @@ export default function Products() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>מק״ט</TableHead>
-                <TableHead>שם המוצר</TableHead>
-                <TableHead>ברקוד</TableHead>
-                <TableHead>תכונות מותאמות</TableHead>
+                <TableHead>{t('products.sku')}</TableHead>
+                <TableHead>{t('products.name')}</TableHead>
+                <TableHead>{t('products.barcode')}</TableHead>
+                <TableHead>{t('products.customAttributesHeader')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -126,7 +128,7 @@ export default function Products() {
                       const entries = Object.entries(attributes);
 
                       if (entries.length === 0) {
-                        return <span className="text-muted-foreground text-sm">אין תכונות</span>;
+                        return <span className="text-muted-foreground text-sm">{t('products.noCustomAttributes')}</span>;
                       }
 
                       // Show first 2 attributes as badges
@@ -145,7 +147,7 @@ export default function Products() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="text-xs cursor-help">
-                                    +{remainingCount} נוספות
+                                    +{remainingCount} {t('products.moreAttributes')}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
@@ -175,9 +177,9 @@ export default function Products() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>הוסף מוצר חדש</SheetTitle>
+            <SheetTitle>{t('products.addNewProduct')}</SheetTitle>
             <SheetDescription>
-              מלא את פרטי המוצר והוסף תכונות מותאמות אישית לפי הצורך
+              {t('products.addProductDescription')}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">
@@ -190,7 +192,7 @@ export default function Products() {
                 <p className="text-sm text-destructive">
                   {createProductMutation.error instanceof Error
                     ? createProductMutation.error.message
-                    : 'שגיאה ביצירת המוצר'}
+                    : t('products.createError')}
                 </p>
               </div>
             )}
