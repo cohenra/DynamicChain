@@ -39,6 +39,11 @@ class ProductUOMInfo(BaseModel):
     uom_code: str
     conversion_factor: float
     barcode: Optional[str] = None
+    length: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
+    volume: Optional[float] = None
+    weight: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -51,6 +56,8 @@ class ProductResponse(ProductBase):
     created_at: datetime
     updated_at: datetime
     uoms: List[ProductUOMInfo] = Field(default_factory=list, description="List of configured UOMs for this product")
+    depositor_name: Optional[str] = Field(None, description="Name of the depositor")
+    base_uom_name: Optional[str] = Field(None, description="Name of the base unit of measure")
 
     class Config:
         from_attributes = True

@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, ProductCreate, Product } from '@/services/products';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  useReactTable,
+  getCoreRowModel,
+  getExpandedRowModel,
+  ColumnDef,
+  flexRender,
+  ExpandedState,
+} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -43,13 +44,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ProductForm } from '@/components/products/ProductForm';
 import { UomDefinitionsTable } from '@/components/products/UomDefinitionsTable';
-import { Plus, XCircle, Edit, Trash2, ChevronLeft } from 'lucide-react';
+import { ProductRowDetail } from '@/components/products/ProductRowDetail';
+import { Plus, XCircle, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Products() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [expanded, setExpanded] = useState<ExpandedState>({});
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -135,6 +138,107 @@ export default function Products() {
     }
   };
 
+  // Define table columns
+  const columns: ColumnDef<Product>[] = [
+    {
+      id: 'expander',
+      header: () => null,
+      cell: ({ row }) => {
+        return (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              row.toggleExpanded();
+            }}
+            className="h-8 w-8"
+          >
+            {row.getIsExpanded() ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      size: 50,
+    },
+    {
+      accessorKey: 'sku',
+      header: () => <div className="text-right">{t('products.sku')}</div>,
+      cell: ({ row }) => (
+        <div className="font-medium text-right">{row.original.sku}</div>
+      ),
+    },
+    {
+      accessorKey: 'name',
+      header: () => <div className="text-right">{t('products.name')}</div>,
+      cell: ({ row }) => <div className="text-right">{row.original.name}</div>,
+    },
+    {
+      accessorKey: 'depositor_name',
+      header: () => <div className="text-right">{t('products.depositor', 'מאחסן')}</div>,
+      cell: ({ row }) => (
+        <div className="text-right">
+          {row.original.depositor_name || <span className="text-muted-foreground">-</span>}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'base_uom_name',
+      header: () => <div className="text-right">{t('products.baseUnit', 'יחידת בסיס')}</div>,
+      cell: ({ row }) => (
+        <div className="text-right">
+          {row.original.base_uom_name || <span className="text-muted-foreground">-</span>}
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      header: () => <div className="text-center">{t('common.actions')}</div>,
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditProduct(row.original);
+            }}
+            title={t('common.edit')}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteProduct(row.original);
+            }}
+            title={t('common.delete')}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+      size: 120,
+    },
+  ];
+
+  // Create table instance
+  const table = useReactTable({
+    data: products || [],
+    columns,
+    state: {
+      expanded,
+    },
+    onExpandedChange: setExpanded,
+    getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -197,66 +301,51 @@ export default function Products() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">{t('products.sku')}</TableHead>
-                    <TableHead className="text-right">{t('products.name')}</TableHead>
-                    <TableHead className="text-right">{t('products.packagingHierarchyColumn')}</TableHead>
-                    <TableHead className="text-left">{t('products.barcode')}</TableHead>
-                    <TableHead className="text-center sticky left-0 bg-background">{t('common.actions')}</TableHead>
-                  </TableRow>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className={header.id === 'actions' ? 'sticky left-0 bg-background' : ''}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableHeader>
                 <TableBody>
-                  {products?.map((product) => {
-                    // Build packaging hierarchy string with arrow notation
-                    const uoms = product.uoms || [];
-                    const sortedUoms = [...uoms].sort((a, b) => a.conversion_factor - b.conversion_factor);
-
-                    let hierarchyText = '';
-                    if (sortedUoms.length > 0) {
-                      hierarchyText = sortedUoms
-                        .map(uom => `${uom.uom_name} (${uom.conversion_factor})`)
-                        .join(' ← ');
-                    }
-
-                    return (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium text-right">{product.sku}</TableCell>
-                        <TableCell className="text-right">{product.name}</TableCell>
-                        <TableCell className="text-right">
-                          {hierarchyText ? (
-                            <span className="text-sm font-mono">{hierarchyText}</span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-left font-mono">
-                          {product.barcode || (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center sticky left-0 bg-background">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditProduct(product)}
-                              title={t('common.edit')}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteProduct(product)}
-                              title={t('common.delete')}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                  {table.getRowModel().rows.map((row) => (
+                    <>
+                      <TableRow
+                        key={row.id}
+                        onClick={() => row.toggleExpanded()}
+                        className="cursor-pointer hover:bg-muted/50"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={cell.column.id === 'actions' ? 'sticky left-0 bg-background' : ''}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
                       </TableRow>
-                    );
-                  })}
+                      {row.getIsExpanded() && (
+                        <TableRow key={`${row.id}-expanded`}>
+                          <ProductRowDetail
+                            product={row.original}
+                            colSpan={row.getVisibleCells().length}
+                          />
+                        </TableRow>
+                      )}
+                    </>
+                  ))}
                 </TableBody>
               </Table>
             )}

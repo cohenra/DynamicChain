@@ -3,6 +3,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.product import Product
+from models.product_uom import ProductUOM
 
 
 class ProductRepository:
@@ -56,7 +57,15 @@ class ProductRepository:
         depositor_id: Optional[int] = None
     ) -> List[Product]:
         """List all products for a tenant with pagination and optional depositor filter."""
-        query = select(Product).options(selectinload(Product.uoms)).options(selectinload(Product.base_uom)).where(Product.tenant_id == tenant_id)
+        query = (
+            select(Product)
+            .options(
+                selectinload(Product.uoms).selectinload(ProductUOM.uom),
+                selectinload(Product.base_uom),
+                selectinload(Product.depositor)
+            )
+            .where(Product.tenant_id == tenant_id)
+        )
 
         if depositor_id is not None:
             query = query.where(Product.depositor_id == depositor_id)

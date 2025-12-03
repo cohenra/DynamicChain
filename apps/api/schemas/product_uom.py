@@ -61,6 +61,8 @@ class ProductUOMResponse(ProductUOMBase):
     id: int
     product_id: int
     tenant_id: int
+    uom_name: Optional[str] = Field(None, description="Name of the UOM definition")
+    uom_code: Optional[str] = Field(None, description="Code of the UOM definition")
     created_at: datetime
     updated_at: datetime
 

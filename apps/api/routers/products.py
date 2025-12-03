@@ -87,7 +87,12 @@ async def list_products(
                 uom_name=uom.uom.name,
                 uom_code=uom.uom.code,
                 conversion_factor=uom.conversion_factor,
-                barcode=uom.barcode
+                barcode=uom.barcode,
+                length=uom.length,
+                width=uom.width,
+                height=uom.height,
+                volume=uom.volume,
+                weight=uom.weight
             )
             for uom in product.uoms
         ]
@@ -102,7 +107,9 @@ async def list_products(
             "custom_attributes": product.custom_attributes,
             "created_at": product.created_at,
             "updated_at": product.updated_at,
-            "uoms": uoms_info
+            "uoms": uoms_info,
+            "depositor_name": product.depositor.name if product.depositor else None,
+            "base_uom_name": product.base_uom.name if product.base_uom else None
         }
         result.append(ProductResponse(**product_dict))
 

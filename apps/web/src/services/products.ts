@@ -7,6 +7,11 @@ export interface ProductUOMInfo {
   uom_code: string;
   conversion_factor: number;
   barcode: string | null;
+  length: number | null;
+  width: number | null;
+  height: number | null;
+  volume: number | null;
+  weight: number | null;
 }
 
 export interface Product {
@@ -21,6 +26,8 @@ export interface Product {
   created_at: string;
   updated_at: string;
   uoms: ProductUOMInfo[];
+  depositor_name?: string | null;
+  base_uom_name?: string | null;
 }
 
 export interface ProductCreate {

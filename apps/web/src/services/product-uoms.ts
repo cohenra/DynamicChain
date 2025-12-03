@@ -14,6 +14,8 @@ export interface ProductUOM {
   weight: number | null;
   created_at: string;
   updated_at: string;
+  uom_name?: string | null;
+  uom_code?: string | null;
 }
 
 export interface ProductUOMCreate {
