@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.product_uom import ProductUOM
 
-
 class ProductUOMRepository:
     """Repository for ProductUOM database operations with tenant isolation."""
 
@@ -15,13 +14,15 @@ class ProductUOMRepository:
         """Create a new ProductUOM."""
         self.db.add(product_uom)
         await self.db.flush()
-        await self.db.refresh(product_uom)
-        return product_uom
+        # Re-fetch to ensure relationships are loaded
+        return await self.get_by_id(product_uom.id, product_uom.tenant_id)
 
     async def get_by_id(self, uom_id: int, tenant_id: int) -> Optional[ProductUOM]:
         """Get a ProductUOM by ID with tenant isolation."""
         result = await self.db.execute(
-            select(ProductUOM).where(
+            select(ProductUOM)
+            .options(selectinload(ProductUOM.uom)) # Load the definition relation
+            .where(
                 and_(
                     ProductUOM.id == uom_id,
                     ProductUOM.tenant_id == tenant_id
@@ -72,7 +73,7 @@ class ProductUOMRepository:
         """List all ProductUOMs for a specific product with tenant isolation."""
         result = await self.db.execute(
             select(ProductUOM)
-            .options(selectinload(ProductUOM.uom))
+            .options(selectinload(ProductUOM.uom)) # Load here too
             .where(
                 and_(
                     ProductUOM.product_id == product_id,
@@ -92,6 +93,7 @@ class ProductUOMRepository:
         """List all ProductUOMs for a tenant with pagination."""
         result = await self.db.execute(
             select(ProductUOM)
+            .options(selectinload(ProductUOM.uom))
             .where(ProductUOM.tenant_id == tenant_id)
             .offset(skip)
             .limit(limit)
@@ -102,8 +104,8 @@ class ProductUOMRepository:
     async def update(self, product_uom: ProductUOM) -> ProductUOM:
         """Update an existing ProductUOM."""
         await self.db.flush()
-        await self.db.refresh(product_uom)
-        return product_uom
+        # Re-fetch to ensure relationships are loaded (Crucial fix!)
+        return await self.get_by_id(product_uom.id, product_uom.tenant_id)
 
     async def delete(self, product_uom: ProductUOM) -> None:
         """Delete a ProductUOM."""
