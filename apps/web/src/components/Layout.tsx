@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2 } from 'lucide-react';
+import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2, Boxes } from 'lucide-react'; // <--- Boxes חדש
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -17,6 +17,7 @@ export default function Layout() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: t('layout.dashboard'), path: '/' },
+    { icon: Boxes, label: 'ניהול מלאי', path: '/inventory' }, // <--- חדש (שמתי טקסט קבוע בינתיים)
     { icon: Package, label: t('layout.products'), path: '/products' },
     { icon: Users, label: t('layout.depositors'), path: '/depositors' },
     { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },
