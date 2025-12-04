@@ -20,6 +20,7 @@ import {
 import {
   useReactTable,
   getCoreRowModel,
+  getPaginationRowModel,
   ColumnDef,
   flexRender,
 } from '@tanstack/react-table';
@@ -52,6 +53,9 @@ import { LocationForm } from './LocationForm';
 import { LocationGenerator } from './LocationGenerator';
 import { Plus, Edit, Trash2, Loader2, XCircle, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTableSettings } from '@/hooks/use-table-settings';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 
 interface LocationsTabProps {
   warehouseId: number;
@@ -66,6 +70,17 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const [filterUsageId, setFilterUsageId] = useState<number | undefined>();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+
+  // Table settings hook for persistent user preferences
+  const {
+    pagination,
+    columnVisibility,
+    onPaginationChange,
+    onColumnVisibilityChange,
+  } = useTableSettings({
+    tableName: 'locations',
+    defaultPageSize: 10,
+  });
 
   // Fetch zones for filter
   const { data: zones } = useQuery({
@@ -198,6 +213,13 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     data: locations || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    state: {
+      pagination,
+      columnVisibility,
+    },
+    onPaginationChange,
+    onColumnVisibilityChange,
   });
 
   const handleCreateLocation = (data: LocationCreate) => {
@@ -254,7 +276,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-4 items-center">
         <Select
           value={filterZoneId?.toString() || 'all'}
           onValueChange={(value) => setFilterZoneId(value === 'all' ? undefined : parseInt(value))}
@@ -288,6 +310,9 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Column Visibility Toggle */}
+        <DataTableViewOptions table={table} />
       </div>
 
       {/* Locations Table */}
@@ -327,6 +352,9 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      <DataTablePagination table={table} />
 
       {/* Location Form Sheet - Added overflow-y-auto */}
       <Sheet open={isSheetOpen} onOpenChange={handleCloseSheet}>
