@@ -10,24 +10,23 @@ from models.location import Location
 from models.location_type_definition import LocationTypeDefinition
 from models.location_usage_definition import LocationUsageDefinition
 from models.user_table_setting import UserTableSetting
-# --- המודלים החדשים שהוספנו ---
 from models.inventory import Inventory
 from models.inventory_transaction import InventoryTransaction
 from models.system_audit_log import SystemAuditLog
-# --- Inbound Module ---
+# --- החדשים של Inbound ---
 from models.inbound_order import InboundOrder
 from models.inbound_line import InboundLine
 from models.inbound_shipment import InboundShipment
 
 __all__ = [
-    "Tenant",
-    "User",
-    "Product",
-    "Depositor",
-    "Warehouse",
-    "UomDefinition",
-    "ProductUOM",
-    "Zone",
+    "Tenant", 
+    "User", 
+    "Product", 
+    "Depositor", 
+    "Warehouse", 
+    "UomDefinition", 
+    "ProductUOM", 
+    "Zone", 
     "Location",
     "LocationTypeDefinition",
     "LocationUsageDefinition",

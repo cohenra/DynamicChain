@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { inventoryService, Inventory } from '@/services/inventory';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { inventoryService, Inventory, InventoryReceiveRequest } from '@/services/inventory';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import {
@@ -16,32 +16,50 @@ import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
 import { Badge } from '@/components/ui/badge';
 import { PackagePlus } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { toast } from 'sonner';
+// ייבוא הטופס החדש שיצרנו
+import { InventoryReceiveForm } from '@/components/inventory/InventoryReceiveForm';
 
 export default function InventoryPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
+  
+  // --- זה ה-State שהיה חסר לך ---
+  const [isReceiveSheetOpen, setIsReceiveSheetOpen] = useState(false);
 
-  // Hook לשמירת הגדרות טבלה
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
     useTableSettings({ tableName: 'inventory_table' });
 
-  // שליפת נתונים
   const { data: inventoryItems, isLoading } = useQuery({
     queryKey: ['inventory'],
     queryFn: () => inventoryService.getInventory({ limit: 1000 }),
   });
 
-  // הגדרת עמודות עם תרגום
+  const receiveStockMutation = useMutation({
+    mutationFn: (data: InventoryReceiveRequest) => inventoryService.receiveStock(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      setIsReceiveSheetOpen(false);
+      toast.success("מלאי נקלט בהצלחה");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || "שגיאה בקליטת מלאי");
+    }
+  });
+
   const columns = useMemo<ColumnDef<Inventory>[]>(() => [
     {
       accessorKey: 'lpn',
-      header: t('inventory.lpn'), // תרגום
+      header: t('inventory.lpn'),
       cell: ({ row }) => <span className="font-mono font-bold">{row.original.lpn}</span>
     },
     {
       accessorKey: 'product_name',
-      header: t('products.name'), // תרגום
+      header: t('products.name'),
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium">{row.original.product_name}</span>
@@ -51,20 +69,19 @@ export default function InventoryPage() {
     },
     {
       accessorKey: 'location_name',
-      header: t('warehouses.location'), // תרגום
+      header: t('warehouses.location'),
       cell: ({ row }) => <Badge variant="outline">{row.original.location_name}</Badge>
     },
     {
       accessorKey: 'quantity',
-      header: t('inventory.quantity'), // תרגום
+      header: t('inventory.quantity'),
       cell: ({ row }) => <span className="font-bold text-lg">{row.original.quantity}</span>
     },
     {
       accessorKey: 'status',
-      header: t('inventory.status'), // תרגום
+      header: t('inventory.status'),
       cell: ({ row }) => {
         const status = row.original.status;
-        // תרגום הסטטוס עצמו מה-DB
         const statusLabel = t(`inventory.statuses.${status}`, status); 
 
         let variant: "default" | "secondary" | "destructive" | "outline" = "default";
@@ -78,7 +95,7 @@ export default function InventoryPage() {
     },
     {
       accessorKey: 'batch_number',
-      header: t('inventory.batch'), // תרגום
+      header: t('inventory.batch'),
       cell: ({ row }) => row.original.batch_number || '-'
     },
   ], [t]);
@@ -110,14 +127,29 @@ export default function InventoryPage() {
         isLoading={isLoading}
         searchValue={globalFilter}
         onSearchChange={setGlobalFilter}
-        noDataMessage={t('inventory.noInventory')} // תרגום
+        noDataMessage={t('inventory.noInventory')}
         actions={
-          <Button>
+          // --- התיקון: הוספת ה-onClick ---
+          <Button onClick={() => setIsReceiveSheetOpen(true)}>
             <PackagePlus className="ml-2 h-4 w-4" />
             {t('inventory.receiveStock')}
           </Button>
         }
       />
+
+      {/* --- החלק שהיה חסר: ה-Sheet עצמו --- */}
+      <Sheet open={isReceiveSheetOpen} onOpenChange={setIsReceiveSheetOpen}>
+        <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
+            <SheetHeader>
+                <SheetTitle>{t('inventory.receiveStock')}</SheetTitle>
+            </SheetHeader>
+            <InventoryReceiveForm 
+                onSubmit={(data) => receiveStockMutation.mutate(data)}
+                onCancel={() => setIsReceiveSheetOpen(false)}
+                isSubmitting={receiveStockMutation.isPending}
+            />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

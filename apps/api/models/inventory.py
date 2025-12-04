@@ -6,7 +6,6 @@ from sqlalchemy import String, Integer, BigInteger, ForeignKey, DateTime, Date, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
-
 class InventoryStatus(str, Enum):
     """Inventory status enumeration."""
     AVAILABLE = "AVAILABLE"
@@ -15,15 +14,12 @@ class InventoryStatus(str, Enum):
     DAMAGED = "DAMAGED"
     MISSING = "MISSING"
 
-
 class Inventory(Base):
     """
     Inventory model - Current stock snapshot (Quants/LPNs).
     """
-
     __tablename__ = "inventory"
 
-    # Table constraints
     __table_args__ = (
         UniqueConstraint('tenant_id', 'lpn', name='uq_tenant_lpn'),
         CheckConstraint('quantity >= 0', name='ck_inventory_quantity_positive'),
@@ -36,40 +32,31 @@ class Inventory(Base):
         Index('ix_inventory_batch_number', 'batch_number'),
         Index('ix_inventory_expiry_date', 'expiry_date'),
         Index('ix_inventory_fifo_date', 'fifo_date'),
-        # Composite indexes for common queries
         Index('ix_inventory_tenant_product', 'tenant_id', 'product_id'),
         Index('ix_inventory_tenant_location', 'tenant_id', 'location_id'),
         Index('ix_inventory_tenant_depositor', 'tenant_id', 'depositor_id'),
     )
 
-    # Primary Key
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, index=True)
-
-    # Foreign Keys
     tenant_id: Mapped[int] = mapped_column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     depositor_id: Mapped[int] = mapped_column(Integer, ForeignKey("depositors.id", ondelete="RESTRICT"), nullable=False)
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id", ondelete="RESTRICT"), nullable=False)
     location_id: Mapped[int] = mapped_column(Integer, ForeignKey("locations.id", ondelete="RESTRICT"), nullable=False)
-
-    # Core Fields
+    
     lpn: Mapped[str] = mapped_column(String(255), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=6), nullable=False)
     
-    # --- התיקון הקריטי כאן: native_enum=False ---
+    # --- התיקון הקריטי: native_enum=False ---
     status: Mapped[InventoryStatus] = mapped_column(
         SQLEnum(InventoryStatus, native_enum=False, length=50),
         nullable=False,
         default=InventoryStatus.AVAILABLE
     )
 
-    # Optional Tracking Fields
     batch_number: Mapped[str | None] = mapped_column(String(255), nullable=True)
     expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-
-    # CRITICAL: FIFO date for billing
     fifo_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-
-    # Timestamps
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -7,9 +8,10 @@ from database import Base
 
 class UserRole(str, Enum):
     """User role enumeration."""
-    ADMIN = "admin"
-    PICKER = "picker"
-    VIEWER = "viewer"
+    # תיקון: התאמה לערכים ב-DB (אותיות גדולות)
+    ADMIN = "ADMIN"
+    PICKER = "PICKER"
+    VIEWER = "VIEWER"
 
 
 class User(Base):
@@ -18,10 +20,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    tenant_id: Mapped[int] = mapped_column(
+    tenant_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("tenants.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True, # תיקון: מאפשר NULL עבור משתמשי מערכת/סופר-אדמין
         index=True
     )
     email: Mapped[str] = mapped_column(
@@ -50,6 +52,7 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    # קשרים לטבלאות החדשות (מלאי ואודיט)
     inventory_transactions: Mapped[list["InventoryTransaction"]] = relationship(
         "InventoryTransaction",
         back_populates="performed_by_user",
