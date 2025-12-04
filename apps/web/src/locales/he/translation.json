@@ -20,6 +20,28 @@
     "search": "חיפוש",
     "filter": "סינון",
     "close": "סגור"
+    "loading": "טוען...",
+    "saving": "שומר...",
+    "save": "שמור",
+    "cancel": "בטל",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "actions": "פעולות",
+    "all": "הכל",
+    "searchPlaceholder": "חיפוש מהיר...",
+    "resetFilters": "אפס סינון",
+    "view": "תצוגה",
+    "showColumns": "הצג עמודות",
+    "rows": "שורות",
+    "rowsPerPage": "שורות בעמוד",
+    "pageOf": "עמוד {{current}} מתוך {{total}}",
+    "totalRecords": "סה״כ {{count}} רשומות",
+    "firstPage": "עמוד ראשון",
+    "lastPage": "עמוד אחרון",
+    "nextPage": "עמוד הבא",
+    "prevPage": "עמוד קודם",
+    "selected": "נבחרו {{count}} רשומות"
+}
   },
   "auth": {
     "login": "התחברות למערכת",
