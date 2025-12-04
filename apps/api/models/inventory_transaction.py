@@ -40,6 +40,7 @@ class InventoryTransaction(Base):
         Index('ix_inventory_transactions_reference_doc', 'reference_doc'),
         Index('ix_inventory_transactions_tenant_timestamp', 'tenant_id', 'timestamp'),
         Index('ix_inventory_transactions_tenant_product', 'tenant_id', 'product_id'),
+        Index('ix_inventory_transactions_inbound_shipment_id', 'inbound_shipment_id'),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, index=True)
@@ -51,6 +52,7 @@ class InventoryTransaction(Base):
     to_location_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("locations.id", ondelete="RESTRICT"), nullable=True)
     inventory_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("inventory.id", ondelete="RESTRICT"), nullable=False)
     performed_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    inbound_shipment_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("inbound_shipments.id", ondelete="SET NULL"), nullable=True)
 
     # --- התיקון הקריטי כאן: native_enum=False ---
     transaction_type: Mapped[TransactionType] = mapped_column(
@@ -77,6 +79,7 @@ class InventoryTransaction(Base):
     to_location: Mapped[Optional["Location"]] = relationship("Location", foreign_keys=[to_location_id], back_populates="transactions_to")
     inventory: Mapped["Inventory"] = relationship("Inventory", back_populates="transactions")
     performed_by_user: Mapped["User"] = relationship("User", back_populates="inventory_transactions")
+    inbound_shipment: Mapped[Optional["InboundShipment"]] = relationship("InboundShipment", back_populates="transactions")
 
     def __repr__(self) -> str:
         return f"<InventoryTransaction(id={self.id}, type='{self.transaction_type}', inventory_id={self.inventory_id}, qty={self.quantity})>"

@@ -142,3 +142,19 @@ class InventoryTransactionRepository:
 
         result = await self.db.execute(query)
         return result.scalar_one()
+
+    async def get_latest_for_inventory(self, inventory_id: int) -> Optional[InventoryTransaction]:
+        """Get the most recent transaction for a specific inventory item."""
+        result = await self.db.execute(
+            select(InventoryTransaction)
+            .where(InventoryTransaction.inventory_id == inventory_id)
+            .order_by(InventoryTransaction.timestamp.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def update(self, transaction: InventoryTransaction) -> InventoryTransaction:
+        """Update an existing inventory transaction (use sparingly - ledger should be immutable)."""
+        await self.db.flush()
+        await self.db.refresh(transaction)
+        return transaction
