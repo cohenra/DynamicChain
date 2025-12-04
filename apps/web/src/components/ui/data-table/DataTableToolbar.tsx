@@ -1,5 +1,5 @@
 import { Table } from "@tanstack/react-table";
-import { X, Search, Settings2 } from "lucide-react";
+import { X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTableViewOptions } from "@/components/ui/data-table-view-options";
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 export interface FilterOption {
   key: string;
@@ -21,21 +22,21 @@ export interface FilterOption {
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
-  searchKey?: string; // העמודה עליה מבצעים חיפוש טקסט
+  searchKey?: string;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   filters?: FilterOption[];
-  actions?: React.ReactNode; // כפתורים נוספים (כמו הוספה, מחולל)
+  actions?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
   table,
-  searchKey,
   searchValue,
   onSearchChange,
   filters = [],
   actions,
 }: DataTableToolbarProps<TData>) {
+  const { t } = useTranslation();
   const isFiltered = table.getState().columnFilters.length > 0 || !!searchValue;
 
   return (
@@ -46,7 +47,7 @@ export function DataTableToolbar<TData>({
           <div className="relative">
             <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="חיפוש מהיר..."
+              placeholder={t('common.searchPlaceholder', 'חיפוש...')}
               value={searchValue ?? ""}
               onChange={(event) => onSearchChange(event.target.value)}
               className="pr-8 h-9 w-[200px] text-sm"
@@ -64,7 +65,7 @@ export function DataTableToolbar<TData>({
               <SelectValue placeholder={filter.label} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">הכל</SelectItem>
+              <SelectItem value="all">{t('common.all', 'הכל')}</SelectItem>
               {filter.options.map((option) => (
                 <SelectItem key={option.value} value={option.value.toString()}>
                   {option.label}
@@ -78,13 +79,13 @@ export function DataTableToolbar<TData>({
           <Button
             variant="ghost"
             onClick={() => {
-                table.resetColumnFilters();
-                if(onSearchChange) onSearchChange("");
-                filters.forEach(f => f.onChange(""));
+              table.resetColumnFilters();
+              if (onSearchChange) onSearchChange("");
+              filters.forEach((f) => f.onChange(""));
             }}
             className="h-8 px-2 lg:px-3"
           >
-            אפס
+            {t('common.resetFilters', 'אפס')}
             <X className="mr-2 h-4 w-4" />
           </Button>
         )}
