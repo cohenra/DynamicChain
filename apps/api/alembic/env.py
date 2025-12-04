@@ -13,6 +13,7 @@ from models import Tenant, User, Product, Depositor, Warehouse, UomDefinition, P
 
 from models.location_type_definition import LocationTypeDefinition
 from models.location_usage_definition import LocationUsageDefinition
+from models.user_table_setting import UserTableSetting
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
