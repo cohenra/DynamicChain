@@ -1,6 +1,7 @@
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 import { Table } from "@tanstack/react-table"
 import { Settings2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,16 +20,7 @@ interface DataTableViewOptionsProps<TData> {
 export function DataTableViewOptions<TData>({
   table,
 }: DataTableViewOptionsProps<TData>) {
-  // תרגום שמות העמודות לעברית לתצוגה יפה
-  const columnLabels: Record<string, string> = {
-    name: "שם מיקום",
-    zone_id: "אזור",
-    usage_id: "שימוש",
-    type_id: "סוג",
-    aisle: "מעבר", // הוספנו תמיכה עתידית
-    pick_sequence: "רצף איסוף",
-    actions: "פעולות"
-  };
+  const { t } = useTranslation();
 
   return (
     <DropdownMenu>
@@ -39,11 +31,11 @@ export function DataTableViewOptions<TData>({
           className="ml-auto hidden h-8 lg:flex"
         >
           <Settings2 className="mr-2 h-4 w-4" />
-          תצוגה
+          {t('common.view')}
         </Button>
       </Trigger>
       <DropdownMenuContent align="end" className="w-[180px]">
-        <DropdownMenuLabel>הצג עמודות</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('common.showColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
@@ -52,15 +44,19 @@ export function DataTableViewOptions<TData>({
               typeof column.accessorFn !== "undefined" && column.getCanHide()
           )
           .map((column) => {
+            // התיקון: ניסיון לתרגם לפי מפתח 'columns.COLUMN_ID'
+            // אם לא נמצא תרגום, הוא יציג את ה-ID כמו שהוא
+            const label = t(`columns.${column.id}`, column.id);
+            
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
                 className="capitalize text-right"
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                onSelect={(e) => e.preventDefault()} // <--- התיקון: מונע סגירה בלחיצה
+                onSelect={(e) => e.preventDefault()}
               >
-                {columnLabels[column.id] || column.id}
+                {label}
               </DropdownMenuCheckboxItem>
             )
           })}
