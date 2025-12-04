@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Depositors from './pages/Depositors';
 import Warehouses from './pages/Warehouses';
+import InventoryPage from './pages/Inventory'; // <--- חדש
 import { useAuthStore } from './store/authStore';
 
 const queryClient = new QueryClient({
@@ -38,10 +39,10 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="inventory" element={<InventoryPage />} /> {/* <--- חדש */}
             <Route path="products" element={<Products />} />
             <Route path="depositors" element={<Depositors />} />
             <Route path="warehouses" element={<Warehouses />} />
-            <Route path="locations" element={<div className="text-center p-8">מיקומים - בפיתוח</div>} />
             <Route path="invoices" element={<div className="text-center p-8">חשבוניות - בפיתוח</div>} />
           </Route>
         </Routes>
