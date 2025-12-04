@@ -5,7 +5,6 @@ import {
   ChevronsRight,
 } from 'lucide-react';
 import { Table } from '@tanstack/react-table';
-
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -14,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next'; // <--- הוספנו
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
@@ -24,19 +24,22 @@ export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 30, 50, 100],
 }: DataTablePaginationProps<TData>) {
+  const { t, i18n } = useTranslation(); // <--- הוספנו
+  const isRTL = i18n.dir() === 'rtl'; // זיהוי כיוון שפה לחיצים
+
   const currentPage = table.getState().pagination.pageIndex + 1;
   const totalPages = table.getPageCount();
   const totalRows = table.getFilteredRowModel().rows.length;
 
   return (
-    <div className="flex items-center justify-between px-2 py-4" dir="rtl">
+    <div className="flex items-center justify-between px-2 py-4">
       {/* Page Size & Total */}
       <div className="flex items-center gap-6">
         <div className="text-sm text-muted-foreground">
-          סה"כ <strong>{totalRows}</strong> רשומות
+          {t('common.totalRecords', { count: totalRows })}
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium">שורות:</p>
+          <p className="text-sm font-medium">{t('common.rows')}:</p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={(value) => {
@@ -59,20 +62,20 @@ export function DataTablePagination<TData>({
 
       {/* Navigation */}
       <div className="flex items-center gap-2">
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          עמוד {currentPage} מתוך {totalPages}
+        <div className="flex w-[120px] items-center justify-center text-sm font-medium">
+          {t('common.pageOf', { current: currentPage, total: totalPages })}
         </div>
-        <div className="flex items-center space-x-2 space-x-reverse">
-          {/* RTL Logic: Right Arrow = Previous/First, Left Arrow = Next/Last */}
+        <div className="flex items-center gap-1">
+          {/* בגלל שהשתמשנו ב-flex-row רגיל, האייקונים צריכים להתהפך ב-RTL או שהלוגיקה תהיה הפוכה */}
           
           <Button
             variant="outline"
             className="hidden h-8 w-8 p-0 lg:flex"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
+            title={t('common.firstPage')}
           >
-            <span className="sr-only">עמוד ראשון</span>
-            <ChevronsRight className="h-4 w-4" />
+            {isRTL ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
           </Button>
           
           <Button
@@ -80,9 +83,9 @@ export function DataTablePagination<TData>({
             className="h-8 w-8 p-0"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            title={t('common.prevPage')}
           >
-            <span className="sr-only">עמוד קודם</span>
-            <ChevronRight className="h-4 w-4" />
+            {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
           
           <Button
@@ -90,9 +93,9 @@ export function DataTablePagination<TData>({
             className="h-8 w-8 p-0"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            title={t('common.nextPage')}
           >
-            <span className="sr-only">עמוד הבא</span>
-            <ChevronLeft className="h-4 w-4" />
+            {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
           
           <Button
@@ -100,9 +103,9 @@ export function DataTablePagination<TData>({
             className="hidden h-8 w-8 p-0 lg:flex"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
+            title={t('common.lastPage')}
           >
-            <span className="sr-only">עמוד אחרון</span>
-            <ChevronsLeft className="h-4 w-4" />
+            {isRTL ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
           </Button>
         </div>
       </div>
