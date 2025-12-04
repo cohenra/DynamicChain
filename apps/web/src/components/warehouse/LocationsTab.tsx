@@ -9,6 +9,7 @@ import {
 import { zoneService } from '@/services/zones';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input'; // הוספנו Input
 import { useTranslation } from 'react-i18next';
 import {
   Select,
@@ -21,8 +22,11 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel, // <--- הוספנו מיון
+  getFilteredRowModel, // <--- הוספנו סינון
   ColumnDef,
   flexRender,
+  SortingState, // <--- טייפ למיון
 } from '@tanstack/react-table';
 import {
   Table,
@@ -51,7 +55,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { LocationForm } from './LocationForm';
 import { LocationGenerator } from './LocationGenerator';
-import { Plus, Edit, Trash2, Loader2, XCircle, Wand2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, XCircle, Wand2, ArrowUpDown, Search } from 'lucide-react'; // אייקונים חדשים
 import { toast } from 'sonner';
 import { useTableSettings } from '@/hooks/use-table-settings';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
@@ -66,51 +70,47 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
+  
+  // States for Table Features
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState(""); // חיפוש גלובלי
+  
+  // Server-side filters (עדיין רלוונטי לשליפה מהשרת)
   const [filterZoneId, setFilterZoneId] = useState<number | undefined>();
   const [filterUsageId, setFilterUsageId] = useState<number | undefined>();
+  
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  // Table settings hook for persistent user preferences
-  const {
-    pagination,
-    columnVisibility,
-    onPaginationChange,
+  const { 
+    pagination, 
+    onPaginationChange, 
+    columnVisibility, 
     onColumnVisibilityChange,
-  } = useTableSettings({
-    tableName: 'locations',
-    defaultPageSize: 10,
-  });
+    isLoading: isLoadingSettings 
+  } = useTableSettings('locations_table');
 
-  // Fetch zones for filter
   const { data: zones } = useQuery({
     queryKey: ['zones', warehouseId],
     queryFn: () => zoneService.getZones(warehouseId),
   });
 
-  // Fetch usages for filter
   const { data: usages } = useQuery({
     queryKey: ['locationUsages'],
     queryFn: locationService.getLocationUsages,
   });
 
-  // Fetch locations
-  const { data: locations, isLoading, isError } = useQuery({
+  const { data: locations, isLoading: isLoadingData, isError } = useQuery({
     queryKey: ['locations', warehouseId, filterZoneId, filterUsageId],
     queryFn: () =>
       locationService.getLocations({
         warehouse_id: warehouseId,
         zone_id: filterZoneId,
         usage_id: filterUsageId,
+        limit: 10000, 
       }),
   });
 
-  // Get zone name helper
-  const getZoneName = (zoneId: number) => {
-    return zones?.find((z) => z.id === zoneId)?.name || '';
-  };
-
-  // Create location mutation
   const createLocationMutation = useMutation({
     mutationFn: locationService.createLocation,
     onSuccess: () => {
@@ -123,7 +123,6 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
   });
 
-  // Update location mutation
   const updateLocationMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: LocationUpdate }) =>
       locationService.updateLocation(id, data),
@@ -138,7 +137,6 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
   });
 
-  // Delete location mutation
   const deleteLocationMutation = useMutation({
     mutationFn: (id: number) => locationService.deleteLocation(id),
     onSuccess: () => {
@@ -151,45 +149,86 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
   });
 
-  // Table columns
+  const getZoneName = (zoneId: number) => {
+    return zones?.find((z) => z.id === zoneId)?.name || '';
+  };
+
+  // --- הגדרת העמודות (כולל מיון) ---
   const columns: ColumnDef<Location>[] = [
     {
       accessorKey: 'name',
-      header: t('locations.name'),
+      id: 'name',
+      // Header עם כפתור מיון
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="p-0 hover:bg-transparent"
+          >
+            {t('locations.name')}
+            <ArrowUpDown className="mr-2 h-3 w-3" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => <div className="font-bold">{row.getValue("name")}</div>,
     },
     {
       accessorKey: 'zone_id',
-      header: t('locations.zone'),
+      id: 'zone_id',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
+          {t('locations.zone')}
+          <ArrowUpDown className="mr-2 h-3 w-3" />
+        </Button>
+      ),
       cell: ({ row }) => getZoneName(row.original.zone_id),
     },
     {
+      accessorKey: 'aisle',
+      id: 'aisle', // הוספנו עמודת מעבר לחיפוש/סינון
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
+          {t('locations.aisle')}
+          <ArrowUpDown className="mr-2 h-3 w-3" />
+        </Button>
+      ),
+    },
+    {
       accessorKey: 'usage_id',
+      id: 'usage_id',
       header: t('locations.usage'),
       cell: ({ row }) => {
-        // מנסים למצוא את השם מתוך רשימת השימושים שנטענה
         const usageName = usages?.find(u => u.id === row.original.usage_id)?.name;
-        // אם הגיע מה-Backend עם ה-Definition (תלוי במימוש ה-API)
         const defName = row.original.usage_definition?.name;
-        return <Badge variant="outline">{defName || usageName || row.original.usage_id}</Badge>;
+        return <Badge variant="secondary" className="font-normal">{defName || usageName || row.original.usage_id}</Badge>;
       },
     },
     {
       accessorKey: 'type_id',
+      id: 'type_id',
       header: t('locations.type'),
       cell: ({ row }) => row.original.type_definition?.name || row.original.type_id,
     },
     {
       accessorKey: 'pick_sequence',
-      header: t('locations.pickSequence'),
+      id: 'pick_sequence',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
+          {t('locations.pickSequence')}
+          <ArrowUpDown className="mr-2 h-3 w-3" />
+        </Button>
+      ),
     },
     {
       id: 'actions',
-      header: t('common.actions'),
+      header: () => <div className="text-left w-full pl-2">{t('common.actions')}</div>, // יישור כותרת לשמאל
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex justify-end gap-1"> {/* יישור כפתורים לשמאל (סוף השורה ב-RTL זה שמאל) */}
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
+            className="h-8 w-8 p-0"
             onClick={() => {
               setEditingLocation(row.original);
               setIsSheetOpen(true);
@@ -199,10 +238,11 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
           </Button>
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
             onClick={() => setDeletingLocation(row.original)}
           >
-            <Trash2 className="h-4 w-4 text-red-600" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
@@ -214,12 +254,18 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(), // הפעלת מיון
+    getFilteredRowModel: getFilteredRowModel(), // הפעלת סינון
+    onPaginationChange,
+    onColumnVisibilityChange,
+    onSortingChange: setSorting, // ניהול סטייט מיון
+    onGlobalFilterChange: setGlobalFilter, // ניהול סטייט חיפוש
     state: {
       pagination,
       columnVisibility,
+      sorting,
+      globalFilter,
     },
-    onPaginationChange,
-    onColumnVisibilityChange,
   });
 
   const handleCreateLocation = (data: LocationCreate) => {
@@ -237,7 +283,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     setEditingLocation(null);
   };
 
-  if (isLoading) {
+  if (isLoadingData || isLoadingSettings) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -256,73 +302,85 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   }
 
   return (
-    <div>
-      {/* Header with buttons */}
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 className="text-2xl font-bold">{t('locations.title')}</h2>
-          <p className="text-gray-600 dark:text-gray-400">{t('locations.description')}</p>
+    <div className="space-y-3"> {/* צמצום רווחים כללי */}
+      
+      {/* סרגל כלים עליון - קומפקטי */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-2 rounded-lg border">
+        
+        {/* צד ימין - חיפוש ופילטרים */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* שורת חיפוש */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="חיפוש חופשי (שם, מעבר, אזור...)"
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="pr-8 h-9 text-sm"
+            />
+          </div>
+
+          {/* פילטר אזור */}
+          <Select
+            value={filterZoneId?.toString() || 'all'}
+            onValueChange={(value) => setFilterZoneId(value === 'all' ? undefined : parseInt(value))}
+          >
+            <SelectTrigger className="w-[140px] h-9 text-sm">
+              <SelectValue placeholder={t('locations.filterByZone')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
+              {zones?.map((zone) => (
+                <SelectItem key={zone.id} value={zone.id.toString()}>
+                  {zone.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* פילטר שימוש */}
+          <Select
+            value={filterUsageId?.toString() || 'all'}
+            onValueChange={(value) => setFilterUsageId(value === 'all' ? undefined : parseInt(value))}
+          >
+            <SelectTrigger className="w-[140px] h-9 text-sm">
+              <SelectValue placeholder={t('locations.filterByUsage')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
+              {usages?.map((usage) => (
+                <SelectItem key={usage.id} value={usage.id.toString()}>
+                  {usage.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsGeneratorOpen(true)}>
-            <Wand2 className="mr-2 h-4 w-4" />
+
+        {/* צד שמאל - פעולות */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <DataTableViewOptions table={table} />
+          
+          <Button variant="outline" size="sm" onClick={() => setIsGeneratorOpen(true)} className="h-9">
+            <Wand2 className="mr-2 h-3.5 w-3.5" />
             {t('locations.generator')}
           </Button>
-          <Button onClick={() => setIsSheetOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          
+          <Button size="sm" onClick={() => setIsSheetOpen(true)} className="h-9">
+            <Plus className="mr-2 h-3.5 w-3.5" />
             {t('locations.addLocation')}
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 mb-4 items-center">
-        <Select
-          value={filterZoneId?.toString() || 'all'}
-          onValueChange={(value) => setFilterZoneId(value === 'all' ? undefined : parseInt(value))}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder={t('locations.filterByZone')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('common.all')}</SelectItem>
-            {zones?.map((zone) => (
-              <SelectItem key={zone.id} value={zone.id.toString()}>
-                {zone.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filterUsageId?.toString() || 'all'}
-          onValueChange={(value) => setFilterUsageId(value === 'all' ? undefined : parseInt(value))}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder={t('locations.filterByUsage')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('common.all')}</SelectItem>
-            {usages?.map((usage) => (
-              <SelectItem key={usage.id} value={usage.id.toString()}>
-                {usage.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Column Visibility Toggle */}
-        <DataTableViewOptions table={table} />
-      </div>
-
-      {/* Locations Table */}
-      <div className="rounded-md border">
+      {/* טבלה */}
+      <div className="rounded-md border bg-white">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="h-10">
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -334,9 +392,9 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="h-10">
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-2">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -353,10 +411,10 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </Table>
       </div>
 
-      {/* Pagination Controls */}
+      {/* פגינציה */}
       <DataTablePagination table={table} />
 
-      {/* Location Form Sheet - Added overflow-y-auto */}
+      {/* טפסים (Sheets) ודיאלוגים - נשארים אותו דבר */}
       <Sheet open={isSheetOpen} onOpenChange={handleCloseSheet}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
@@ -378,7 +436,6 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </SheetContent>
       </Sheet>
 
-      {/* Location Generator Sheet */}
       <Sheet open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
         <SheetContent className="sm:max-w-[600px] overflow-y-auto">
           <SheetHeader>
@@ -397,7 +454,6 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </SheetContent>
       </Sheet>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingLocation} onOpenChange={() => setDeletingLocation(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
