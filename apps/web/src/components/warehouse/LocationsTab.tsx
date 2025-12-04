@@ -9,7 +9,7 @@ import {
 import { zoneService } from '@/services/zones';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input'; // הוספנו Input
+import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
 import {
   Select,
@@ -22,11 +22,12 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
-  getSortedRowModel, // <--- הוספנו מיון
-  getFilteredRowModel, // <--- הוספנו סינון
+  getSortedRowModel,
+  getFilteredRowModel,
   ColumnDef,
   flexRender,
-  SortingState, // <--- טייפ למיון
+  SortingState,
+  VisibilityState,
 } from '@tanstack/react-table';
 import {
   Table,
@@ -44,6 +45,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -55,11 +62,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { LocationForm } from './LocationForm';
 import { LocationGenerator } from './LocationGenerator';
-import { Plus, Edit, Trash2, Loader2, XCircle, Wand2, ArrowUpDown, Search } from 'lucide-react'; // אייקונים חדשים
+import { Plus, Edit, Trash2, Loader2, XCircle, Wand2, ArrowUpDown, Search, Settings2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTableSettings } from '@/hooks/use-table-settings';
-import { DataTablePagination } from '@/components/ui/data-table-pagination';
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 
 interface LocationsTabProps {
   warehouseId: number;
@@ -71,17 +76,18 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
   
-  // States for Table Features
+  // Table States
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState(""); // חיפוש גלובלי
+  const [globalFilter, setGlobalFilter] = useState("");
   
-  // Server-side filters (עדיין רלוונטי לשליפה מהשרת)
+  // Server-side filters
   const [filterZoneId, setFilterZoneId] = useState<number | undefined>();
   const [filterUsageId, setFilterUsageId] = useState<number | undefined>();
   
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
+  // Persistent Settings Hook
   const { 
     pagination, 
     onPaginationChange, 
@@ -90,6 +96,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     isLoading: isLoadingSettings 
   } = useTableSettings('locations_table');
 
+  // Data Fetching
   const { data: zones } = useQuery({
     queryKey: ['zones', warehouseId],
     queryFn: () => zoneService.getZones(warehouseId),
@@ -107,10 +114,11 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         warehouse_id: warehouseId,
         zone_id: filterZoneId,
         usage_id: filterUsageId,
-        limit: 10000, 
+        limit: 10000, // Load all for client-side features
       }),
   });
 
+  // Mutations
   const createLocationMutation = useMutation({
     mutationFn: locationService.createLocation,
     onSuccess: () => {
@@ -118,9 +126,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       setIsSheetOpen(false);
       toast.success(t('locations.createSuccess'));
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.detail || t('locations.createError'));
-    },
+    onError: (error: any) => toast.error(error?.response?.data?.detail || t('locations.createError')),
   });
 
   const updateLocationMutation = useMutation({
@@ -132,9 +138,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       setEditingLocation(null);
       toast.success(t('locations.updateSuccess'));
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.detail || t('locations.updateError'));
-    },
+    onError: (error: any) => toast.error(error?.response?.data?.detail || t('locations.updateError')),
   });
 
   const deleteLocationMutation = useMutation({
@@ -144,33 +148,22 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       setDeletingLocation(null);
       toast.success(t('locations.deleteSuccess'));
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.detail || t('locations.deleteError'));
-    },
+    onError: (error: any) => toast.error(error?.response?.data?.detail || t('locations.deleteError')),
   });
 
-  const getZoneName = (zoneId: number) => {
-    return zones?.find((z) => z.id === zoneId)?.name || '';
-  };
+  const getZoneName = (zoneId: number) => zones?.find((z) => z.id === zoneId)?.name || '';
 
-  // --- הגדרת העמודות (כולל מיון) ---
+  // Column Definitions
   const columns: ColumnDef<Location>[] = [
     {
       accessorKey: 'name',
       id: 'name',
-      // Header עם כפתור מיון
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="p-0 hover:bg-transparent"
-          >
-            {t('locations.name')}
-            <ArrowUpDown className="mr-2 h-3 w-3" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent font-bold">
+          {t('locations.name')}
+          <ArrowUpDown className="mr-2 h-3 w-3" />
+        </Button>
+      ),
       cell: ({ row }) => <div className="font-bold">{row.getValue("name")}</div>,
     },
     {
@@ -186,13 +179,28 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
     {
       accessorKey: 'aisle',
-      id: 'aisle', // הוספנו עמודת מעבר לחיפוש/סינון
+      id: 'aisle',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
           {t('locations.aisle')}
           <ArrowUpDown className="mr-2 h-3 w-3" />
         </Button>
       ),
+    },
+    {
+      accessorKey: 'bay',
+      id: 'bay',
+      header: t('locations.bay'),
+    },
+    {
+      accessorKey: 'level',
+      id: 'level',
+      header: t('locations.level'),
+    },
+    {
+      accessorKey: 'slot',
+      id: 'slot',
+      header: t('locations.slot'),
     },
     {
       accessorKey: 'usage_id',
@@ -222,26 +230,13 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
     {
       id: 'actions',
-      header: () => <div className="text-left w-full pl-2">{t('common.actions')}</div>, // יישור כותרת לשמאל
+      header: () => <div className="text-left w-full pl-2">{t('common.actions')}</div>,
       cell: ({ row }) => (
-        <div className="flex justify-end gap-1"> {/* יישור כפתורים לשמאל (סוף השורה ב-RTL זה שמאל) */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => {
-              setEditingLocation(row.original);
-              setIsSheetOpen(true);
-            }}
-          >
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditingLocation(row.original); setIsSheetOpen(true); }}>
             <Edit className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => setDeletingLocation(row.original)}
-          >
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeletingLocation(row.original)}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -254,12 +249,12 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(), // הפעלת מיון
-    getFilteredRowModel: getFilteredRowModel(), // הפעלת סינון
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onPaginationChange,
     onColumnVisibilityChange,
-    onSortingChange: setSorting, // ניהול סטייט מיון
-    onGlobalFilterChange: setGlobalFilter, // ניהול סטייט חיפוש
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
     state: {
       pagination,
       columnVisibility,
@@ -268,99 +263,70 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
   });
 
-  const handleCreateLocation = (data: LocationCreate) => {
-    createLocationMutation.mutate(data);
-  };
-
-  const handleUpdateLocation = (data: LocationUpdate) => {
-    if (editingLocation) {
-      updateLocationMutation.mutate({ id: editingLocation.id, data });
-    }
-  };
-
-  const handleCloseSheet = () => {
-    setIsSheetOpen(false);
-    setEditingLocation(null);
-  };
-
-  if (isLoadingData || isLoadingSettings) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">{t('common.loading')}</span>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center h-64 text-red-600">
-        <XCircle className="h-8 w-8 mr-2" />
-        <span>{t('common.error')}</span>
-      </div>
-    );
-  }
+  if (isLoadingData || isLoadingSettings) return <div className="flex justify-center h-64 items-center"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">{t('common.loading')}</span></div>;
+  if (isError) return <div className="flex justify-center h-64 items-center text-red-600"><XCircle className="h-8 w-8 mr-2" /><span>{t('common.error')}</span></div>;
 
   return (
-    <div className="space-y-3"> {/* צמצום רווחים כללי */}
-      
-      {/* סרגל כלים עליון - קומפקטי */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-2 rounded-lg border">
+    <div className="space-y-3">
+      {/* --- Top Bar: Compact Controls --- */}
+      <div className="bg-background border rounded-lg p-2 shadow-sm flex flex-col sm:flex-row justify-between gap-3 items-center">
         
-        {/* צד ימין - חיפוש ופילטרים */}
+        {/* Right Side: Filters & Search */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* שורת חיפוש */}
-          <div className="relative w-full sm:w-64">
+          {/* Global Search */}
+          <div className="relative">
             <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="חיפוש חופשי (שם, מעבר, אזור...)"
+              placeholder="חיפוש מהיר..."
               value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="pr-8 h-9 text-sm"
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="pr-8 h-9 w-[200px] text-sm"
             />
           </div>
 
-          {/* פילטר אזור */}
-          <Select
-            value={filterZoneId?.toString() || 'all'}
-            onValueChange={(value) => setFilterZoneId(value === 'all' ? undefined : parseInt(value))}
-          >
-            <SelectTrigger className="w-[140px] h-9 text-sm">
-              <SelectValue placeholder={t('locations.filterByZone')} />
-            </SelectTrigger>
+          {/* Zone Filter */}
+          <Select value={filterZoneId?.toString() || 'all'} onValueChange={(v) => setFilterZoneId(v === 'all' ? undefined : parseInt(v))}>
+            <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder={t('locations.filterByZone')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('common.all')}</SelectItem>
-              {zones?.map((zone) => (
-                <SelectItem key={zone.id} value={zone.id.toString()}>
-                  {zone.name}
-                </SelectItem>
-              ))}
+              {zones?.map((z) => <SelectItem key={z.id} value={z.id.toString()}>{z.name}</SelectItem>)}
             </SelectContent>
           </Select>
 
-          {/* פילטר שימוש */}
-          <Select
-            value={filterUsageId?.toString() || 'all'}
-            onValueChange={(value) => setFilterUsageId(value === 'all' ? undefined : parseInt(value))}
-          >
-            <SelectTrigger className="w-[140px] h-9 text-sm">
-              <SelectValue placeholder={t('locations.filterByUsage')} />
-            </SelectTrigger>
+          {/* Usage Filter */}
+          <Select value={filterUsageId?.toString() || 'all'} onValueChange={(v) => setFilterUsageId(v === 'all' ? undefined : parseInt(v))}>
+            <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder={t('locations.filterByUsage')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('common.all')}</SelectItem>
-              {usages?.map((usage) => (
-                <SelectItem key={usage.id} value={usage.id.toString()}>
-                  {usage.name}
-                </SelectItem>
-              ))}
+              {usages?.map((u) => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
-        {/* צד שמאל - פעולות */}
+        {/* Left Side: Actions & View Settings */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <DataTableViewOptions table={table} />
-          
+          {/* Column Toggle (Fixed: Doesn't close on click) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9"><Settings2 className="mr-2 h-3.5 w-3.5" />תצוגה</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[180px] max-h-[300px] overflow-y-auto">
+              {table.getAllColumns().filter((c) => typeof c.accessorFn !== "undefined" && c.getCanHide()).map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize text-right"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    onSelect={(e) => e.preventDefault()} // Prevent closing
+                  >
+                    {t(`locations.${column.id}`) || column.id}
+                  </DropdownMenuCheckboxItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button variant="outline" size="sm" onClick={() => setIsGeneratorOpen(true)} className="h-9">
             <Wand2 className="mr-2 h-3.5 w-3.5" />
             {t('locations.generator')}
@@ -373,17 +339,15 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </div>
       </div>
 
-      {/* טבלה */}
-      <div className="rounded-md border bg-white">
+      {/* --- Table --- */}
+      <div className="rounded-md border bg-white shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="h-10">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  <TableHead key={header.id} className="h-10 font-bold text-gray-700">
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -392,9 +356,9 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="h-10">
+                <TableRow key={row.id} className="h-9 hover:bg-blue-50/50 transition-colors">
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-2">
+                    <TableCell key={cell.id} className="py-1">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -411,26 +375,54 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         </Table>
       </div>
 
-      {/* פגינציה */}
-      <DataTablePagination table={table} />
+      {/* --- Pagination (Fixed Arrows & Total) --- */}
+      <div className="flex items-center justify-between px-2" dir="rtl">
+        <div className="text-xs text-muted-foreground">
+          סה"כ <strong>{table.getFilteredRowModel().rows.length}</strong> רשומות
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs">שורות:</span>
+            <Select value={`${table.getState().pagination.pageSize}`} onValueChange={(v) => table.setPageSize(Number(v))}>
+              <SelectTrigger className="h-8 w-[60px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent side="top">
+                {[10, 20, 50, 100, 500, 1000].map(p => <SelectItem key={p} value={`${p}`}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* טפסים (Sheets) ודיאלוגים - נשארים אותו דבר */}
-      <Sheet open={isSheetOpen} onOpenChange={handleCloseSheet}>
-        <SheetContent className="overflow-y-auto">
+          <div className="flex items-center gap-1">
+            <span className="text-xs mx-2">עמוד {table.getState().pagination.pageIndex + 1} מתוך {table.getPageCount()}</span>
+            <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- Dialogs & Sheets --- */}
+      <Sheet open={isSheetOpen} onOpenChange={(v) => { setIsSheetOpen(v); if(!v) setEditingLocation(null); }}>
+        <SheetContent className="overflow-y-auto w-[400px] sm:w-[540px]">
           <SheetHeader>
-            <SheetTitle>
-              {editingLocation ? t('locations.editLocation') : t('locations.addLocation')}
-            </SheetTitle>
-            <SheetDescription>
-              {editingLocation ? t('locations.editDescription') : t('locations.addDescription')}
-            </SheetDescription>
+            <SheetTitle>{editingLocation ? t('locations.editLocation') : t('locations.addLocation')}</SheetTitle>
+            <SheetDescription>{editingLocation ? t('locations.editDescription') : t('locations.addDescription')}</SheetDescription>
           </SheetHeader>
           <LocationForm
             warehouseId={warehouseId}
             zones={zones || []}
             location={editingLocation || undefined}
-            onSubmit={editingLocation ? handleUpdateLocation : handleCreateLocation}
-            onCancel={handleCloseSheet}
+            onSubmit={editingLocation ? (data) => updateLocationMutation.mutate({ id: editingLocation.id, data }) : (data) => createLocationMutation.mutate(data)}
+            onCancel={() => setIsSheetOpen(false)}
             isSubmitting={createLocationMutation.isPending || updateLocationMutation.isPending}
           />
         </SheetContent>
@@ -445,10 +437,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
           <LocationGenerator
             warehouseId={warehouseId}
             zones={zones || []}
-            onSuccess={() => {
-              setIsGeneratorOpen(false);
-              queryClient.invalidateQueries({ queryKey: ['locations'] });
-            }}
+            onSuccess={() => { setIsGeneratorOpen(false); queryClient.invalidateQueries({ queryKey: ['locations'] }); }}
             onCancel={() => setIsGeneratorOpen(false)}
           />
         </SheetContent>
@@ -458,18 +447,11 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('locations.deleteConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('locations.deleteConfirmDescription', { name: deletingLocation?.name })}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('locations.deleteConfirmDescription', { name: deletingLocation?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deletingLocation && deleteLocationMutation.mutate(deletingLocation.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => deletingLocation && deleteLocationMutation.mutate(deletingLocation.id)} className="bg-red-600 hover:bg-red-700">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
