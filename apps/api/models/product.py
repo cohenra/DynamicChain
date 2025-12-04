@@ -69,6 +69,16 @@ class Product(Base):
         back_populates="product",
         cascade="all, delete-orphan"
     )
+    inventory: Mapped[list["Inventory"]] = relationship(
+        "Inventory",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
+    inventory_transactions: Mapped[list["InventoryTransaction"]] = relationship(
+        "InventoryTransaction",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Product(id={self.id}, sku='{self.sku}', name='{self.name}')>"

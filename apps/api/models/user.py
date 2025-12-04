@@ -50,6 +50,16 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    inventory_transactions: Mapped[list["InventoryTransaction"]] = relationship(
+        "InventoryTransaction",
+        back_populates="performed_by_user",
+        cascade="all, delete-orphan"
+    )
+    audit_logs: Mapped[list["SystemAuditLog"]] = relationship(
+        "SystemAuditLog",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"

@@ -1,7 +1,7 @@
 """Add inventory core and system audit tables
 
 Revision ID: 007
-Revises: 006
+Revises: 475da3ba7410
 Create Date: 2025-12-04 16:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 # revision identifiers, used by Alembic.
 revision: str = '007'
-down_revision: Union[str, None] = '006'
+down_revision: Union[str, None] = '475da3ba7410'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -51,6 +51,11 @@ class Depositor(Base):
         back_populates="depositor",
         cascade="all, delete-orphan"
     )
+    inventory: Mapped[list["Inventory"]] = relationship(
+        "Inventory",
+        back_populates="depositor",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Depositor(id={self.id}, code='{self.code}', name='{self.name}')>"

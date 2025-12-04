@@ -74,6 +74,21 @@ class Location(Base):
         back_populates="locations",
         foreign_keys=[usage_id]
     )
+    inventory: Mapped[list["Inventory"]] = relationship(
+        "Inventory",
+        back_populates="location",
+        cascade="all, delete-orphan"
+    )
+    transactions_from: Mapped[list["InventoryTransaction"]] = relationship(
+        "InventoryTransaction",
+        foreign_keys="[InventoryTransaction.from_location_id]",
+        back_populates="from_location"
+    )
+    transactions_to: Mapped[list["InventoryTransaction"]] = relationship(
+        "InventoryTransaction",
+        foreign_keys="[InventoryTransaction.to_location_id]",
+        back_populates="to_location"
+    )
 
     # Constraints
     __table_args__ = (
