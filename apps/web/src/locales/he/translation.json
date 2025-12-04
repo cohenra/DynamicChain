@@ -53,6 +53,22 @@
     "locations": "מיקומים",
     "invoices": "חשבוניות"
   },
+  "dashboard": {
+    "title": "דשבורד",
+    "welcome": "ברוכים הבאים ל-LogiSnap",
+    "welcomeDescription": "מערכת ניהול מחסנים מתקדמת",
+    "phase1Complete": "שלב 1 הושלם בהצלחה - מערכת האימות והתשתית הבסיסית מוכנות לשימוש",
+    "systemStatus": "סטטוס מערכת",
+    "generalInfo": "מידע כללי",
+    "version": "גרסה:",
+    "status": "סטטוס:",
+    "active": "פעיל",
+    "nextSteps": "שלבים הבאים",
+    "whatNext": "מה בהמשך?",
+    "phase2": "• שלב 2: WMS Core",
+    "phase3": "• שלב 3: מנוע חיוב",
+    "phase4": "• שלב 4: שיפורים"
+  },
   "inventory": {
     "title": "ניהול מלאי",
     "subtitle": "תמונת מצב מלאי נוכחית (LPNs)",
@@ -70,22 +86,6 @@
       "DAMAGED": "פגום",
       "MISSING": "חסר"
     }
-  },
-  "dashboard": {
-    "title": "דשבורד",
-    "welcome": "ברוכים הבאים ל-LogiSnap",
-    "welcomeDescription": "מערכת ניהול מחסנים מתקדמת",
-    "phase1Complete": "שלב 1 הושלם בהצלחה - מערכת האימות והתשתית הבסיסית מוכנות לשימוש",
-    "systemStatus": "סטטוס מערכת",
-    "generalInfo": "מידע כללי",
-    "version": "גרסה:",
-    "status": "סטטוס:",
-    "active": "פעיל",
-    "nextSteps": "שלבים הבאים",
-    "whatNext": "מה בהמשך?",
-    "phase2": "• שלב 2: WMS Core",
-    "phase3": "• שלב 3: מנוע חיוב",
-    "phase4": "• שלב 4: שיפורים"
   },
   "products": {
     "title": "מוצרים",
@@ -395,7 +395,7 @@
     "deleteConfirmDescription": "פעולה זו עלולה להשפיע על מוצרים המשתמשים ביחידה זו.",
     "saveBtn": "שמור הגדרה",
     "createBtn": "צור יחידה חדשה"
-  }
+  },
   "columns": {
     "lpn": "לוחית רישוי (LPN)",
     "sku": "מק״ט",
