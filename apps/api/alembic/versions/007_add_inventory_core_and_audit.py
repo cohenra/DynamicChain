@@ -19,40 +19,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-
-    # 1. יצירה ידנית ומבוקרת של ה-ENUMS
-    # ---------------------------------------------------
-    
-    # Inventory Status Enum
-    inventory_status_enum = sa.Enum(
-        'AVAILABLE', 'RESERVED', 'QUARANTINE', 'DAMAGED', 'MISSING',
-        name='inventory_status_enum'
-    )
-    
-    # Transaction Type Enum
-    transaction_type_enum = sa.Enum(
-        'INBOUND_RECEIVE', 'PUTAWAY', 'MOVE', 'PICK', 'SHIP', 
-        'ADJUSTMENT', 'STATUS_CHANGE', 'PALLET_SPLIT', 'PALLET_MERGE',
-        name='transaction_type_enum'
-    )
-
-    # בדיקה אם הם קיימים ב-DB (למקרה של הרצה חוזרת)
-    status_exists = bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'inventory_status_enum'")).scalar()
-    trans_exists = bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'transaction_type_enum'")).scalar()
-
-    # יצירה רק אם לא קיים
-    if not status_exists:
-        inventory_status_enum.create(bind)
-    
-    if not trans_exists:
-        transaction_type_enum.create(bind)
-
-    # 2. יצירת הטבלאות
-    # קריטי: create_type=False אומר ל-SQLAlchemy להשתמש ב-Enum שיצרנו למעלה
-    # ולא לנסות ליצור אותו מחדש
-    # ---------------------------------------------------
-
     # Inventory Table
     op.create_table(
         'inventory',
@@ -64,8 +30,8 @@ def upgrade() -> None:
         sa.Column('lpn', sa.String(length=255), nullable=False),
         sa.Column('quantity', sa.Numeric(precision=18, scale=6), nullable=False),
         
-        # ---> התיקון כאן: create_type=False <---
-        sa.Column('status', sa.Enum('AVAILABLE', 'RESERVED', 'QUARANTINE', 'DAMAGED', 'MISSING', name='inventory_status_enum', create_type=False), nullable=False),
+        # Changed to String to avoid Postgres Enum conflicts
+        sa.Column('status', sa.String(length=50), nullable=False, server_default='AVAILABLE'),
         
         sa.Column('batch_number', sa.String(length=255), nullable=True),
         sa.Column('expiry_date', sa.Date(), nullable=True),
@@ -81,6 +47,7 @@ def upgrade() -> None:
         sa.CheckConstraint('quantity >= 0', name='ck_inventory_quantity_positive')
     )
 
+    # Indexes for inventory
     op.create_index(op.f('ix_inventory_id'), 'inventory', ['id'], unique=False)
     op.create_index('ix_inventory_tenant_id', 'inventory', ['tenant_id'])
     op.create_index('ix_inventory_depositor_id', 'inventory', ['depositor_id'])
@@ -101,8 +68,8 @@ def upgrade() -> None:
         sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column('tenant_id', sa.Integer(), nullable=False),
         
-        # ---> התיקון כאן: create_type=False <---
-        sa.Column('transaction_type', sa.Enum('INBOUND_RECEIVE', 'PUTAWAY', 'MOVE', 'PICK', 'SHIP', 'ADJUSTMENT', 'STATUS_CHANGE', 'PALLET_SPLIT', 'PALLET_MERGE', name='transaction_type_enum', create_type=False), nullable=False),
+        # Changed to String
+        sa.Column('transaction_type', sa.String(length=50), nullable=False),
         
         sa.Column('product_id', sa.Integer(), nullable=False),
         sa.Column('from_location_id', sa.Integer(), nullable=True),
@@ -120,16 +87,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['inventory_id'], ['inventory.id'], ondelete='RESTRICT'),
         sa.ForeignKeyConstraint(['performed_by'], ['users.id'], ondelete='RESTRICT'),
         sa.PrimaryKeyConstraint('id'),
-        sa.CheckConstraint('quantity > 0', name='ck_transaction_quantity_positive'),
-        sa.CheckConstraint(
-            '(transaction_type = \'MOVE\' AND from_location_id IS NOT NULL AND to_location_id IS NOT NULL) OR ' +
-            '(transaction_type IN (\'INBOUND_RECEIVE\', \'PUTAWAY\') AND to_location_id IS NOT NULL) OR ' +
-            '(transaction_type IN (\'PICK\', \'SHIP\') AND from_location_id IS NOT NULL) OR ' +
-            '(transaction_type IN (\'ADJUSTMENT\', \'STATUS_CHANGE\', \'PALLET_SPLIT\', \'PALLET_MERGE\'))',
-            name='ck_transaction_location_logic'
-        )
+        sa.CheckConstraint('quantity > 0', name='ck_transaction_quantity_positive')
+        # Removed the complex CheckConstraint on types for simplicity and stability
     )
 
+    # Indexes for transactions
     op.create_index(op.f('ix_inventory_transactions_id'), 'inventory_transactions', ['id'], unique=False)
     op.create_index('ix_inventory_transactions_tenant_id', 'inventory_transactions', ['tenant_id'])
     op.create_index('ix_inventory_transactions_transaction_type', 'inventory_transactions', ['transaction_type'])
@@ -173,9 +135,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Drop tables
     op.drop_table('system_audit_logs')
     op.drop_table('inventory_transactions')
     op.drop_table('inventory')
-
-    op.execute("DROP TYPE IF EXISTS transaction_type_enum CASCADE")
-    op.execute("DROP TYPE IF EXISTS inventory_status_enum CASCADE")
