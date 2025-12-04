@@ -11,38 +11,48 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 
-
 # revision identifiers, used by Alembic.
 revision: str = '007'
-down_revision: Union[str, None] = '475da3ba7410'
+down_revision: Union[str, None] = '475da3ba7410' # לוודא שזה מצביע על המיגרציה הראשית שלך
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # 1. Create Enums with check (Safe creation)
     bind = op.get_bind()
-    
-    # Check and create inventory_status_enum
+
+    # 1. Create inventory status enum (Safe Check)
+    # בודק אם הסוג קיים לפני יצירה כדי למנוע שגיאות
     result = bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'inventory_status_enum'"))
     if not result.scalar():
         inventory_status_enum = sa.Enum(
-            'AVAILABLE', 'RESERVED', 'QUARANTINE', 'DAMAGED', 'MISSING',
+            'AVAILABLE',
+            'RESERVED',
+            'QUARANTINE',
+            'DAMAGED',
+            'MISSING',
             name='inventory_status_enum'
         )
         inventory_status_enum.create(bind)
 
-    # Check and create transaction_type_enum
+    # 2. Create transaction type enum (Safe Check)
     result = bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'transaction_type_enum'"))
     if not result.scalar():
         transaction_type_enum = sa.Enum(
-            'INBOUND_RECEIVE', 'PUTAWAY', 'MOVE', 'PICK', 'SHIP', 
-            'ADJUSTMENT', 'STATUS_CHANGE', 'PALLET_SPLIT', 'PALLET_MERGE',
+            'INBOUND_RECEIVE',
+            'PUTAWAY',
+            'MOVE',
+            'PICK',
+            'SHIP',
+            'ADJUSTMENT',
+            'STATUS_CHANGE',
+            'PALLET_SPLIT',
+            'PALLET_MERGE',
             name='transaction_type_enum'
         )
         transaction_type_enum.create(bind)
 
-    # Create inventory table (Current Stock Snapshot - Quants/LPNs)
+    # 3. Create inventory table (Current Stock Snapshot - Quants/LPNs)
     op.create_table(
         'inventory',
         sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -52,7 +62,7 @@ def upgrade() -> None:
         sa.Column('location_id', sa.Integer(), nullable=False),
         sa.Column('lpn', sa.String(length=255), nullable=False),
         sa.Column('quantity', sa.Numeric(precision=18, scale=6), nullable=False),
-        sa.Column('status', inventory_status_enum, nullable=False),
+        sa.Column('status', sa.Enum('AVAILABLE', 'RESERVED', 'QUARANTINE', 'DAMAGED', 'MISSING', name='inventory_status_enum'), nullable=False),
         sa.Column('batch_number', sa.String(length=255), nullable=True),
         sa.Column('expiry_date', sa.Date(), nullable=True),
         sa.Column('fifo_date', sa.DateTime(), nullable=False),
@@ -78,17 +88,16 @@ def upgrade() -> None:
     op.create_index('ix_inventory_batch_number', 'inventory', ['batch_number'])
     op.create_index('ix_inventory_expiry_date', 'inventory', ['expiry_date'])
     op.create_index('ix_inventory_fifo_date', 'inventory', ['fifo_date'])
-    # Composite indexes for common queries
     op.create_index('ix_inventory_tenant_product', 'inventory', ['tenant_id', 'product_id'])
     op.create_index('ix_inventory_tenant_location', 'inventory', ['tenant_id', 'location_id'])
     op.create_index('ix_inventory_tenant_depositor', 'inventory', ['tenant_id', 'depositor_id'])
 
-    # Create inventory_transactions table (The Ledger - Immutable)
+    # 4. Create inventory_transactions table (The Ledger - Immutable)
     op.create_table(
         'inventory_transactions',
         sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column('tenant_id', sa.Integer(), nullable=False),
-        sa.Column('transaction_type', transaction_type_enum, nullable=False),
+        sa.Column('transaction_type', sa.Enum('INBOUND_RECEIVE', 'PUTAWAY', 'MOVE', 'PICK', 'SHIP', 'ADJUSTMENT', 'STATUS_CHANGE', 'PALLET_SPLIT', 'PALLET_MERGE', name='transaction_type_enum'), nullable=False),
         sa.Column('product_id', sa.Integer(), nullable=False),
         sa.Column('from_location_id', sa.Integer(), nullable=True),
         sa.Column('to_location_id', sa.Integer(), nullable=True),
@@ -124,11 +133,10 @@ def upgrade() -> None:
     op.create_index('ix_inventory_transactions_performed_by', 'inventory_transactions', ['performed_by'])
     op.create_index('ix_inventory_transactions_timestamp', 'inventory_transactions', ['timestamp'])
     op.create_index('ix_inventory_transactions_reference_doc', 'inventory_transactions', ['reference_doc'])
-    # Composite indexes for common queries
     op.create_index('ix_inventory_transactions_tenant_timestamp', 'inventory_transactions', ['tenant_id', 'timestamp'])
     op.create_index('ix_inventory_transactions_tenant_product', 'inventory_transactions', ['tenant_id', 'product_id'])
 
-    # Create system_audit_logs table (Administrative Audit)
+    # 5. Create system_audit_logs table (Administrative Audit)
     op.create_table(
         'system_audit_logs',
         sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -156,7 +164,6 @@ def upgrade() -> None:
     op.create_index('ix_system_audit_logs_entity_id', 'system_audit_logs', ['entity_id'])
     op.create_index('ix_system_audit_logs_action', 'system_audit_logs', ['action'])
     op.create_index('ix_system_audit_logs_timestamp', 'system_audit_logs', ['timestamp'])
-    # Composite indexes for common queries
     op.create_index('ix_system_audit_logs_entity', 'system_audit_logs', ['entity_type', 'entity_id'])
     op.create_index('ix_system_audit_logs_tenant_timestamp', 'system_audit_logs', ['tenant_id', 'timestamp'])
 
@@ -204,5 +211,7 @@ def downgrade() -> None:
     op.drop_table('inventory')
 
     # Drop enums
-    sa.Enum(name='transaction_type_enum').drop(op.get_bind())
-    sa.Enum(name='inventory_status_enum').drop(op.get_bind())
+    # הערה: הורדת Enums ב-Postgres יכולה להיות בעייתית, לכן משאירים אותם לרוב
+    # אבל אם רוצים לנקות:
+    op.execute("DROP TYPE IF EXISTS transaction_type_enum CASCADE")
+    op.execute("DROP TYPE IF EXISTS inventory_status_enum CASCADE")
