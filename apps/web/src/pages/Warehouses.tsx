@@ -6,18 +6,13 @@ import {
   useReactTable,
   getCoreRowModel,
   getExpandedRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
   ColumnDef,
-  flexRender,
   ExpandedState,
+  SortingState,
 } from '@tanstack/react-table';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Sheet,
   SheetContent,
@@ -36,13 +31,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, XCircle, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useTranslation } from 'react-i18next';
 import { ZonesTab } from '@/components/warehouse/ZonesTab';
 import { LocationsTab } from '@/components/warehouse/LocationsTab';
+import { SmartTable } from '@/components/ui/data-table/SmartTable';
+import { useTableSettings } from '@/hooks/use-table-settings';
+import { toast } from 'sonner';
 
 type WarehouseFormValues = {
   name: string;
@@ -54,43 +52,31 @@ export default function Warehouses() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+  
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  // Create schema with translations
-  const warehouseSchema = useMemo(
-    () =>
-      z.object({
-        name: z.string().min(1, t('warehouses.nameRequired')),
-        code: z.string().min(1, t('warehouses.codeRequired')),
-        address: z.string().min(1, t('warehouses.addressRequired')),
-      }),
-    [t]
-  );
+  const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
+    useTableSettings({ tableName: 'warehouses_table' });
 
-  // Fetch warehouses
-  const {
-    data: warehouses,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const { data: warehouses, isLoading } = useQuery({
     queryKey: ['warehouses'],
     queryFn: warehouseService.getWarehouses,
   });
 
-  // Create warehouse mutation
   const createWarehouseMutation = useMutation({
     mutationFn: warehouseService.createWarehouse,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       setIsSheetOpen(false);
-      setEditingWarehouse(null);
       form.reset();
+      toast.success(t('common.save'));
     },
+    onError: (err: any) => toast.error(err?.response?.data?.detail || t('common.error')),
   });
 
-  // Update warehouse mutation
   const updateWarehouseMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: WarehouseCreate }) =>
       warehouseService.updateWarehouse(id, data),
@@ -99,43 +85,39 @@ export default function Warehouses() {
       setIsSheetOpen(false);
       setEditingWarehouse(null);
       form.reset();
+      toast.success(t('common.update'));
     },
+    onError: (err: any) => toast.error(err?.response?.data?.detail || t('common.error')),
   });
 
-  // Delete warehouse mutation
   const deleteWarehouseMutation = useMutation({
     mutationFn: warehouseService.deleteWarehouse,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      toast.success(t('common.delete'));
     },
+  });
+
+  const warehouseSchema = z.object({
+    name: z.string().min(1),
+    code: z.string().min(1),
+    address: z.string().min(1),
   });
 
   const form = useForm<WarehouseFormValues>({
     resolver: zodResolver(warehouseSchema),
-    defaultValues: {
-      name: '',
-      code: '',
-      address: '',
-    },
+    defaultValues: { name: '', code: '', address: '' },
   });
 
   const handleAddNew = () => {
     setEditingWarehouse(null);
-    form.reset({
-      name: '',
-      code: '',
-      address: '',
-    });
+    form.reset({ name: '', code: '', address: '' });
     setIsSheetOpen(true);
   };
 
   const handleEdit = (warehouse: Warehouse) => {
     setEditingWarehouse(warehouse);
-    form.reset({
-      name: warehouse.name,
-      code: warehouse.code,
-      address: warehouse.address,
-    });
+    form.reset({ name: warehouse.name, code: warehouse.code, address: warehouse.address });
     setIsSheetOpen(true);
   };
 
@@ -146,12 +128,7 @@ export default function Warehouses() {
   };
 
   const handleSubmit = (values: WarehouseFormValues) => {
-    const data: WarehouseCreate = {
-      name: values.name,
-      code: values.code,
-      address: values.address,
-    };
-
+    const data: WarehouseCreate = { name: values.name, code: values.code, address: values.address };
     if (editingWarehouse) {
       updateWarehouseMutation.mutate({ id: editingWarehouse.id, data });
     } else {
@@ -159,268 +136,121 @@ export default function Warehouses() {
     }
   };
 
-  // Define columns with row expansion
-  const columns: ColumnDef<Warehouse>[] = [
+  const columns = useMemo<ColumnDef<Warehouse>[]>(() => [
     {
       id: 'expander',
       header: () => null,
-      cell: ({ row }) => {
-        return row.getCanExpand() ? (
-          <button
-            onClick={row.getToggleExpandedHandler()}
-            className="cursor-pointer"
+      cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
+            className="h-8 w-8"
           >
-            {row.getIsExpanded() ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </button>
-        ) : null;
-      },
+            {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
+      ),
+      size: 50,
     },
-    {
-      accessorKey: 'name',
-      header: t('warehouses.name'),
-      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
-    },
-    {
-      accessorKey: 'code',
-      header: t('warehouses.code'),
-    },
-    {
-      accessorKey: 'address',
-      header: t('warehouses.address'),
-      cell: ({ row }) => <span className="max-w-md truncate">{row.original.address}</span>,
-    },
+    { accessorKey: 'name', id: 'name', header: t('warehouses.name'), cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
+    { accessorKey: 'code', id: 'code', header: t('warehouses.code') },
+    { accessorKey: 'address', id: 'address', header: t('warehouses.address'), cell: ({ row }) => <span className="max-w-md truncate">{row.original.address}</span> },
     {
       id: 'actions',
       header: t('common.actions'),
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleEdit(row.original)}
-            title={t('common.edit')}
-          >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" onClick={() => handleEdit(row.original)}>
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDelete(row.original.id)}
-            title={t('common.delete')}
-            disabled={deleteWarehouseMutation.isPending}
-          >
+          <Button variant="ghost" size="icon" onClick={() => handleDelete(row.original.id)}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
       ),
     },
-  ];
+  ], [t]);
 
   const table = useReactTable({
     data: warehouses || [],
     columns,
-    state: {
-      expanded,
-    },
+    state: { expanded, sorting, globalFilter, pagination, columnVisibility },
     onExpandedChange: setExpanded,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange,
+    onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getRowCanExpand: () => true,
   });
 
   const isSubmitting = createWarehouseMutation.isPending || updateWarehouseMutation.isPending;
-  const submitError = createWarehouseMutation.error || updateWarehouseMutation.error;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('warehouses.title')}</h1>
-          <p className="text-muted-foreground mt-2">{t('warehouses.description')}</p>
-        </div>
-        <Button onClick={handleAddNew}>
-          <Plus className="ml-2 h-4 w-4" />
-          {t('warehouses.addWarehouse')}
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">{t('warehouses.title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('warehouses.description')}</p>
       </div>
 
-      {/* Warehouses Table */}
-      <div className="bg-white rounded-lg border">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">{t('warehouses.loading')}</p>
-            </div>
+      <SmartTable
+        table={table}
+        columnsLength={columns.length}
+        isLoading={isLoading}
+        searchValue={globalFilter}
+        onSearchChange={setGlobalFilter}
+        noDataMessage={t('warehouses.noWarehouses')}
+        actions={
+          <Button onClick={handleAddNew}>
+            <Plus className="ml-2 h-4 w-4" />
+            {t('warehouses.addWarehouse')}
+          </Button>
+        }
+        renderSubComponent={({ row }) => (
+          <div className="bg-gray-50 dark:bg-gray-900 p-6">
+            <Tabs defaultValue="zones" className="w-full">
+              <TabsList>
+                <TabsTrigger value="zones">{t('zones.title')}</TabsTrigger>
+                <TabsTrigger value="locations">{t('locations.title')}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="zones" className="mt-6">
+                <ZonesTab warehouseId={row.original.id} />
+              </TabsContent>
+              <TabsContent value="locations" className="mt-6">
+                <LocationsTab warehouseId={row.original.id} />
+              </TabsContent>
+            </Tabs>
           </div>
-        ) : isError ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <XCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
-              <p className="text-destructive font-medium">{t('warehouses.loadingError')}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {error instanceof Error ? error.message : t('common.unexpectedError')}
-              </p>
-            </div>
-          </div>
-        ) : warehouses && warehouses.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <p className="text-muted-foreground">{t('warehouses.noWarehouses')}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {t('warehouses.addFirstWarehouse')}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className={header.id === 'actions' ? 'text-right' : ''}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <Fragment key={row.id}>
-                  <TableRow>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className={cell.column.id === 'actions' ? 'text-right' : ''}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                  {row.getIsExpanded() && (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="p-0">
-                        <div className="bg-gray-50 dark:bg-gray-900 p-6">
-                          <Tabs defaultValue="zones" className="w-full">
-                            <TabsList>
-                              <TabsTrigger value="zones">{t('zones.title')}</TabsTrigger>
-                              <TabsTrigger value="locations">{t('locations.title')}</TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="zones" className="mt-6">
-                              <ZonesTab warehouseId={row.original.id} />
-                            </TabsContent>
-
-                            <TabsContent value="locations" className="mt-6">
-                              <LocationsTab warehouseId={row.original.id} />
-                            </TabsContent>
-                          </Tabs>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </Fragment>
-              ))}
-            </TableBody>
-          </Table>
         )}
-      </div>
+      />
 
-      {/* Add/Edit Warehouse Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>
-              {editingWarehouse ? t('warehouses.editWarehouse') : t('warehouses.addNewWarehouse')}
-            </SheetTitle>
-            <SheetDescription>
-              {editingWarehouse
-                ? t('warehouses.editWarehouseDescription')
-                : t('warehouses.addWarehouseDescription')}
-            </SheetDescription>
+            <SheetTitle>{editingWarehouse ? t('warehouses.editWarehouse') : t('warehouses.addNewWarehouse')}</SheetTitle>
+            <SheetDescription>{t('warehouses.addWarehouseDescription')}</SheetDescription>
           </SheetHeader>
           <div className="mt-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('warehouses.name')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={t('warehouses.enterName')}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('warehouses.code')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={t('warehouses.enterCode')}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('warehouses.address')}</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder={t('warehouses.enterAddress')}
-                          disabled={isSubmitting}
-                          rows={4}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+                <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem><FormLabel>{t('warehouses.name')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="code" render={({ field }) => (
+                    <FormItem><FormLabel>{t('warehouses.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="address" render={({ field }) => (
+                    <FormItem><FormLabel>{t('warehouses.address')}</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>
+                )} />
                 <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? t('common.saving') : t('warehouses.saveWarehouse')}
-                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>{isSubmitting ? t('common.saving') : t('common.save')}</Button>
                 </div>
               </form>
             </Form>
-
-            {submitError && (
-              <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">
-                  {submitError instanceof Error
-                    ? submitError.message
-                    : editingWarehouse
-                    ? t('warehouses.updateError')
-                    : t('warehouses.createError')}
-                </p>
-              </div>
-            )}
           </div>
         </SheetContent>
       </Sheet>
