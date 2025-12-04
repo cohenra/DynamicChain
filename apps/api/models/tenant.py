@@ -68,6 +68,21 @@ class Tenant(Base):
         back_populates="tenant",
         cascade="all, delete-orphan"
     )
+    inventory: Mapped[list["Inventory"]] = relationship(
+        "Inventory",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+    inventory_transactions: Mapped[list["InventoryTransaction"]] = relationship(
+        "InventoryTransaction",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+    audit_logs: Mapped[list["SystemAuditLog"]] = relationship(
+        "SystemAuditLog",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name='{self.name}')>"
