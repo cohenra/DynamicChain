@@ -1,4 +1,4 @@
-import { flexRender, Table as ReactTable } from "@tanstack/react-table";
+import { flexRender, Table as ReactTable, Row } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -10,6 +10,7 @@ import {
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar, FilterOption } from "./DataTableToolbar";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface SmartTableProps<TData> {
   table: ReactTable<TData>;
@@ -21,6 +22,8 @@ interface SmartTableProps<TData> {
   filters?: FilterOption[];
   actions?: React.ReactNode;
   noDataMessage?: string;
+  // תוספת קריטית: פונקציה לרינדור תוכן שורה מורחבת
+  renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement;
 }
 
 export function SmartTable<TData>({
@@ -32,8 +35,11 @@ export function SmartTable<TData>({
   onSearchChange,
   filters,
   actions,
-  noDataMessage = "אין נתונים להצגה",
+  noDataMessage,
+  renderSubComponent,
 }: SmartTableProps<TData>) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4">
       {/* סרגל כלים עליון */}
@@ -51,9 +57,15 @@ export function SmartTable<TData>({
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
+              <TableRow
+                key={headerGroup.id}
+                className="bg-muted/30 hover:bg-muted/30"
+              >
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="h-10 font-bold text-gray-700">
+                  <TableHead
+                    key={header.id}
+                    className="h-10 font-bold text-gray-700"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -71,28 +83,49 @@ export function SmartTable<TData>({
                 <TableCell colSpan={columnsLength} className="h-24 text-center">
                   <div className="flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="mr-2">טוען נתונים...</span>
+                    <span className="mr-2">
+                      {t("common.loading", "טוען נתונים...")}
+                    </span>
                   </div>
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="h-9 hover:bg-blue-50/50 transition-colors"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-1">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <>
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={`h-9 hover:bg-blue-50/50 transition-colors ${
+                      row.getCanExpand() ? "cursor-pointer" : ""
+                    }`}
+                    onClick={() => row.getCanExpand() && row.toggleExpanded()}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-1">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {/* לוגיקת הרחבה - אם השורה פתוחה ויש קומפוננטת הרחבה */}
+                  {row.getIsExpanded() && renderSubComponent && (
+                    <TableRow>
+                      <TableCell colSpan={columnsLength} className="p-0">
+                        {renderSubComponent({ row })}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columnsLength} className="h-24 text-center text-muted-foreground">
-                  {noDataMessage}
+                <TableCell
+                  colSpan={columnsLength}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  {noDataMessage || t("common.noData", "אין נתונים להצגה")}
                 </TableCell>
               </TableRow>
             )}
