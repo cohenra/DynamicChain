@@ -47,6 +47,7 @@
     "appName": "LogiSnap",
     "dashboard": "דשבורד",
     "inventory": "ניהול מלאי",
+    "inbound": "הזמנות קבלה",
     "products": "מוצרים",
     "depositors": "מאחסנים",
     "warehouses": "מחסנים",
@@ -85,6 +86,151 @@
       "QUARANTINE": "הסגר",
       "DAMAGED": "פגום",
       "MISSING": "חסר"
+    }
+  },
+  "inbound": {
+    "title": "הזמנות קבלה",
+    "description": "ניהול הזמנות רכש והודעות משלוח",
+    "addOrder": "הזמנה חדשה",
+    "createOrder": "צור הזמנת קבלה",
+    "createOrderDescription": "הזן פרטי הזמנה ושורות מוצר",
+    "viewDetails": "צפה בפרטים",
+    "orderNumber": "מספר הזמנה",
+    "orderType": "סוג הזמנה",
+    "supplier": "ספק",
+    "expectedDate": "תאריך צפוי",
+    "progress": "התקדמות",
+    "noOrders": "אין הזמנות קבלה במערכת",
+    "addFirstOrder": "התחל על ידי הוספת הזמנת קבלה ראשונה",
+    "loading": "טוען הזמנות...",
+    "loadingError": "שגיאה בטעינת הזמנות",
+    "createSuccess": "הזמנה נוצרה בהצלחה",
+    "createError": "שגיאה ביצירת הזמנה",
+    "orderTypes": {
+      "PO": "הזמנת רכש (PO)",
+      "ASN": "הודעת משלוח (ASN)"
+    },
+    "statuses": {
+      "DRAFT": "טיוטה",
+      "CONFIRMED": "מאושרת",
+      "IN_PROGRESS": "בעבודה",
+      "COMPLETED": "הושלמה",
+      "CANCELLED": "בוטלה"
+    },
+    "fields": {
+      "orderNumber": "מספר הזמנה",
+      "orderNumberPlaceholder": "לדוגמה: PO-2024-001",
+      "orderNumberRequired": "מספר הזמנה הוא שדה חובה",
+      "supplierName": "שם ספק",
+      "supplierNamePlaceholder": "לדוגמה: ספק הבטחון בע\"מ",
+      "supplierNameRequired": "שם ספק הוא שדה חובה",
+      "expectedDate": "תאריך צפוי",
+      "expectedDateOptional": "תאריך צפוי (אופציונלי)",
+      "selectOrderType": "בחר סוג הזמנה",
+      "orderTypeRequired": "סוג הזמנה הוא שדה חובה"
+    },
+    "lines": {
+      "title": "שורות הזמנה",
+      "addLine": "הוסף שורה",
+      "noLines": "לא הוגדרו שורות. הוסף לפחות שורה אחת",
+      "product": "מוצר",
+      "uom": "יחידת מידה",
+      "expectedQty": "כמות צפויה",
+      "receivedQty": "כמות שהתקבלה",
+      "remainingQty": "כמות נותרת",
+      "selectProduct": "בחר מוצר",
+      "selectUom": "בחר יחידה",
+      "enterQuantity": "הזן כמות",
+      "productRequired": "מוצר הוא שדה חובה",
+      "uomRequired": "יחידת מידה היא שדה חובה",
+      "quantityRequired": "כמות היא שדה חובה",
+      "quantityMustBePositive": "כמות חייבת להיות מספר חיובי",
+      "noProducts": "אין מוצרים זמינים"
+    },
+    "details": {
+      "title": "פרטי הזמנה",
+      "orderInfo": "מידע כללי",
+      "tabs": {
+        "overview": "סקירה",
+        "lines": "שורות",
+        "shipments": "משלוחים"
+      },
+      "overview": {
+        "summary": "סיכום התקדמות",
+        "totalLines": "סה\"כ שורות",
+        "completedLines": "שורות שהושלמו",
+        "totalExpected": "סה\"כ כמות צפויה",
+        "totalReceived": "סה\"כ כמות שהתקבלה",
+        "progressPercentage": "אחוז התקדמות"
+      }
+    },
+    "shipments": {
+      "title": "משלוחים (מכולות)",
+      "addShipment": "הוסף משלוח",
+      "createShipment": "צור משלוח חדש",
+      "createShipmentDescription": "הזן פרטי מכולה ונהג",
+      "noShipments": "אין משלוחים להזמנה זו",
+      "shipmentNumber": "מספר משלוח",
+      "containerNumber": "מספר מכולה",
+      "driverName": "שם נהג",
+      "driverPhone": "טלפון נהג",
+      "arrivalDate": "תאריך הגעה",
+      "receiveShipment": "קלוט משלוח",
+      "createSuccess": "משלוח נוצר בהצלחה",
+      "createError": "שגיאה ביצירת משלוח",
+      "fields": {
+        "shipmentNumber": "מספר משלוח",
+        "shipmentNumberPlaceholder": "לדוגמה: SH-001",
+        "shipmentNumberRequired": "מספר משלוח הוא שדה חובה",
+        "containerNumber": "מספר מכולה",
+        "containerNumberPlaceholder": "לדוגמה: CONT-12345",
+        "containerNumberOptional": "מספר מכולה (אופציונלי)",
+        "driverName": "שם נהג",
+        "driverNamePlaceholder": "לדוגמה: ישראל ישראלי",
+        "driverNameOptional": "שם נהג (אופציונלי)",
+        "driverPhone": "טלפון נהג",
+        "driverPhonePlaceholder": "לדוגמה: 050-1234567",
+        "driverPhoneOptional": "טלפון נהג (אופציונלי)",
+        "arrivalDate": "תאריך הגעה",
+        "arrivalDateOptional": "תאריך הגעה (אופציונלי)"
+      },
+      "statuses": {
+        "PENDING": "ממתין",
+        "IN_TRANSIT": "בדרך",
+        "ARRIVED": "הגיע",
+        "RECEIVING": "בקליטה",
+        "COMPLETED": "הושלם"
+      }
+    },
+    "receiving": {
+      "title": "קונסולת קליטה",
+      "shipmentInfo": "פרטי משלוח",
+      "itemsToReceive": "פריטים לקליטה",
+      "noItemsToReceive": "אין פריטים זמינים לקליטה",
+      "quantityToReceive": "כמות לקליטה",
+      "location": "מיקום",
+      "lpn": "LPN",
+      "batch": "אצווה",
+      "expiry": "תוקף",
+      "executeReceiving": "בצע קליטה",
+      "receiving": "מבצע קליטה...",
+      "receiveSuccess": "קליטה בוצעה בהצלחה",
+      "receiveError": "שגיאה בביצוע קליטה",
+      "validation": {
+        "selectLocation": "בחר מיקום",
+        "locationRequired": "מיקום הוא שדה חובה",
+        "quantityRequired": "כמות היא שדה חובה",
+        "quantityMustBePositive": "כמות חייבת להיות גדולה מאפס",
+        "quantityExceedsRemaining": "הכמות חורגת מהכמות הנותרת",
+        "atLeastOneItem": "יש להזין לפחות פריט אחד לקליטה",
+        "lpnOptional": "LPN (אוטומטי אם ריק)",
+        "batchOptional": "אצווה (אופציונלי)",
+        "expiryOptional": "תוקף (אופציונלי)"
+      },
+      "fields": {
+        "remaining": "נותר",
+        "enterQuantity": "הזן כמות"
+      }
     }
   },
   "products": {
