@@ -37,7 +37,7 @@ import { UomDefinitionsTable } from '@/components/products/UomDefinitionsTable';
 import { ProductRowDetail } from '@/components/products/ProductRowDetail';
 import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { SmartTable } from '@/components/ui/data-table/SmartTable';
+import { SmartTable } from '@/components/ui/data-table/SmartTable'; // <--- השימוש ברכיב החדש
 import { useTableSettings } from '@/hooks/use-table-settings';
 
 export default function Products() {
@@ -45,7 +45,6 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   
-  // Table States
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -53,17 +52,16 @@ export default function Products() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  // Settings Hook (עבור שמירת הגדרות תצוגה)
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
     useTableSettings({ tableName: 'products_table' });
 
-  // 1. Fetch
+  // Fetch
   const { data: products, isLoading, isError, error } = useQuery({
     queryKey: ['products'],
     queryFn: productService.getProducts,
   });
 
-  // 2. Mutations
+  // Mutations
   const createProductMutation = useMutation({
     mutationFn: productService.createProduct,
     onSuccess: () => {
@@ -112,7 +110,6 @@ export default function Products() {
     }
   };
 
-  // 3. Columns
   const columns = useMemo<ColumnDef<Product>[]>(() => [
     {
       id: 'expander',
@@ -129,10 +126,10 @@ export default function Products() {
       ),
       size: 50,
     },
-    { accessorKey: 'sku', header: t('products.sku') },
-    { accessorKey: 'name', header: t('products.name') },
-    { accessorKey: 'depositor_name', header: t('products.depositor') },
-    { accessorKey: 'base_uom_name', header: t('products.baseUnit') },
+    { accessorKey: 'sku', id: 'sku', header: t('products.sku') },
+    { accessorKey: 'name', id: 'name', header: t('products.name') },
+    { accessorKey: 'depositor_name', id: 'depositor_name', header: t('products.depositor') },
+    { accessorKey: 'base_uom_name', id: 'base_uom_name', header: t('products.baseUnit') },
     {
       id: 'actions',
       header: t('common.actions'),
@@ -198,14 +195,14 @@ export default function Products() {
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('products.noProducts')}
-            // כאן עובר הכפתור בצורה תקינה
+            // כאן הכפתורים - בתוך SmartTable
             actions={
               <Button onClick={handleAddNew}>
                 <Plus className="ml-2 h-4 w-4" />
                 {t('products.addProduct')}
               </Button>
             }
-            // וכאן ההרחבה
+            // וכאן ההרחבה - בתוך SmartTable
             renderSubComponent={({ row }) => (
               <ProductRowDetail product={row.original} colSpan={columns.length} />
             )}
@@ -217,12 +214,11 @@ export default function Products() {
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Product Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if(!open) setEditingProduct(null); }}>
         <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingProduct ? t('products.editProduct') : t('products.addNewProduct')}</SheetTitle>
-            <SheetDescription>{editingProduct ? t('products.editProductDescription') : t('products.addProductDescription')}</SheetDescription>
+            <SheetDescription>{t('products.addProductDescription')}</SheetDescription>
           </SheetHeader>
           <div className="mt-6">
             <ProductForm
@@ -235,11 +231,7 @@ export default function Products() {
         </SheetContent>
       </Sheet>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deletingProduct}
-        onOpenChange={(open) => !open && setDeletingProduct(null)}
-      >
+      <AlertDialog open={!!deletingProduct} onOpenChange={(open) => !open && setDeletingProduct(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('products.deleteConfirmTitle')}</AlertDialogTitle>
