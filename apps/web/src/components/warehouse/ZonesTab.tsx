@@ -7,16 +7,11 @@ import {
   useReactTable,
   getCoreRowModel,
   ColumnDef,
-  flexRender,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  SortingState,
 } from '@tanstack/react-table';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Sheet,
   SheetContent,
@@ -35,8 +30,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ZoneForm } from './ZoneForm';
-import { Plus, Edit, Trash2, Loader2, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SmartTable } from '@/components/ui/data-table/SmartTable';
+import { useTableSettings } from '@/hooks/use-table-settings';
 
 interface ZonesTabProps {
   warehouseId: number;
@@ -46,11 +43,25 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [deletingZone, setDeletingZone] = useState<Zone | null>(null);
+  
+  // Table States
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
+  // Persistent Settings Hook
+  const { 
+    pagination, 
+    onPaginationChange, 
+    columnVisibility, 
+    onColumnVisibilityChange,
+    isLoading: isLoadingSettings 
+  } = useTableSettings({ tableName: 'zones_table' });
+
   // Fetch zones
-  const { data: zones, isLoading, isError } = useQuery({
+  const { data: zones, isLoading: isLoadingData } = useQuery({
     queryKey: ['zones', warehouseId],
     queryFn: () => zoneService.getZones(warehouseId),
   });
@@ -137,6 +148,19 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
     data: zones || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onPaginationChange,
+    onColumnVisibilityChange,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    state: {
+      pagination,
+      columnVisibility,
+      sorting,
+      globalFilter,
+    },
   });
 
   const handleCreateZone = (data: ZoneCreate) => {
@@ -154,75 +178,22 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
     setEditingZone(null);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">{t('common.loading')}</span>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center h-64 text-red-600">
-        <XCircle className="h-8 w-8 mr-2" />
-        <span>{t('common.error')}</span>
-      </div>
-    );
-  }
-
   return (
     <div>
-      {/* Header with Add button */}
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 className="text-2xl font-bold">{t('zones.title')}</h2>
-          <p className="text-gray-600 dark:text-gray-400">{t('zones.description')}</p>
-        </div>
-        <Button onClick={() => setIsSheetOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('zones.addZone')}
-        </Button>
-      </div>
-
-      {/* Zones Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {t('zones.noZones')}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <SmartTable
+        table={table}
+        columnsLength={columns.length}
+        isLoading={isLoadingData || isLoadingSettings}
+        searchValue={globalFilter}
+        onSearchChange={setGlobalFilter}
+        noDataMessage={t('zones.noZones')}
+        actions={
+          <Button onClick={() => setIsSheetOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('zones.addZone')}
+          </Button>
+        }
+      />
 
       {/* Zone Form Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={handleCloseSheet}>
