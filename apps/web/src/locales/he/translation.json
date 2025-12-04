@@ -46,11 +46,30 @@
   "layout": {
     "appName": "LogiSnap",
     "dashboard": "דשבורד",
+    "inventory": "ניהול מלאי",
     "products": "מוצרים",
     "depositors": "מאחסנים",
     "warehouses": "מחסנים",
     "locations": "מיקומים",
     "invoices": "חשבוניות"
+  },
+  "inventory": {
+    "title": "ניהול מלאי",
+    "subtitle": "תמונת מצב מלאי נוכחית (LPNs)",
+    "lpn": "לוחית רישוי (LPN)",
+    "quantity": "כמות",
+    "status": "סטטוס",
+    "batch": "אצווה",
+    "expiry": "תוקף",
+    "receiveStock": "קליטת מלאי",
+    "noInventory": "אין מלאי במערכת",
+    "statuses": {
+      "AVAILABLE": "זמין",
+      "RESERVED": "שמור",
+      "QUARANTINE": "הסגר",
+      "DAMAGED": "פגום",
+      "MISSING": "חסר"
+    }
   },
   "dashboard": {
     "title": "דשבורד",
