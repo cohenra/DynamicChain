@@ -396,4 +396,22 @@
     "saveBtn": "שמור הגדרה",
     "createBtn": "צור יחידה חדשה"
   }
+  "columns": {
+    "lpn": "לוחית רישוי (LPN)",
+    "sku": "מק״ט",
+    "name": "שם",
+    "product_name": "שם מוצר",
+    "product_sku": "מק״ט מוצר",
+    "location_name": "מיקום",
+    "depositor_name": "מאחסן",
+    "base_uom_name": "יחידת בסיס",
+    "quantity": "כמות",
+    "status": "סטטוס",
+    "batch_number": "אצווה",
+    "code": "קוד",
+    "address": "כתובת",
+    "contact_info_name": "איש קשר",
+    "contact_info_phone": "טלפון",
+    "actions": "פעולות"
+  }
 }
