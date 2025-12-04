@@ -20,31 +20,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create inventory status enum
-    inventory_status_enum = sa.Enum(
-        'AVAILABLE',
-        'RESERVED',
-        'QUARANTINE',
-        'DAMAGED',
-        'MISSING',
-        name='inventory_status_enum'
-    )
-    inventory_status_enum.create(op.get_bind())
+    # 1. Create Enums with check (Safe creation)
+    bind = op.get_bind()
+    
+    # Check and create inventory_status_enum
+    result = bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'inventory_status_enum'"))
+    if not result.scalar():
+        inventory_status_enum = sa.Enum(
+            'AVAILABLE', 'RESERVED', 'QUARANTINE', 'DAMAGED', 'MISSING',
+            name='inventory_status_enum'
+        )
+        inventory_status_enum.create(bind)
 
-    # Create transaction type enum
-    transaction_type_enum = sa.Enum(
-        'INBOUND_RECEIVE',
-        'PUTAWAY',
-        'MOVE',
-        'PICK',
-        'SHIP',
-        'ADJUSTMENT',
-        'STATUS_CHANGE',
-        'PALLET_SPLIT',
-        'PALLET_MERGE',
-        name='transaction_type_enum'
-    )
-    transaction_type_enum.create(op.get_bind())
+    # Check and create transaction_type_enum
+    result = bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'transaction_type_enum'"))
+    if not result.scalar():
+        transaction_type_enum = sa.Enum(
+            'INBOUND_RECEIVE', 'PUTAWAY', 'MOVE', 'PICK', 'SHIP', 
+            'ADJUSTMENT', 'STATUS_CHANGE', 'PALLET_SPLIT', 'PALLET_MERGE',
+            name='transaction_type_enum'
+        )
+        transaction_type_enum.create(bind)
 
     # Create inventory table (Current Stock Snapshot - Quants/LPNs)
     op.create_table(
