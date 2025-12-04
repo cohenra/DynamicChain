@@ -47,7 +47,6 @@ export function LocationForm({
 }: LocationFormProps) {
   const { t } = useTranslation();
 
-  // שליפת נתונים דינמית עבור הדרופ-דאונים
   const { data: types, isLoading: isLoadingTypes } = useQuery({
     queryKey: ['locationTypes'],
     queryFn: locationService.getLocationTypes,
@@ -107,7 +106,6 @@ export function LocationForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-6 pb-20">
         
-        {/* בחירת אזור */}
         <FormField
           control={form.control}
           name="zone_id"
@@ -133,7 +131,6 @@ export function LocationForm({
           )}
         />
 
-        {/* שם המיקום */}
         <FormField
           control={form.control}
           name="name"
@@ -148,7 +145,6 @@ export function LocationForm({
           )}
         />
 
-        {/* היררכיה - 4 רמות (כולל איתור/Slot) */}
         <div className="grid grid-cols-4 gap-2">
           <FormField
             control={form.control}
@@ -196,7 +192,6 @@ export function LocationForm({
           />
         </div>
 
-        {/* בחירת סוג מיקום דינמית */}
         <FormField
           control={form.control}
           name="type_id"
@@ -222,7 +217,6 @@ export function LocationForm({
           )}
         />
 
-        {/* בחירת שימוש מיקום דינמית */}
         <FormField
           control={form.control}
           name="usage_id"
