@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Plus, XCircle, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,7 +23,6 @@ import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
 import { toast } from 'sonner';
 
-// --- סכמות וטפסים (ללא שינוי, רק להעתיק מהקוד הקודם שלך אם חסר) ---
 const depositorSchema = z.object({
   name: z.string().min(1),
   code: z.string().min(1),
@@ -45,20 +44,18 @@ export default function Depositors() {
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
     useTableSettings({ tableName: 'depositors_table' });
 
-  // 1. Fetch
-  const { data: depositors, isLoading, isError, error } = useQuery({
+  const { data: depositors, isLoading } = useQuery({
     queryKey: ['depositors'],
     queryFn: depositorService.getDepositors,
   });
 
-  // 2. Mutations
   const createDepositorMutation = useMutation({
     mutationFn: depositorService.createDepositor,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['depositors'] });
       setIsSheetOpen(false);
       form.reset();
-      toast.success(t('depositors.createSuccess', 'המאחסן נוצר בהצלחה'));
+      toast.success(t('depositors.createSuccess'));
     },
     onError: (err: any) => toast.error(err?.response?.data?.detail || t('common.error')),
   });
@@ -71,7 +68,7 @@ export default function Depositors() {
       setIsSheetOpen(false);
       setEditingDepositor(null);
       form.reset();
-      toast.success(t('depositors.updateSuccess', 'המאחסן עודכן בהצלחה'));
+      toast.success(t('depositors.updateSuccess'));
     },
     onError: (err: any) => toast.error(err?.response?.data?.detail || t('common.error')),
   });
@@ -80,17 +77,15 @@ export default function Depositors() {
     mutationFn: depositorService.deleteDepositor,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['depositors'] });
-      toast.success(t('depositors.deleteSuccess', 'המאחסן נמחק'));
+      toast.success(t('depositors.deleteSuccess'));
     },
   });
 
-  // 3. Form Setup
   const form = useForm<DepositorFormValues>({
     resolver: zodResolver(depositorSchema),
     defaultValues: { name: '', code: '', contact_name: '', contact_phone: '', contact_email: '' },
   });
 
-  // 4. Handlers
   const handleAddNew = () => {
     setEditingDepositor(null);
     form.reset({ name: '', code: '', contact_name: '', contact_phone: '', contact_email: '' });
@@ -126,12 +121,11 @@ export default function Depositors() {
     }
   };
 
-  // 5. Columns
   const columns = useMemo<ColumnDef<Depositor>[]>(() => [
-      { accessorKey: 'name', header: t('depositors.name') },
-      { accessorKey: 'code', header: t('depositors.code') },
-      { accessorKey: 'contact_info.name', header: t('depositors.contactPerson'), cell: ({ row }) => row.original.contact_info?.name || '-' },
-      { accessorKey: 'contact_info.phone', header: t('depositors.phone'), cell: ({ row }) => row.original.contact_info?.phone || '-' },
+      { accessorKey: 'name', id: 'name', header: t('depositors.name') },
+      { accessorKey: 'code', id: 'code', header: t('depositors.code') },
+      { accessorKey: 'contact_info.name', id: 'contact_info_name', header: t('depositors.contactPerson'), cell: ({ row }) => row.original.contact_info?.name || '-' },
+      { accessorKey: 'contact_info.phone', id: 'contact_info_phone', header: t('depositors.phone'), cell: ({ row }) => row.original.contact_info?.phone || '-' },
       {
         id: 'actions',
         header: t('common.actions'),
@@ -181,7 +175,7 @@ export default function Depositors() {
         onSearchChange={setGlobalFilter}
         noDataMessage={t('depositors.noDepositors')}
         actions={
-          <Button onClick={handleAddNew}> {/* שימוש בפונקציה המפורשת */}
+          <Button onClick={handleAddNew}>
             <Plus className="ml-2 h-4 w-4" />
             {t('depositors.addDepositor')}
           </Button>
