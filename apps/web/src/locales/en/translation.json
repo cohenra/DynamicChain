@@ -16,6 +16,7 @@
     "noData": "No data to display",
     "error": "Error",
     "unexpectedError": "An unexpected error occurred",
+    "loadingError": "Error loading data",
     "search": "Search",
     "filter": "Filter",
     "close": "Close",
@@ -45,6 +46,7 @@
   "layout": {
     "appName": "LogiSnap",
     "dashboard": "Dashboard",
+    "inventory": "Inventory",
     "products": "Products",
     "depositors": "Depositors",
     "warehouses": "Warehouses",
@@ -66,6 +68,24 @@
     "phase2": "• Phase 2: WMS Core",
     "phase3": "• Phase 3: Billing Engine",
     "phase4": "• Phase 4: Refinements"
+  },
+  "inventory": {
+    "title": "Inventory Management",
+    "subtitle": "Current stock snapshot (LPNs)",
+    "lpn": "License Plate (LPN)",
+    "quantity": "Quantity",
+    "status": "Status",
+    "batch": "Batch",
+    "expiry": "Expiry",
+    "receiveStock": "Receive Stock",
+    "noInventory": "No inventory found",
+    "statuses": {
+      "AVAILABLE": "Available",
+      "RESERVED": "Reserved",
+      "QUARANTINE": "Quarantine",
+      "DAMAGED": "Damaged",
+      "MISSING": "Missing"
+    }
   },
   "products": {
     "title": "Products",
@@ -344,10 +364,10 @@
     "deleteConfirmDescription": "Are you sure you want to delete location {{name}}?"
   },
   "languages": {
-    "hebrew": "עברית",
+    "hebrew": "Hebrew",
     "english": "English",
-    "russian": "Русский",
-    "arabic": "العربية",
+    "russian": "Russian",
+    "arabic": "Arabic",
     "selectLanguage": "Select Language"
   },
   "uomDefinitions": {
@@ -375,5 +395,23 @@
     "deleteConfirmDescription": "This action cannot be undone. Products using this UOM may be affected.",
     "saveBtn": "Save",
     "createBtn": "Create"
+  },
+  "columns": {
+    "lpn": "License Plate (LPN)",
+    "sku": "SKU",
+    "name": "Name",
+    "product_name": "Product Name",
+    "product_sku": "Product SKU",
+    "location_name": "Location",
+    "depositor_name": "Depositor",
+    "base_uom_name": "Base Unit",
+    "quantity": "Quantity",
+    "status": "Status",
+    "batch_number": "Batch",
+    "code": "Code",
+    "address": "Address",
+    "contact_info_name": "Contact Person",
+    "contact_info_phone": "Phone",
+    "actions": "Actions"
   }
 }
