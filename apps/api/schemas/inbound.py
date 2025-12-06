@@ -7,6 +7,30 @@ from models.inbound_shipment import InboundShipmentStatus
 
 
 # ============================================================
+# Nested Object Schemas (for minimal display in InboundLineResponse)
+# ============================================================
+
+class ProductMinimal(BaseModel):
+    """Minimal product info for inbound line display."""
+    id: int
+    sku: str
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class UomMinimal(BaseModel):
+    """Minimal UOM info for inbound line display."""
+    id: int
+    name: str
+    code: str
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================
 # Inbound Line Schemas
 # ============================================================
 
@@ -40,6 +64,9 @@ class InboundLineResponse(InboundLineBase):
     received_quantity: Decimal
     created_at: datetime
     updated_at: datetime
+    # Nested objects for display
+    product: Optional[ProductMinimal] = None
+    uom: Optional[UomMinimal] = None
 
     class Config:
         from_attributes = True
@@ -85,6 +112,7 @@ class InboundOrderResponse(InboundOrderBase):
     created_at: datetime
     updated_at: datetime
     lines: List[InboundLineResponse] = Field(default_factory=list, description="Order lines")
+    shipments: List["InboundShipmentResponse"] = Field(default_factory=list, description="Shipments for this order")
 
     class Config:
         from_attributes = True
