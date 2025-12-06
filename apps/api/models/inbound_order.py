@@ -29,18 +29,25 @@ class InboundOrder(Base):
     customer_id = Column(Integer, ForeignKey("depositors.id"), nullable=True)
 
     order_number = Column(String(50), nullable=False, index=True)
-    order_type = Column(SQLEnum(InboundOrderType), nullable=False)
-    status = Column(SQLEnum(InboundOrderStatus), nullable=False, default=InboundOrderStatus.DRAFT)
+    
+    # --- תיקון: native_enum=False כדי למנוע שגיאות DB ---
+    order_type = Column(SQLEnum(InboundOrderType, native_enum=False, length=50), nullable=False)
+    status = Column(SQLEnum(InboundOrderStatus, native_enum=False, length=50), nullable=False, default=InboundOrderStatus.DRAFT)
 
     supplier_name = Column(String(200), nullable=True)
-    linked_outbound_order_id = Column(BigInteger, ForeignKey("outbound_orders.id"), nullable=True)
+    
+    # ForeignKey הוסר זמנית עד שיהיה מודול Outbound
+    linked_outbound_order_id = Column(BigInteger, nullable=True)
+    
     expected_delivery_date = Column(Date, nullable=True)
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships with eager loading strategy
+    # Relationships
+    tenant = relationship("Tenant", back_populates="inbound_orders")
+    
     lines = relationship(
         "InboundLine",
         back_populates="inbound_order",

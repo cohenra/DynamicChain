@@ -1,31 +1,26 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { InboundOrder, inboundService, CreateShipmentRequest } from '@/services/inboundService';
+import { useState, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { InboundOrder, inboundService, CreateShipmentRequest, InboundLine, InboundLineCreate, InboundLineUpdate, InboundShipment } from '@/services/inboundService';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Package, Truck } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Package, Truck, ArrowLeftRight, Edit, CheckCircle, Lock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
+import { productService } from '@/services/products';
+import { uomDefinitionService } from '@/services/uom-definitions';
+import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, ColumnDef, flexRender } from '@tanstack/react-table';
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 
 interface InboundOrderRowDetailProps {
   order: InboundOrder;
@@ -33,298 +28,256 @@ interface InboundOrderRowDetailProps {
 
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return new Date(dateStr).toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
 
-const getShipmentStatusBadge = (status: string): string => {
+const getShipmentStatusBadge = (status: string) => {
   switch (status) {
-    case 'SCHEDULED':
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-    case 'ARRIVED':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    case 'RECEIVING':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-    case 'CLOSED':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-    default:
-      return 'bg-gray-100 text-gray-800';
+    case 'SCHEDULED': return <Badge variant="outline" className="bg-slate-100 text-slate-700">מתוכנן</Badge>;
+    case 'ARRIVED': return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">הגיע</Badge>;
+    case 'RECEIVING': return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">בקליטה</Badge>;
+    case 'CLOSED': return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">נסגר</Badge>;
+    default: return <Badge variant="outline">{status}</Badge>;
   }
 };
 
-export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const shipmentSchema = z.object({
-    shipment_number: z.string().min(1, 'Shipment number is required'),
-    container_number: z.string().optional(),
-    driver_details: z.string().optional(),
-    notes: z.string().optional(),
-  });
-
-  type ShipmentFormValues = z.infer<typeof shipmentSchema>;
-
-  const form = useForm<ShipmentFormValues>({
-    resolver: zodResolver(shipmentSchema),
-    defaultValues: {
-      shipment_number: '',
-      container_number: '',
-      driver_details: '',
-      notes: '',
-    },
-  });
-
-  const createShipmentMutation = useMutation({
-    mutationFn: (data: CreateShipmentRequest) =>
-      inboundService.createShipment(order.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
-      setIsSheetOpen(false);
-      form.reset();
-      toast.success('Shipment created successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.detail || 'Failed to create shipment');
-    },
-  });
-
-  const handleCreateShipment = (values: ShipmentFormValues) => {
-    createShipmentMutation.mutate(values);
-  };
-
-  return (
-    <div className="bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Order Details</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Order Number:</span>
-            <p className="font-medium">{order.order_number}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Type:</span>
-            <p className="font-medium capitalize">{order.order_type.replace(/_/g, ' ').toLowerCase()}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Status:</span>
-            <p className="font-medium capitalize">{order.status.replace(/_/g, ' ').toLowerCase()}</p>
-          </div>
-          {order.supplier_name && (
-            <div>
-              <span className="text-muted-foreground">Supplier:</span>
-              <p className="font-medium">{order.supplier_name}</p>
-            </div>
-          )}
-          {order.expected_delivery_date && (
-            <div>
-              <span className="text-muted-foreground">Expected Delivery:</span>
-              <p className="font-medium">{formatDate(order.expected_delivery_date)}</p>
-            </div>
-          )}
-          {order.notes && (
-            <div className="col-span-2">
-              <span className="text-muted-foreground">Notes:</span>
-              <p className="font-medium">{order.notes}</p>
-            </div>
-          )}
+function CompactPagination({ table, total }: { table: any, total: number }) {
+    return (
+        <div className="flex items-center gap-1 text-xs bg-slate-50 rounded-md px-2 py-1 border shrink-0">
+            <span className="text-muted-foreground mx-1 hidden sm:inline">סה״כ: {total}</span>
+            <div className="h-3 w-px bg-slate-300 mx-1"></div>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}><ChevronRight className="h-3 w-3" /></Button>
+            <span className="min-w-[2rem] text-center font-medium">
+                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+            </span>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}><ChevronLeft className="h-3 w-3" /></Button>
+            <Select
+                value={`${table.getState().pagination.pageSize}`}
+                onValueChange={(value) => table.setPageSize(Number(value))}
+            >
+                <SelectTrigger className="h-5 w-[50px] text-[10px] px-1 border-none bg-transparent focus:ring-0">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {[5, 10, 20, 50].map((pageSize) => (
+                        <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
-      </div>
+    );
+}
 
-      <Tabs defaultValue="lines" className="w-full">
-        <TabsList>
-          <TabsTrigger value="lines">
-            <Package className="h-4 w-4 mr-2" />
-            Order Lines ({order.lines?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="shipments">
-            <Truck className="h-4 w-4 mr-2" />
-            Shipments ({order.shipments?.length || 0})
-          </TabsTrigger>
-        </TabsList>
+export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
+  const [isShipmentSheetOpen, setIsShipmentSheetOpen] = useState(false);
+  const [isLineSheetOpen, setIsLineSheetOpen] = useState(false);
+  const [isCloseAlertOpen, setIsCloseAlertOpen] = useState(false);
+  const [editingLine, setEditingLine] = useState<InboundLine | null>(null);
+  
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  const isOrderEditable = order.status === 'DRAFT' || order.status === 'CONFIRMED' || order.status === 'PARTIALLY_RECEIVED';
 
-        <TabsContent value="lines" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Lines</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {order.lines && order.lines.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Product</th>
-                        <th className="text-left p-2">SKU</th>
-                        <th className="text-right p-2">Expected Qty</th>
-                        <th className="text-right p-2">Received Qty</th>
-                        <th className="text-left p-2">UOM</th>
-                        <th className="text-left p-2">Batch</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.lines.map((line) => (
-                        <tr key={line.id} className="border-b hover:bg-gray-100 dark:hover:bg-gray-800">
-                          <td className="p-2">{line.product?.name || '-'}</td>
-                          <td className="p-2 font-mono text-sm">{line.product?.sku || '-'}</td>
-                          <td className="p-2 text-right">{line.expected_quantity}</td>
-                          <td className="p-2 text-right font-medium">{line.received_quantity}</td>
-                          <td className="p-2">{line.uom?.code || '-'}</td>
-                          <td className="p-2">{line.expected_batch || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-4">No lines found</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+  // --- Forms setup ---
+  // (Standard forms logic - same as before)
+  const shipmentSchema = z.object({ shipment_number: z.string().min(1, 'חובה'), container_number: z.string().optional(), driver_details: z.string().optional(), arrival_date: z.string().optional(), notes: z.string().optional() });
+  const shipmentForm = useForm<z.infer<typeof shipmentSchema>>({ resolver: zodResolver(shipmentSchema), defaultValues: { shipment_number: '', container_number: '', driver_details: '', arrival_date: '', notes: '' } });
+  const createShipmentMutation = useMutation({ mutationFn: (data: CreateShipmentRequest) => inboundService.createShipment(order.id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsShipmentSheetOpen(false); shipmentForm.reset(); toast.success(t('inbound.shipments.createSuccess')); }, onError: (err: any) => toast.error(err?.response?.data?.detail || 'Error') });
+  const handleCreateShipment = (values: any) => createShipmentMutation.mutate({ ...values, arrival_date: values.arrival_date ? new Date(values.arrival_date).toISOString() : null });
 
-        <TabsContent value="shipments" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Shipments</CardTitle>
-              <Button onClick={() => setIsSheetOpen(true)} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Shipment
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {order.shipments && order.shipments.length > 0 ? (
-                <div className="space-y-4">
-                  {order.shipments.map((shipment) => (
-                    <div
-                      key={shipment.id}
-                      className="border rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold">{shipment.shipment_number}</h4>
-                          {shipment.container_number && (
-                            <p className="text-sm text-muted-foreground">
-                              Container: {shipment.container_number}
-                            </p>
-                          )}
-                        </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getShipmentStatusBadge(shipment.status)}`}>
-                          {shipment.status}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {shipment.driver_details && (
-                          <div>
-                            <span className="text-muted-foreground">Driver:</span>
-                            <p>{shipment.driver_details}</p>
-                          </div>
+  const { data: products } = useQuery({ queryKey: ['products'], queryFn: productService.getProducts });
+  const { data: uoms } = useQuery({ queryKey: ['uomDefinitions'], queryFn: uomDefinitionService.getUomDefinitions });
+  const customerProducts = products?.filter(p => String(p.depositor_id) === String(order.customer_id));
+
+  const lineSchema = z.object({ product_id: z.string().min(1), uom_id: z.string().min(1), expected_quantity: z.string().refine(val => parseFloat(val) > 0), expected_batch: z.string().optional() });
+  const lineForm = useForm<z.infer<typeof lineSchema>>({ resolver: zodResolver(lineSchema), defaultValues: { product_id: '', uom_id: '', expected_quantity: '', expected_batch: '' } });
+  const addLineMutation = useMutation({ mutationFn: (data: InboundLineCreate) => inboundService.addLine(order.id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsLineSheetOpen(false); lineForm.reset(); toast.success(t('inbound.lines.addSuccess')); } });
+  const updateLineMutation = useMutation({ mutationFn: (data: InboundLineUpdate) => inboundService.updateLine(editingLine!.id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsLineSheetOpen(false); setEditingLine(null); toast.success(t('inbound.lines.updateSuccess')); } });
+  const handleLineSubmit = (values: any) => { const payload = { product_id: parseInt(values.product_id), uom_id: parseInt(values.uom_id), expected_quantity: parseFloat(values.expected_quantity), expected_batch: values.expected_batch || undefined }; if (editingLine) updateLineMutation.mutate(payload); else addLineMutation.mutate(payload); };
+  
+  const openAddLine = () => { setEditingLine(null); lineForm.reset({ product_id: '', uom_id: '', expected_quantity: '', expected_batch: '' }); setIsLineSheetOpen(true); };
+  const openEditLine = (line: InboundLine) => { setEditingLine(line); lineForm.reset({ product_id: line.product_id.toString(), uom_id: line.uom_id.toString(), expected_quantity: line.expected_quantity.toString(), expected_batch: line.expected_batch || '' }); setIsLineSheetOpen(true); };
+  const closeOrderMutation = useMutation({ mutationFn: () => inboundService.closeOrder(order.id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsCloseAlertOpen(false); toast.success(t('inbound.closeSuccess')); } });
+
+  // --- Tables Setup ---
+  const lineColumns = useMemo<ColumnDef<InboundLine>[]>(() => [
+      { accessorKey: 'product.name', header: t('inbound.lines.product'), cell: ({row}) => <span className="whitespace-nowrap">{row.original.product?.name}</span> },
+      { accessorKey: 'product.sku', header: t('inbound.lines.sku') },
+      { accessorKey: 'uom.code', header: t('inbound.lines.uom'), cell: ({row}) => <Badge variant="outline">{row.original.uom?.code}</Badge> },
+      { accessorKey: 'expected_quantity', header: t('inbound.lines.expectedQty'), cell: ({row}) => <span className="font-medium">{row.original.expected_quantity}</span> },
+      { accessorKey: 'received_quantity', header: t('inbound.lines.receivedQty'), cell: ({row}) => <span className={row.original.received_quantity > 0 ? "text-green-600 font-bold" : "text-slate-400"}>{row.original.received_quantity}</span> },
+      { accessorKey: 'expected_batch', header: t('inbound.lines.batch'), cell: ({row}) => row.original.expected_batch || '-' },
+      { 
+          id: 'actions', 
+          header: () => isOrderEditable && <Button onClick={openAddLine} variant="ghost" size="sm" className="h-6 px-2 text-primary hover:bg-primary/10 whitespace-nowrap"><Plus className="h-3.5 w-3.5 mr-1" /> {t('inbound.lines.addLine')}</Button>,
+          cell: ({row}) => isOrderEditable ? <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditLine(row.original)}><Edit className="h-3.5 w-3.5 text-slate-500" /></Button> : null
+      }
+  ], [isOrderEditable, t]);
+
+  const shipmentColumns = useMemo<ColumnDef<InboundShipment>[]>(() => [
+      { accessorKey: 'shipment_number', header: t('inbound.shipments.shipmentNumber'), cell: ({row}) => <span className="font-bold">{row.original.shipment_number}</span> },
+      { accessorKey: 'container_number', header: t('inbound.shipments.container'), cell: ({row}) => row.original.container_number || '-' },
+      { accessorKey: 'driver_details', header: t('inbound.shipments.driver'), cell: ({row}) => row.original.driver_details || '-' },
+      { accessorKey: 'arrival_date', header: t('inbound.shipments.arrived'), cell: ({row}) => formatDate(row.original.arrival_date) },
+      { accessorKey: 'status', header: t('inbound.shipments.status'), cell: ({row}) => getShipmentStatusBadge(row.original.status) },
+      { 
+          id: 'actions', 
+          header: () => isOrderEditable && <Button onClick={() => setIsShipmentSheetOpen(true)} variant="ghost" size="sm" className="h-6 px-2 text-primary hover:bg-primary/10 whitespace-nowrap"><Plus className="h-3.5 w-3.5 mr-1" /> {t('inbound.shipments.addShipment')}</Button>,
+          cell: ({row}) => row.original.status !== 'CLOSED' && <Button size="sm" variant={row.original.status === 'RECEIVING' ? "default" : "outline"} className="h-7 text-xs gap-1" onClick={() => toast.info('Receiving...')}><ArrowLeftRight className="h-3 w-3" /> {t('inbound.shipments.receive')}</Button>
+      }
+  ], [t, isOrderEditable]);
+
+  const linesTable = useReactTable({ data: order.lines || [], columns: lineColumns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), initialState: { pagination: { pageSize: 5 } } });
+  const shipmentsTable = useReactTable({ data: order.shipments || [], columns: shipmentColumns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), initialState: { pagination: { pageSize: 5 } } });
+
+  // No specific width constraints here anymore - SmartTable handles it
+  return (
+    <div className="bg-slate-50/80 dark:bg-slate-900/50 p-4 border-t border-b shadow-inner">
+      <Tabs defaultValue="lines" className="w-full" dir="rtl">
+        
+        {/* --- Unified Control Bar --- */}
+        <div className="flex flex-wrap items-center justify-between px-2 py-1 bg-white border-b sticky top-0 z-10 gap-2">
+            <TabsList className="bg-transparent p-0 h-9 shrink-0">
+                <TabsTrigger value="lines" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 h-9">
+                    <Package className="h-3.5 w-3.5 mr-2" /> {t('inbound.lines.title')} <Badge variant="secondary" className="mr-1.5 h-4 px-1 text-[10px]">{order.lines?.length || 0}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="shipments" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 h-9">
+                    <Truck className="h-3.5 w-3.5 mr-2" /> {t('inbound.shipments.title')} <Badge variant="secondary" className="mr-1.5 h-4 px-1 text-[10px]">{order.shipments?.length || 0}</Badge>
+                </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {isOrderEditable ? (
+                    <Button variant="outline" size="sm" onClick={() => setIsCloseAlertOpen(true)} className="h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 whitespace-nowrap">
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> {t('inbound.closeOrder')}
+                    </Button>
+                ) : (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><Lock className="h-3 w-3 mr-1" /> הושלם</Badge>
+                )}
+
+                <div className="h-4 w-px bg-slate-200 mx-1"></div>
+
+                <TabsContent value="lines" className="m-0 border-0 p-0 flex items-center gap-2">
+                    <DataTableViewOptions table={linesTable} />
+                    <CompactPagination table={linesTable} total={order.lines?.length || 0} />
+                </TabsContent>
+                <TabsContent value="shipments" className="m-0 border-0 p-0 flex items-center gap-2">
+                    <DataTableViewOptions table={shipmentsTable} />
+                    <CompactPagination table={shipmentsTable} total={order.shipments?.length || 0} />
+                </TabsContent>
+            </div>
+        </div>
+
+        {/* --- Content Area - now relies on SmartTable's width protection --- */}
+        <div className="bg-white border-x border-b rounded-b-md">
+            <TabsContent value="lines" className="m-0 p-0 overflow-x-auto">
+                {/* min-w-[800px] ensures horizontal scroll triggers on small screens */}
+                <Table className="min-w-[800px] w-full">
+                    <TableHeader className="bg-slate-50">
+                        {linesTable.getHeaderGroups().map(headerGroup => (
+                            <TableRow key={headerGroup.id} className="h-8 hover:bg-transparent">
+                                {headerGroup.headers.map(header => (
+                                    <TableHead key={header.id} className="h-8 text-xs font-semibold py-1 whitespace-nowrap px-4 text-right">
+                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        {linesTable.getRowModel().rows.length > 0 ? (
+                            linesTable.getRowModel().rows.map(row => (
+                                <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
+                                    {row.getVisibleCells().map(cell => (
+                                        <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow><TableCell colSpan={lineColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.lines.noLines')}</TableCell></TableRow>
                         )}
-                        {shipment.arrival_date && (
-                          <div>
-                            <span className="text-muted-foreground">Arrived:</span>
-                            <p>{formatDate(shipment.arrival_date)}</p>
-                          </div>
+                    </TableBody>
+                </Table>
+            </TabsContent>
+
+            <TabsContent value="shipments" className="m-0 p-0 overflow-x-auto">
+                 <Table className="min-w-[800px] w-full">
+                    <TableHeader className="bg-slate-50">
+                        {shipmentsTable.getHeaderGroups().map(headerGroup => (
+                            <TableRow key={headerGroup.id} className="h-8 hover:bg-transparent">
+                                {headerGroup.headers.map(header => (
+                                    <TableHead key={header.id} className="h-8 text-xs font-semibold py-1 whitespace-nowrap px-4 text-right">
+                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        {shipmentsTable.getRowModel().rows.length > 0 ? (
+                            shipmentsTable.getRowModel().rows.map(row => (
+                                <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
+                                    {row.getVisibleCells().map(cell => (
+                                        <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow><TableCell colSpan={shipmentColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.shipments.noShipments')}</TableCell></TableRow>
                         )}
-                        {shipment.notes && (
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">Notes:</span>
-                            <p>{shipment.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-4">No shipments found</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    </TableBody>
+                </Table>
+            </TabsContent>
+        </div>
       </Tabs>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Create New Shipment</SheetTitle>
-            <SheetDescription>
-              Add a new shipment for order {order.order_number}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateShipment)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="shipment_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Shipment Number *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="SHP-001" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="container_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Container/Truck Number</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="CNT-12345" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="driver_details"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Driver Details</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Name, phone, etc." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} rows={3} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end pt-4">
-                  <Button
-                    type="submit"
-                    disabled={createShipmentMutation.isPending}
-                  >
-                    {createShipmentMutation.isPending ? 'Creating...' : 'Create Shipment'}
-                  </Button>
-                </div>
+      {/* Sheets & Alerts (Same as before) */}
+      {/* ... (Keeping existing Sheets for Add/Edit as they were correct) */}
+       <Sheet open={isShipmentSheetOpen} onOpenChange={setIsShipmentSheetOpen}>
+        <SheetContent side="left" className="w-full sm:max-w-md p-0 flex flex-col h-full">
+          <SheetHeader className="p-6 border-b"><SheetTitle>{t('inbound.shipments.addShipment')}</SheetTitle></SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6">
+            <Form {...shipmentForm}>
+              <form id="shipment-form" onSubmit={shipmentForm.handleSubmit(handleCreateShipment)} className="space-y-4">
+                <FormField control={shipmentForm.control} name="shipment_number" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.shipmentNumber')} *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={shipmentForm.control} name="container_number" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.container')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={shipmentForm.control} name="driver_details" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.driver')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={shipmentForm.control} name="arrival_date" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.arrived')}</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={shipmentForm.control} name="notes" render={({ field }) => (<FormItem><FormLabel>הערות</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
               </form>
             </Form>
           </div>
+          <div className="p-4 border-t bg-slate-50 mt-auto"><Button type="submit" form="shipment-form" className="w-full" disabled={createShipmentMutation.isPending}>{t('common.create')}</Button></div>
         </SheetContent>
       </Sheet>
+
+      <Sheet open={isLineSheetOpen} onOpenChange={setIsLineSheetOpen}>
+          <SheetContent side="left" className="w-full sm:max-w-md p-0 flex flex-col h-full">
+              <SheetHeader className="p-6 border-b"><SheetTitle>{editingLine ? t('inbound.lines.editLine') : t('inbound.lines.addLine')}</SheetTitle></SheetHeader>
+              <div className="flex-1 overflow-y-auto p-6">
+                  <Form {...lineForm}>
+                      <form id="line-form" onSubmit={lineForm.handleSubmit(handleLineSubmit)} className="space-y-4">
+                          <FormField control={lineForm.control} name="product_id" render={({ field }) => (<FormItem><FormLabel>{t('inbound.lines.product')}</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!editingLine}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{customerProducts?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name} ({p.sku})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                          <FormField control={lineForm.control} name="uom_id" render={({ field }) => (<FormItem><FormLabel>{t('inbound.lines.uom')}</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!editingLine}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{uoms?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                          <FormField control={lineForm.control} name="expected_quantity" render={({ field }) => (<FormItem><FormLabel>{t('inbound.lines.expectedQty')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField control={lineForm.control} name="expected_batch" render={({ field }) => (<FormItem><FormLabel>{t('inbound.lines.batch')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      </form>
+                  </Form>
+              </div>
+              <div className="p-4 border-t bg-slate-50 mt-auto"><Button type="submit" form="line-form" className="w-full" disabled={addLineMutation.isPending || updateLineMutation.isPending}>{t('common.save')}</Button></div>
+          </SheetContent>
+      </Sheet>
+
+      <AlertDialog open={isCloseAlertOpen} onOpenChange={setIsCloseAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader><AlertDialogTitle>{t('inbound.closeOrder')}</AlertDialogTitle><AlertDialogDescription>{t('inbound.closeOrderConfirm')}</AlertDialogDescription></AlertDialogHeader>
+              <AlertDialogFooter><AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => closeOrderMutation.mutate()}>{t('inbound.closeOrder')}</AlertDialogAction></AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

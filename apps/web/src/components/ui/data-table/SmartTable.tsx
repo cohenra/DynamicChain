@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { flexRender, Table as ReactTable, Row } from "@tanstack/react-table";
 import {
   Table,
@@ -12,6 +12,7 @@ import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar, FilterOption } from "./DataTableToolbar";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 interface SmartTableProps<TData> {
   table: ReactTable<TData>;
@@ -24,6 +25,7 @@ interface SmartTableProps<TData> {
   actions?: React.ReactNode;
   noDataMessage?: string;
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement;
+  containerClassName?: string;
 }
 
 export function SmartTable<TData>({
@@ -37,11 +39,26 @@ export function SmartTable<TData>({
   actions,
   noDataMessage,
   renderSubComponent,
+  containerClassName,
 }: SmartTableProps<TData>) {
   const { t } = useTranslation();
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState<number>(0);
+
+  // חישוב רוחב דינמי כדי למנוע חריגה מהמסך
+  useEffect(() => {
+    if (!tableContainerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setTableWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(tableContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full space-y-4" ref={tableContainerRef}>
       <DataTableToolbar
         table={table}
         searchKey={searchKey}
@@ -51,85 +68,77 @@ export function SmartTable<TData>({
         actions={actions}
       />
 
-      <div className="rounded-md border bg-white shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="bg-muted/30 hover:bg-muted/30"
-              >
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="h-10 font-bold text-gray-700"
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columnsLength} className="h-24 text-center">
-                  <div className="flex justify-center items-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="mr-2">
-                      {t("common.loading", "טוען נתונים...")}
-                    </span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <TableRow
-                    data-state={row.getIsSelected() && "selected"}
-                    className={`h-9 hover:bg-blue-50/50 transition-colors ${
-                      row.getCanExpand() ? "cursor-pointer" : ""
-                    }`}
-                    onClick={() => row.getCanExpand() && row.toggleExpanded()}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+      <div className={cn("rounded-md border bg-white shadow-sm overflow-hidden flex-1 flex flex-col", containerClassName)}>
+        <div className="flex-1 overflow-auto relative">
+            <Table className="w-full">
+            <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
+                {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
+                    {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="h-10 font-bold text-gray-700 whitespace-nowrap px-4">
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                     ))}
-                  </TableRow>
-                  {row.getIsExpanded() && renderSubComponent && (
-                    <TableRow>
-                      <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100">
-                        {renderSubComponent({ row })}
-                      </TableCell>
+                </TableRow>
+                ))}
+            </TableHeader>
+            <TableBody>
+                {isLoading ? (
+                <TableRow>
+                    <TableCell colSpan={columnsLength} className="h-24 text-center">
+                    <div className="flex justify-center items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="mr-2">{t("common.loading", "טוען נתונים...")}</span>
+                    </div>
+                    </TableCell>
+                </TableRow>
+                ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                    <React.Fragment key={row.id}>
+                    <TableRow
+                        data-state={row.getIsSelected() && "selected"}
+                        className={`h-9 hover:bg-blue-50/50 transition-colors ${row.getCanExpand() ? "cursor-pointer" : ""}`}
+                        onClick={() => row.getCanExpand() && row.toggleExpanded()}
+                    >
+                        {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="py-1 px-4 whitespace-nowrap">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                        ))}
                     </TableRow>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columnsLength}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {noDataMessage || t("common.noData", "אין נתונים להצגה")}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                    
+                    {/* Detail Row Wrapper - The Magic Fix */}
+                    {row.getIsExpanded() && renderSubComponent && (
+                        <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100 bg-slate-50/30">
+                            {/* This div acts as a width constraint. 
+                                We set its width exactly to the table container width.
+                                This forces the inner content to scroll horizontally if it's too wide,
+                                INSTEAD of expanding the parent table.
+                            */}
+                            <div style={{ maxWidth: tableWidth ? `${tableWidth}px` : '90vw' }} className="w-full">
+                                {renderSubComponent({ row })}
+                            </div>
+                        </TableCell>
+                        </TableRow>
+                    )}
+                    </React.Fragment>
+                ))
+                ) : (
+                <TableRow>
+                    <TableCell colSpan={columnsLength} className="h-24 text-center text-muted-foreground">
+                    {noDataMessage || t("common.noData", "אין נתונים להצגה")}
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+            </Table>
+        </div>
       </div>
 
-      <DataTablePagination table={table} />
+      <div className="mt-auto">
+        <DataTablePagination table={table} />
+      </div>
     </div>
   );
 }

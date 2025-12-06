@@ -1,5 +1,5 @@
 from models.tenant import Tenant
-from models.user import User
+from models.user import User, UserRole  # <--- הוסף כאן את UserRole
 from models.product import Product
 from models.depositor import Depositor
 from models.warehouse import Warehouse
@@ -13,14 +13,14 @@ from models.user_table_setting import UserTableSetting
 from models.inventory import Inventory
 from models.inventory_transaction import InventoryTransaction
 from models.system_audit_log import SystemAuditLog
-# --- החדשים של Inbound ---
-from models.inbound_order import InboundOrder
+from models.inbound_order import InboundOrder, InboundOrderType, InboundOrderStatus
 from models.inbound_line import InboundLine
-from models.inbound_shipment import InboundShipment
+from models.inbound_shipment import InboundShipment, InboundShipmentStatus
 
 __all__ = [
     "Tenant", 
-    "User", 
+    "User",
+    "UserRole", # <--- הוסף גם כאן
     "Product", 
     "Depositor", 
     "Warehouse", 
@@ -35,6 +35,9 @@ __all__ = [
     "InventoryTransaction",
     "SystemAuditLog",
     "InboundOrder",
+    "InboundOrderType",
+    "InboundOrderStatus",
     "InboundLine",
-    "InboundShipment"
+    "InboundShipment",
+    "InboundShipmentStatus"
 ]

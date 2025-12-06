@@ -21,7 +21,7 @@ export function DataTableViewOptions<TData>({
   table,
 }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation();
-
+  
   return (
     <DropdownMenu>
       <Trigger asChild>
@@ -44,10 +44,8 @@ export function DataTableViewOptions<TData>({
               typeof column.accessorFn !== "undefined" && column.getCanHide()
           )
           .map((column) => {
-            // התיקון: ניסיון לתרגם לפי מפתח 'columns.COLUMN_ID'
-            // אם לא נמצא תרגום, הוא יציג את ה-ID כמו שהוא
-            const label = t(`columns.${column.id}`, column.id);
-            
+            // תרגום דינמי לפי מזהה העמודה
+            // מחפש תרגום ב- columns.columnId, אם לא מוצא מחזיר את ה-ID
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
@@ -56,7 +54,7 @@ export function DataTableViewOptions<TData>({
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
                 onSelect={(e) => e.preventDefault()}
               >
-                {label}
+                {t(`columns.${column.id}`, column.id)}
               </DropdownMenuCheckboxItem>
             )
           })}

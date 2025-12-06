@@ -7,7 +7,11 @@ from schemas.inbound import (
     InboundOrderResponse,
     InboundShipmentCreate,
     InboundShipmentResponse,
-    ShipmentStatusUpdate
+    ShipmentStatusUpdate,
+    InboundOrderCreateRequest,
+    InboundLineCreate,
+    InboundLineUpdate,
+    InboundLineResponse
 )
 from services.inbound_service import InboundService
 from auth.dependencies import get_current_user
@@ -26,25 +30,6 @@ async def list_inbound_orders(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> List[InboundOrderResponse]:
-    """
-    List all inbound orders for the authenticated user's tenant.
-
-    All relationships (lines, shipments, products, UOMs) are eagerly loaded
-    to prevent N+1 query issues.
-
-    Args:
-        skip: Number of records to skip (default: 0)
-        limit: Maximum records to return (default: 100, max: 1000)
-        status: Optional filter by order status
-        current_user: Authenticated user from JWT token
-        db: Database session
-
-    Returns:
-        List[InboundOrderResponse]: List of inbound orders with all relationships
-
-    Raises:
-        401: If user is not authenticated
-    """
     service = InboundService(db)
     orders = await service.list_orders(
         tenant_id=current_user.tenant_id,
@@ -55,30 +40,26 @@ async def list_inbound_orders(
     return [InboundOrderResponse.model_validate(order) for order in orders]
 
 
+@router.post("/orders", response_model=InboundOrderResponse, status_code=status.HTTP_201_CREATED)
+async def create_inbound_order(
+    order_data: InboundOrderCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> InboundOrderResponse:
+    service = InboundService(db)
+    order = await service.create_order(
+        order_data=order_data,
+        tenant_id=current_user.tenant_id
+    )
+    return InboundOrderResponse.model_validate(order)
+
+
 @router.get("/orders/{order_id}", response_model=InboundOrderResponse)
 async def get_inbound_order(
     order_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> InboundOrderResponse:
-    """
-    Get a specific inbound order by ID.
-
-    All relationships (lines, shipments, products, UOMs) are eagerly loaded
-    to prevent N+1 query issues.
-
-    Args:
-        order_id: ID of the inbound order to retrieve
-        current_user: Authenticated user from JWT token
-        db: Database session
-
-    Returns:
-        InboundOrderResponse: Inbound order details with all relationships
-
-    Raises:
-        401: If user is not authenticated
-        404: If order not found or doesn't belong to user's tenant
-    """
     service = InboundService(db)
     order = await service.get_order(
         order_id=order_id,
@@ -86,6 +67,51 @@ async def get_inbound_order(
     )
     return InboundOrderResponse.model_validate(order)
 
+@router.patch("/orders/{order_id}/close", response_model=InboundOrderResponse)
+async def close_inbound_order(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> InboundOrderResponse:
+    """Close an order manually (mark as COMPLETED)."""
+    service = InboundService(db)
+    order = await service.close_order(
+        order_id=order_id,
+        tenant_id=current_user.tenant_id
+    )
+    return InboundOrderResponse.model_validate(order)
+
+@router.post("/orders/{order_id}/lines", response_model=InboundOrderResponse)
+async def add_line_to_order(
+    order_id: int,
+    line_data: InboundLineCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> InboundOrderResponse:
+    """Add a line to an existing order."""
+    service = InboundService(db)
+    order = await service.add_line_to_order(
+        order_id=order_id,
+        line_data=line_data,
+        tenant_id=current_user.tenant_id
+    )
+    return InboundOrderResponse.model_validate(order)
+
+@router.patch("/lines/{line_id}", response_model=InboundLineResponse)
+async def update_inbound_line(
+    line_id: int,
+    line_data: InboundLineUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> InboundLineResponse:
+    """Update an existing line."""
+    service = InboundService(db)
+    line = await service.update_line(
+        line_id=line_id,
+        line_data=line_data,
+        tenant_id=current_user.tenant_id
+    )
+    return InboundLineResponse.model_validate(line)
 
 @router.post("/orders/{order_id}/shipments", response_model=InboundShipmentResponse, status_code=status.HTTP_201_CREATED)
 async def create_shipment(
@@ -94,23 +120,6 @@ async def create_shipment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> InboundShipmentResponse:
-    """
-    Create a new shipment for an inbound order.
-
-    Args:
-        order_id: ID of the inbound order
-        shipment_data: Shipment creation data
-        current_user: Authenticated user from JWT token
-        db: Database session
-
-    Returns:
-        InboundShipmentResponse: Created shipment
-
-    Raises:
-        400: If shipment number already exists
-        401: If user is not authenticated
-        404: If order not found or doesn't belong to user's tenant
-    """
     service = InboundService(db)
     shipment = await service.create_shipment(
         order_id=order_id,
@@ -118,6 +127,7 @@ async def create_shipment(
         shipment_number=shipment_data.shipment_number,
         container_number=shipment_data.container_number,
         driver_details=shipment_data.driver_details,
+        arrival_date=shipment_data.arrival_date,
         notes=shipment_data.notes
     )
     return InboundShipmentResponse.model_validate(shipment)
@@ -130,25 +140,6 @@ async def update_shipment_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> InboundShipmentResponse:
-    """
-    Update the status of a shipment.
-
-    Automatically sets arrival_date when status changes to ARRIVED,
-    and closed_date when status changes to CLOSED.
-
-    Args:
-        shipment_id: ID of the shipment
-        status_data: New status
-        current_user: Authenticated user from JWT token
-        db: Database session
-
-    Returns:
-        InboundShipmentResponse: Updated shipment
-
-    Raises:
-        401: If user is not authenticated
-        404: If shipment not found or doesn't belong to user's tenant
-    """
     service = InboundService(db)
     shipment = await service.update_shipment_status(
         shipment_id=shipment_id,

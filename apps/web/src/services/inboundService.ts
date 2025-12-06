@@ -29,8 +29,6 @@ export interface InboundLine {
   notes: string | null;
   created_at: string;
   updated_at: string;
-
-  // Nested objects from eager loading
   product?: {
     id: number;
     sku: string;
@@ -46,7 +44,7 @@ export interface InboundLine {
 export interface InboundOrder {
   id: number;
   tenant_id: number;
-  customer_id: number | null;
+  customer_id: number; // Required now
   order_number: string;
   order_type: InboundOrderType;
   status: InboundOrderStatus;
@@ -56,20 +54,44 @@ export interface InboundOrder {
   notes: string | null;
   created_at: string;
   updated_at: string;
-
-  // Nested collections from eager loading
   lines: InboundLine[];
   shipments: InboundShipment[];
   customer?: {
     id: number;
     name: string;
-  } | null;
+    code: string;
+  };
+}
+
+export interface InboundLineCreate {
+  product_id: number;
+  uom_id: number;
+  expected_quantity: number;
+  expected_batch?: string;
+  notes?: string;
+}
+
+export interface InboundLineUpdate {
+  expected_quantity?: number;
+  expected_batch?: string;
+  notes?: string;
+}
+
+export interface InboundOrderCreateRequest {
+  order_number: string;
+  order_type: InboundOrderType;
+  customer_id: number; // Required
+  supplier_name?: string;
+  expected_delivery_date?: string;
+  notes?: string;
+  lines: InboundLineCreate[];
 }
 
 export interface CreateShipmentRequest {
   shipment_number: string;
   container_number?: string | null;
   driver_details?: string | null;
+  arrival_date?: string | null;
   notes?: string | null;
 }
 
@@ -78,9 +100,6 @@ export interface UpdateShipmentStatusRequest {
 }
 
 export const inboundService = {
-  /**
-   * Get list of inbound orders
-   */
   async getOrders(params?: {
     skip?: number;
     limit?: number;
@@ -90,17 +109,31 @@ export const inboundService = {
     return response.data;
   },
 
-  /**
-   * Get a single inbound order by ID
-   */
   async getOrder(orderId: number): Promise<InboundOrder> {
     const response = await api.get<InboundOrder>(`/api/inbound/orders/${orderId}`);
     return response.data;
   },
 
-  /**
-   * Create a new shipment for an order
-   */
+  async createOrder(data: InboundOrderCreateRequest): Promise<InboundOrder> {
+    const response = await api.post<InboundOrder>('/api/inbound/orders', data);
+    return response.data;
+  },
+
+  async closeOrder(orderId: number): Promise<InboundOrder> {
+    const response = await api.patch<InboundOrder>(`/api/inbound/orders/${orderId}/close`);
+    return response.data;
+  },
+
+  async addLine(orderId: number, data: InboundLineCreate): Promise<InboundOrder> {
+    const response = await api.post<InboundOrder>(`/api/inbound/orders/${orderId}/lines`, data);
+    return response.data;
+  },
+
+  async updateLine(lineId: number, data: InboundLineUpdate): Promise<InboundLine> {
+    const response = await api.patch<InboundLine>(`/api/inbound/lines/${lineId}`, data);
+    return response.data;
+  },
+
   async createShipment(orderId: number, data: CreateShipmentRequest): Promise<InboundShipment> {
     const response = await api.post<InboundShipment>(
       `/api/inbound/orders/${orderId}/shipments`,
@@ -109,9 +142,6 @@ export const inboundService = {
     return response.data;
   },
 
-  /**
-   * Update shipment status
-   */
   async updateShipmentStatus(
     shipmentId: number,
     data: UpdateShipmentStatusRequest
