@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,19 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { InboundOrder, InboundShipment, ReceiveShipmentRequest } from '@/services/inbound';
 import { locationService } from '@/services/locations';
-import { Loader2, Package, Truck, User, Phone } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2, MapPin, Package, AlertTriangle, CheckCircle2, Calendar, Hash } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner'; // הוספתי Toast לטיפול בשגיאות מקומי
 
 interface ReceivingItem {
   product_id: number;
@@ -31,8 +24,8 @@ interface ReceivingItem {
   uom_id: number;
   uom_name: string;
   remaining_quantity: number;
-  quantity_to_receive: number;
-  location_id: number | null;
+  quantity_to_receive: string;
+  location_id: string;
   lpn: string;
   batch_number: string;
   expiry_date: string;
@@ -42,280 +35,193 @@ interface ReceivingConsoleProps {
   order: InboundOrder;
   shipment: InboundShipment;
   onReceive: (data: ReceiveShipmentRequest) => void;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
-export function ReceivingConsole({
-  order,
-  shipment,
-  onReceive,
-  isLoading,
-}: ReceivingConsoleProps) {
+export function ReceivingConsole({ order, shipment, onReceive, isLoading }: ReceivingConsoleProps) {
   const { t } = useTranslation();
 
-  // Initialize receiving items from order lines
-  const initialItems: ReceivingItem[] = useMemo(() => {
-    return (
-      order.lines
-        ?.filter((line) => line.expected_quantity > line.received_quantity)
-        .map((line) => ({
-          product_id: line.product_id,
-          product_sku: line.product_sku || '',
-          product_name: line.product_name || '',
-          uom_id: line.uom_id,
-          uom_name: line.uom_name || '',
-          remaining_quantity: line.expected_quantity - line.received_quantity,
-          quantity_to_receive: 0,
-          location_id: null,
-          lpn: '',
-          batch_number: '',
-          expiry_date: '',
-        })) || []
-    );
-  }, [order.lines]);
-
-  const [receivingItems, setReceivingItems] = useState<ReceivingItem[]>(initialItems);
-
-  // Fetch locations
-  const { data: locations, isLoading: isLoadingLocations } = useQuery({
+  const { data: locations } = useQuery({
     queryKey: ['locations'],
-    queryFn: () => locationService.getLocations(),
+    queryFn: () => locationService.getLocations({ limit: 1000 }),
+  });
+
+  const [items, setItems] = useState<ReceivingItem[]>(() => {
+    return (order.lines || [])
+      .filter(line => (line.expected_quantity - line.received_quantity) > 0)
+      .map(line => ({
+        product_id: line.product_id,
+        // שימוש ב-optional chaining כדי למנוע קריסה אם הנתונים חסרים
+        product_sku: line.product?.sku || line.product_sku || '',
+        product_name: line.product?.name || line.product_name || 'טוען...',
+        uom_id: line.uom_id,
+        uom_name: line.uom?.name || line.uom_name || '',
+        remaining_quantity: line.expected_quantity - line.received_quantity,
+        quantity_to_receive: '',
+        location_id: '',
+        lpn: '',
+        batch_number: '',
+        expiry_date: '',
+      }));
   });
 
   const updateItem = (index: number, field: keyof ReceivingItem, value: any) => {
-    setReceivingItems((items) =>
-      items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    );
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
   };
 
-  const handleSubmit = () => {
-    const itemsToReceive = receivingItems.filter(
-      (item) => item.quantity_to_receive > 0 && item.location_id
-    );
+  const handleSubmit = async () => {
+    try {
+        console.log("Starting Submit Process...");
 
-    if (itemsToReceive.length === 0) {
-      return;
+        const itemsToReceive = items.filter(item => {
+        const qty = parseFloat(item.quantity_to_receive);
+        return !isNaN(qty) && qty > 0;
+        });
+
+        if (itemsToReceive.length === 0) {
+        toast.error("לא הוזנו כמויות לקליטה");
+        return;
+        }
+
+        const invalidItem = itemsToReceive.find(item => !item.location_id);
+        if (invalidItem) {
+        toast.error(`חובה לבחור מיקום עבור ${invalidItem.product_name}`);
+        return;
+        }
+
+        const payload: ReceiveShipmentRequest = {
+        shipment_id: shipment.id,
+        items: itemsToReceive.map(item => ({
+            product_id: item.product_id,
+            uom_id: item.uom_id,
+            quantity: parseFloat(item.quantity_to_receive),
+            location_id: parseInt(item.location_id),
+            lpn: item.lpn || undefined,
+            batch_number: item.batch_number || undefined,
+            expiry_date: item.expiry_date ? new Date(item.expiry_date) : undefined,
+        }))
+        };
+        
+        console.log("Payload ready, calling onReceive:", payload);
+        // קריאה לפונקציה שהועברה מהאבא
+        onReceive(payload);
+        
+    } catch (error) {
+        console.error("Error in handleSubmit:", error);
+        toast.error("אירעה שגיאה בעיבוד הנתונים");
     }
-
-    const data: ReceiveShipmentRequest = {
-      shipment_id: shipment.id,
-      items: itemsToReceive.map((item) => ({
-        product_id: item.product_id,
-        uom_id: item.uom_id,
-        quantity: item.quantity_to_receive,
-        location_id: item.location_id!,
-        lpn: item.lpn || undefined,
-        batch_number: item.batch_number || undefined,
-        expiry_date: item.expiry_date || undefined,
-      })),
-    };
-
-    onReceive(data);
   };
 
-  const canSubmit = receivingItems.some(
-    (item) => item.quantity_to_receive > 0 && item.location_id
-  );
-
-  const hasValidationErrors = receivingItems.some(
-    (item) =>
-      item.quantity_to_receive > 0 &&
-      (item.quantity_to_receive > item.remaining_quantity || !item.location_id)
-  );
+  if (items.length === 0) {
+    return (
+        <div className="text-center py-12 bg-green-50 rounded-lg border border-green-100 h-full flex flex-col justify-center items-center">
+            <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
+            <h3 className="text-2xl font-bold text-green-700">הכל הושלם!</h3>
+            <p className="text-green-600">כל הפריטים בהזמנה זו נקלטו במלואם.</p>
+        </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Shipment Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('inbound.receiving.shipmentInfo')}</CardTitle>
-          <CardDescription>
-            {t('inbound.orderNumber')}: {order.order_number}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{t('inbound.shipments.shipmentNumber')}</p>
-                <p className="text-sm text-muted-foreground">{shipment.shipment_number}</p>
-              </div>
-            </div>
-            {shipment.container_number && (
-              <div className="flex items-center gap-2">
-                <Truck className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {t('inbound.shipments.containerNumber')}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {shipment.container_number}
-                  </p>
-                </div>
-              </div>
-            )}
-            {shipment.driver_name && (
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">{t('inbound.shipments.driverName')}</p>
-                  <p className="text-sm text-muted-foreground">{shipment.driver_name}</p>
-                </div>
-              </div>
-            )}
-            {shipment.driver_phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">{t('inbound.shipments.driverPhone')}</p>
-                  <p className="text-sm text-muted-foreground">{shipment.driver_phone}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6 pb-24 h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto pr-2">
+          {items.map((item, index) => {
+            const qtyVal = parseFloat(item.quantity_to_receive) || 0;
+            const isFilled = qtyVal > 0;
+            const isOver = qtyVal > item.remaining_quantity;
 
-      {/* Receiving Grid */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('inbound.receiving.itemsToReceive')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {receivingItems.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t('inbound.receiving.noItemsToReceive')}
-            </div>
-          ) : isLoadingLocations ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('inbound.lines.product')}</TableHead>
-                    <TableHead>{t('inbound.lines.uom')}</TableHead>
-                    <TableHead>{t('inbound.receiving.fields.remaining')}</TableHead>
-                    <TableHead>{t('inbound.receiving.quantityToReceive')}</TableHead>
-                    <TableHead>{t('inbound.receiving.location')}</TableHead>
-                    <TableHead>{t('inbound.receiving.lpn')}</TableHead>
-                    <TableHead>{t('inbound.receiving.batch')}</TableHead>
-                    <TableHead>{t('inbound.receiving.expiry')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {receivingItems.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{item.product_sku}</p>
-                          <p className="text-sm text-muted-foreground">{item.product_name}</p>
+            return (
+                <Card key={item.product_id} className={`border-2 transition-all mb-4 ${isFilled ? 'border-blue-500 shadow-md' : 'border-slate-200'}`}>
+                    <CardContent className="p-5">
+                        <div className="flex justify-between items-start mb-4 border-b pb-3">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900">{item.product_name}</h3>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <Badge variant="outline" className="text-sm font-mono bg-slate-100">{item.product_sku}</Badge>
+                                    <Badge variant="secondary" className="text-sm">{item.uom_name}</Badge>
+                                </div>
+                            </div>
+                            <div className="text-center bg-slate-50 p-2 rounded-lg border min-w-[80px]">
+                                <div className="text-xs text-muted-foreground">נותר</div>
+                                <div className="text-2xl font-bold text-slate-700">{item.remaining_quantity}</div>
+                            </div>
                         </div>
-                      </TableCell>
-                      <TableCell>{item.uom_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{item.remaining_quantity}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max={item.remaining_quantity}
-                          value={item.quantity_to_receive || ''}
-                          onChange={(e) =>
-                            updateItem(index, 'quantity_to_receive', parseFloat(e.target.value) || 0)
-                          }
-                          placeholder={t('inbound.receiving.fields.enterQuantity')}
-                          className={
-                            item.quantity_to_receive > item.remaining_quantity
-                              ? 'border-destructive'
-                              : ''
-                          }
-                        />
-                        {item.quantity_to_receive > item.remaining_quantity && (
-                          <p className="text-xs text-destructive mt-1">
-                            {t('inbound.receiving.validation.quantityExceedsRemaining')}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={item.location_id?.toString() || ''}
-                          onValueChange={(value) =>
-                            updateItem(index, 'location_id', parseInt(value))
-                          }
-                          disabled={item.quantity_to_receive <= 0}
-                        >
-                          <SelectTrigger
-                            className={
-                              item.quantity_to_receive > 0 && !item.location_id
-                                ? 'border-destructive'
-                                : ''
-                            }
-                          >
-                            <SelectValue
-                              placeholder={t('inbound.receiving.validation.selectLocation')}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {locations?.map((location) => (
-                              <SelectItem key={location.id} value={location.id.toString()}>
-                                {location.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={item.lpn}
-                          onChange={(e) => updateItem(index, 'lpn', e.target.value)}
-                          placeholder={t('inbound.receiving.validation.lpnOptional')}
-                          disabled={item.quantity_to_receive <= 0}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={item.batch_number}
-                          onChange={(e) => updateItem(index, 'batch_number', e.target.value)}
-                          placeholder={t('inbound.receiving.validation.batchOptional')}
-                          disabled={item.quantity_to_receive <= 0}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="date"
-                          value={item.expiry_date}
-                          onChange={(e) => updateItem(index, 'expiry_date', e.target.value)}
-                          placeholder={t('inbound.receiving.validation.expiryOptional')}
-                          disabled={item.quantity_to_receive <= 0}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Actions */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSubmit}
-          disabled={!canSubmit || hasValidationErrors || isLoading}
-          size="lg"
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isLoading
-            ? t('inbound.receiving.receiving')
-            : t('inbound.receiving.executeReceiving')}
-        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                            <div className="md:col-span-3">
+                                <label className="text-sm font-medium mb-1.5 block">כמות לקליטה</label>
+                                <div className="relative">
+                                    <Input
+                                        type="number"
+                                        className={`h-14 text-2xl font-bold text-center ${isOver ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-300'}`}
+                                        placeholder="0"
+                                        value={item.quantity_to_receive}
+                                        onChange={(e) => updateItem(index, 'quantity_to_receive', e.target.value)}
+                                        min={0}
+                                    />
+                                    {isOver && (
+                                        <div className="absolute -bottom-6 right-0 text-xs text-red-600 flex items-center gap-1 font-bold">
+                                            <AlertTriangle className="h-3 w-3"/> חריגה!
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-4">
+                                <label className="text-sm font-medium mb-1.5 block flex items-center gap-1">
+                                    <MapPin className="h-4 w-4"/> מיקום יעד
+                                </label>
+                                <Select
+                                    value={item.location_id}
+                                    onValueChange={(val) => updateItem(index, 'location_id', val)}
+                                >
+                                    <SelectTrigger className="h-14 text-lg">
+                                        <SelectValue placeholder="בחר מיקום..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-60">
+                                        {locations?.map(loc => (
+                                            <SelectItem key={loc.id} value={loc.id.toString()}>
+                                                {loc.name} <span className="text-muted-foreground text-xs">({loc.zone_name || 'No Zone'})</span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="md:col-span-5">
+                                <label className="text-sm font-medium mb-1.5 block flex items-center gap-1 text-muted-foreground">
+                                    <Package className="h-4 w-4"/> LPN (אופציונלי)
+                                </label>
+                                <Input
+                                    placeholder="סרוק או השאר ריק"
+                                    className="h-14 font-mono text-lg"
+                                    value={item.lpn}
+                                    onChange={(e) => updateItem(index, 'lpn', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            );
+          })}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-2xl z-50 flex justify-end items-center gap-6 px-8">
+          <div className="text-sm text-muted-foreground">
+              שורות לקליטה: <strong>{items.filter(i => parseFloat(i.quantity_to_receive) > 0).length}</strong>
+          </div>
+          <Button
+            type="button" // חשוב: מונע שליחת טופס לא רצוי
+            onClick={handleSubmit}
+            disabled={isLoading}
+            size="lg"
+            className="w-64 h-12 text-lg shadow-xl bg-blue-600 hover:bg-blue-700"
+          >
+            {isLoading && <Loader2 className="ml-2 h-5 w-5 animate-spin" />}
+            שמור ובצע קליטה
+          </Button>
       </div>
     </div>
   );

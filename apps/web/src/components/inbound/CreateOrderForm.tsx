@@ -53,7 +53,6 @@ interface CreateOrderFormProps {
 export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
   const { t } = useTranslation();
 
-  // Create schema with translations
   const orderSchema = useMemo(
     () =>
       z.object({
@@ -97,15 +96,20 @@ export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
     name: 'lines',
   });
 
-  // Fetch products
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products'],
     queryFn: productService.getProducts,
   });
 
   const handleSubmit = (values: OrderFormValues) => {
+    // --- התיקון: המרה לערכים שהשרת מצפה לקבל ---
+    const orderTypeMap: Record<string, string> = {
+      'PO': 'PURCHASE_ORDER',
+      'ASN': 'ASN'
+    };
+
     const data: InboundOrderCreate = {
-      order_type: values.order_type,
+      order_type: orderTypeMap[values.order_type] || values.order_type,
       order_number: values.order_number,
       supplier_name: values.supplier_name,
       expected_date: values.expected_date || undefined,
@@ -118,10 +122,31 @@ export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
     onSubmit(data);
   };
 
+  // פונקציה עזר להצגת יחידות מידה (כולל יחידת בסיס)
   const getProductUOMs = (productId: string) => {
     if (!productId || !products) return [];
     const product = products.find((p) => p.id === parseInt(productId));
-    return product?.uoms || [];
+    if (!product) return [];
+
+    const availableUoms = [...(product.uoms || [])];
+
+    // הוספת יחידת בסיס לרשימה באופן מלאכותי
+    if (product.base_uom_id) {
+      availableUoms.unshift({
+        id: -1,
+        uom_id: product.base_uom_id,
+        uom_name: product.base_uom_name || 'Base Unit',
+        uom_code: 'BASE',
+        conversion_factor: 1,
+        barcode: null,
+        length: null,
+        width: null,
+        height: null,
+        volume: null,
+        weight: null
+      });
+    }
+    return availableUoms;
   };
 
   return (
@@ -141,8 +166,8 @@ export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="PO">{t('inbound.orderTypes.PO')}</SelectItem>
-                  <SelectItem value="ASN">{t('inbound.orderTypes.ASN')}</SelectItem>
+                  <SelectItem value="PO">הזמנת רכש (PO)</SelectItem>
+                  <SelectItem value="ASN">הודעה מוקדמת (ASN)</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -159,7 +184,7 @@ export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
               <FormLabel>{t('inbound.fields.orderNumber')}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('inbound.fields.orderNumberPlaceholder')}
+                  placeholder="לדוגמה: PO-2024-001"
                   {...field}
                 />
               </FormControl>
@@ -177,7 +202,7 @@ export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
               <FormLabel>{t('inbound.fields.supplierName')}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('inbound.fields.supplierNamePlaceholder')}
+                  placeholder="שם הספק"
                   {...field}
                 />
               </FormControl>
@@ -223,135 +248,130 @@ export function CreateOrderForm({ onSubmit, isLoading }: CreateOrderFormProps) {
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('inbound.lines.product')}</TableHead>
-                  <TableHead>{t('inbound.lines.uom')}</TableHead>
-                  <TableHead>{t('inbound.lines.expectedQty')}</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fields.map((field, index) => (
-                  <TableRow key={field.id}>
-                    <TableCell>
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.product_id`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                form.setValue(`lines.${index}.uom_id`, '');
-                              }}
-                              value={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t('inbound.lines.selectProduct')}
-                                  />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {products?.map((product) => (
-                                  <SelectItem
-                                    key={product.id}
-                                    value={product.id.toString()}
-                                  >
-                                    {product.sku} - {product.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.uom_id`}
-                        render={({ field }) => {
-                          const productId = form.watch(`lines.${index}.product_id`);
-                          const uoms = getProductUOMs(productId);
-                          return (
+            <div className="border rounded-md overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">{t('inbound.lines.product')}</TableHead>
+                    <TableHead className="min-w-[150px]">{t('inbound.lines.uom')}</TableHead>
+                    <TableHead className="min-w-[120px]">{t('inbound.lines.expectedQty')}</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fields.map((field, index) => (
+                    <TableRow key={field.id}>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.product_id`}
+                          render={({ field }) => (
                             <FormItem>
                               <Select
-                                onValueChange={field.onChange}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  form.setValue(`lines.${index}.uom_id`, '');
+                                }}
                                 value={field.value}
-                                disabled={!productId}
                               >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue
-                                      placeholder={t('inbound.lines.selectUom')}
+                                      placeholder={t('inbound.lines.selectProduct')}
                                     />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {uoms.map((uom) => (
-                                    <SelectItem key={uom.id} value={uom.uom_id.toString()}>
-                                      {uom.uom_name} (x{uom.conversion_factor})
+                                  {products?.map((product) => (
+                                    <SelectItem
+                                      key={product.id}
+                                      value={product.id.toString()}
+                                    >
+                                      {product.sku} - {product.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
                             </FormItem>
-                          );
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.expected_quantity`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder={t('inbound.lines.enterQuantity')}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.uom_id`}
+                          render={({ field }) => {
+                            const productId = form.watch(`lines.${index}.product_id`);
+                            const uoms = getProductUOMs(productId);
+                            return (
+                              <FormItem>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                  disabled={!productId}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue
+                                        placeholder={t('inbound.lines.selectUom')}
+                                      />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {uoms.map((uom) => (
+                                      <SelectItem key={uom.id} value={uom.uom_id.toString()}>
+                                        {uom.uom_name} (x{uom.conversion_factor})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`lines.${index}.expected_quantity`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder={t('inbound.lines.enterQuantity')}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => remove(index)}
+                            className="text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         )}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => remove(index)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-
-          {form.formState.errors.lines?.root && (
-            <p className="text-sm font-medium text-destructive">
-              {form.formState.errors.lines.root.message}
-            </p>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
 
-        {/* Submit Button */}
         <div className="flex justify-end gap-2">
           <Button type="submit" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

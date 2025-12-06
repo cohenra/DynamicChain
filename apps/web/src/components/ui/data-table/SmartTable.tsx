@@ -1,3 +1,4 @@
+import React from "react";
 import { flexRender, Table as ReactTable, Row } from "@tanstack/react-table";
 import {
   Table,
@@ -22,7 +23,6 @@ interface SmartTableProps<TData> {
   filters?: FilterOption[];
   actions?: React.ReactNode;
   noDataMessage?: string;
-  // תוספת קריטית: פונקציה לרינדור תוכן שורה מורחבת
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement;
 }
 
@@ -42,7 +42,6 @@ export function SmartTable<TData>({
 
   return (
     <div className="space-y-4">
-      {/* סרגל כלים עליון */}
       <DataTableToolbar
         table={table}
         searchKey={searchKey}
@@ -52,7 +51,6 @@ export function SmartTable<TData>({
         actions={actions}
       />
 
-      {/* גוף הטבלה */}
       <div className="rounded-md border bg-white shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
@@ -91,9 +89,8 @@ export function SmartTable<TData>({
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <>
+                <React.Fragment key={row.id}>
                   <TableRow
-                    key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     className={`h-9 hover:bg-blue-50/50 transition-colors ${
                       row.getCanExpand() ? "cursor-pointer" : ""
@@ -109,15 +106,14 @@ export function SmartTable<TData>({
                       </TableCell>
                     ))}
                   </TableRow>
-                  {/* לוגיקת הרחבה - אם השורה פתוחה ויש קומפוננטת הרחבה */}
                   {row.getIsExpanded() && renderSubComponent && (
                     <TableRow>
-                      <TableCell colSpan={columnsLength} className="p-0">
+                      <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100">
                         {renderSubComponent({ row })}
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               ))
             ) : (
               <TableRow>
@@ -133,7 +129,6 @@ export function SmartTable<TData>({
         </Table>
       </div>
 
-      {/* פגינציה */}
       <DataTablePagination table={table} />
     </div>
   );
