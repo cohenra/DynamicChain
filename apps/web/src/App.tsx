@@ -11,6 +11,8 @@ import InventoryPage from './pages/Inventory';
 import InboundOrders from './pages/inbound/InboundOrders';
 import OrderDetails from './pages/inbound/OrderDetails';
 import { useAuthStore } from './store/authStore';
+import { InboundRoutes } from '@/pages/Inbound/InboundRoutes';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,7 @@ function App() {
             <Route path="depositors" element={<Depositors />} />
             <Route path="warehouses" element={<Warehouses />} />
             <Route path="invoices" element={<div className="text-center p-8">חשבוניות - בפיתוח</div>} />
+			<Route path="/inbound/*" element={<InboundRoutes />} />
           </Route>
         </Routes>
       </BrowserRouter>
