@@ -3,6 +3,7 @@ from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.inbound_order import InboundOrder, InboundOrderStatus
+from models.inbound_line import InboundLine
 
 
 class InboundOrderRepository:
@@ -35,7 +36,13 @@ class InboundOrderRepository:
 
         # Eager load relationships if requested
         if load_lines:
-            query = query.options(selectinload(InboundOrder.lines))
+            query = query.options(
+                selectinload(InboundOrder.lines)
+                .selectinload(InboundLine.product)
+            ).options(
+                selectinload(InboundOrder.lines)
+                .selectinload(InboundLine.uom)
+            )
         if load_shipments:
             query = query.options(selectinload(InboundOrder.shipments))
 
@@ -57,7 +64,13 @@ class InboundOrderRepository:
         )
 
         if load_lines:
-            query = query.options(selectinload(InboundOrder.lines))
+            query = query.options(
+                selectinload(InboundOrder.lines)
+                .selectinload(InboundLine.product)
+            ).options(
+                selectinload(InboundOrder.lines)
+                .selectinload(InboundLine.uom)
+            )
 
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
@@ -77,7 +90,13 @@ class InboundOrderRepository:
             query = query.where(InboundOrder.status == status)
 
         if load_lines:
-            query = query.options(selectinload(InboundOrder.lines))
+            query = query.options(
+                selectinload(InboundOrder.lines)
+                .selectinload(InboundLine.product)
+            ).options(
+                selectinload(InboundOrder.lines)
+                .selectinload(InboundLine.uom)
+            )
 
         query = query.offset(skip).limit(limit).order_by(InboundOrder.created_at.desc())
 
