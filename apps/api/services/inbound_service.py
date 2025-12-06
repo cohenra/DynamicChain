@@ -189,7 +189,8 @@ class InboundService:
         tenant_id: int,
         skip: int = 0,
         limit: int = 100,
-        status: Optional[InboundOrderStatus] = None
+        status: Optional[InboundOrderStatus] = None,
+        load_shipments: bool = True
     ) -> List[InboundOrder]:
         """List inbound orders with pagination and optional filtering."""
         return await self.order_repo.list_orders(
@@ -197,7 +198,8 @@ class InboundService:
             skip=skip,
             limit=limit,
             status=status,
-            load_lines=True
+            load_lines=True,
+            load_shipments=load_shipments
         )
 
     async def create_shipment(

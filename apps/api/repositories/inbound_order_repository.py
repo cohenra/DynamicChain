@@ -81,7 +81,8 @@ class InboundOrderRepository:
         skip: int = 0,
         limit: int = 100,
         status: Optional[InboundOrderStatus] = None,
-        load_lines: bool = False
+        load_lines: bool = False,
+        load_shipments: bool = False
     ) -> List[InboundOrder]:
         """List all inbound orders for a tenant with pagination and optional filtering."""
         query = select(InboundOrder).where(InboundOrder.tenant_id == tenant_id)
@@ -97,6 +98,9 @@ class InboundOrderRepository:
                 selectinload(InboundOrder.lines)
                 .selectinload(InboundLine.uom)
             )
+
+        if load_shipments:
+            query = query.options(selectinload(InboundOrder.shipments))
 
         query = query.offset(skip).limit(limit).order_by(InboundOrder.created_at.desc())
 
