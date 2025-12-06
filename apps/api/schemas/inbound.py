@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import Dict, Any, Optional, List
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from models.inbound_order import InboundOrderType, InboundOrderStatus
 from models.inbound_shipment import InboundShipmentStatus
 
@@ -100,6 +100,15 @@ class InboundShipmentBase(BaseModel):
     driver_details: Optional[Dict[str, Any]] = Field(None, description="Driver and logistics details")
     arrival_date: Optional[datetime] = Field(None, description="Actual arrival date/time")
     notes: Optional[str] = Field(None, description="Additional notes")
+
+    @field_validator('arrival_date')
+    @classmethod
+    def remove_timezone(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Remove timezone info to match database TIMESTAMP WITHOUT TIME ZONE column."""
+        if v and v.tzinfo is not None:
+            # Convert to naive datetime (remove timezone)
+            return v.replace(tzinfo=None)
+        return v
 
 
 class InboundShipmentCreate(InboundShipmentBase):
