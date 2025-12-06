@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InboundOrder, inboundService, CreateShipmentRequest, InboundLine, InboundLineCreate, InboundLineUpdate, InboundShipment } from '@/services/inboundService';
 import { Button } from '@/components/ui/button';
@@ -73,10 +73,41 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   const [isLineSheetOpen, setIsLineSheetOpen] = useState(false);
   const [isCloseAlertOpen, setIsCloseAlertOpen] = useState(false);
   const [editingLine, setEditingLine] = useState<InboundLine | null>(null);
-  
+
+  // Refs for synchronized scrolling
+  const linesHeaderRef = useRef<HTMLDivElement>(null);
+  const linesBodyRef = useRef<HTMLDivElement>(null);
+  const shipmentsHeaderRef = useRef<HTMLDivElement>(null);
+  const shipmentsBodyRef = useRef<HTMLDivElement>(null);
+
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const isOrderEditable = order.status === 'DRAFT' || order.status === 'CONFIRMED' || order.status === 'PARTIALLY_RECEIVED';
+
+  // Synchronized scroll handlers
+  const handleLinesHeaderScroll = useCallback(() => {
+    if (linesHeaderRef.current && linesBodyRef.current) {
+      linesBodyRef.current.scrollLeft = linesHeaderRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleLinesBodyScroll = useCallback(() => {
+    if (linesHeaderRef.current && linesBodyRef.current) {
+      linesHeaderRef.current.scrollLeft = linesBodyRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleShipmentsHeaderScroll = useCallback(() => {
+    if (shipmentsHeaderRef.current && shipmentsBodyRef.current) {
+      shipmentsBodyRef.current.scrollLeft = shipmentsHeaderRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleShipmentsBodyScroll = useCallback(() => {
+    if (shipmentsHeaderRef.current && shipmentsBodyRef.current) {
+      shipmentsHeaderRef.current.scrollLeft = shipmentsBodyRef.current.scrollLeft;
+    }
+  }, []);
 
   // --- Forms setup ---
   // (Standard forms logic - same as before)
@@ -168,69 +199,102 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
             </div>
         </div>
 
-        {/* --- Content Area - now relies on SmartTable's width protection --- */}
+        {/* --- Content Area with Synchronized Horizontal Scrolling --- */}
         <div className="bg-white border-x border-b rounded-b-md">
-            <TabsContent value="lines" className="m-0 p-0 overflow-x-auto">
-                {/* min-w-[800px] ensures horizontal scroll triggers on small screens */}
-                <Table className="min-w-[800px] w-full">
-                    <TableHeader className="bg-slate-50">
-                        {linesTable.getHeaderGroups().map(headerGroup => (
-                            <TableRow key={headerGroup.id} className="h-8 hover:bg-transparent">
-                                {headerGroup.headers.map(header => (
-                                    <TableHead key={header.id} className="h-8 text-xs font-semibold py-1 whitespace-nowrap px-4 text-right">
-                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {linesTable.getRowModel().rows.length > 0 ? (
-                            linesTable.getRowModel().rows.map(row => (
-                                <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
-                                    {row.getVisibleCells().map(cell => (
-                                        <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
+            <TabsContent value="lines" className="m-0 p-0">
+                {/* Header with separate horizontal scroll */}
+                <div
+                    ref={linesHeaderRef}
+                    onScroll={handleLinesHeaderScroll}
+                    className="overflow-x-auto overflow-y-hidden border-b scrollbar-thin"
+                >
+                    <Table className="min-w-[800px] w-full">
+                        <TableHeader className="bg-slate-50">
+                            {linesTable.getHeaderGroups().map(headerGroup => (
+                                <TableRow key={headerGroup.id} className="h-8 hover:bg-transparent">
+                                    {headerGroup.headers.map(header => (
+                                        <TableHead key={header.id} className="h-8 text-xs font-semibold py-1 whitespace-nowrap px-4 text-right">
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                        </TableHead>
                                     ))}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow><TableCell colSpan={lineColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.lines.noLines')}</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                            ))}
+                        </TableHeader>
+                    </Table>
+                </div>
+
+                {/* Body with separate horizontal scroll */}
+                <div
+                    ref={linesBodyRef}
+                    onScroll={handleLinesBodyScroll}
+                    className="overflow-x-auto overflow-y-hidden scrollbar-thin"
+                >
+                    <Table className="min-w-[800px] w-full">
+                        <TableBody>
+                            {linesTable.getRowModel().rows.length > 0 ? (
+                                linesTable.getRowModel().rows.map(row => (
+                                    <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
+                                        {row.getVisibleCells().map(cell => (
+                                            <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow><TableCell colSpan={lineColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.lines.noLines')}</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </TabsContent>
 
-            <TabsContent value="shipments" className="m-0 p-0 overflow-x-auto">
-                 <Table className="min-w-[800px] w-full">
-                    <TableHeader className="bg-slate-50">
-                        {shipmentsTable.getHeaderGroups().map(headerGroup => (
-                            <TableRow key={headerGroup.id} className="h-8 hover:bg-transparent">
-                                {headerGroup.headers.map(header => (
-                                    <TableHead key={header.id} className="h-8 text-xs font-semibold py-1 whitespace-nowrap px-4 text-right">
-                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {shipmentsTable.getRowModel().rows.length > 0 ? (
-                            shipmentsTable.getRowModel().rows.map(row => (
-                                <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
-                                    {row.getVisibleCells().map(cell => (
-                                        <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
+            <TabsContent value="shipments" className="m-0 p-0">
+                {/* Header with separate horizontal scroll */}
+                <div
+                    ref={shipmentsHeaderRef}
+                    onScroll={handleShipmentsHeaderScroll}
+                    className="overflow-x-auto overflow-y-hidden border-b scrollbar-thin"
+                >
+                    <Table className="min-w-[800px] w-full">
+                        <TableHeader className="bg-slate-50">
+                            {shipmentsTable.getHeaderGroups().map(headerGroup => (
+                                <TableRow key={headerGroup.id} className="h-8 hover:bg-transparent">
+                                    {headerGroup.headers.map(header => (
+                                        <TableHead key={header.id} className="h-8 text-xs font-semibold py-1 whitespace-nowrap px-4 text-right">
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                        </TableHead>
                                     ))}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow><TableCell colSpan={shipmentColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.shipments.noShipments')}</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                            ))}
+                        </TableHeader>
+                    </Table>
+                </div>
+
+                {/* Body with separate horizontal scroll */}
+                <div
+                    ref={shipmentsBodyRef}
+                    onScroll={handleShipmentsBodyScroll}
+                    className="overflow-x-auto overflow-y-hidden scrollbar-thin"
+                >
+                    <Table className="min-w-[800px] w-full">
+                        <TableBody>
+                            {shipmentsTable.getRowModel().rows.length > 0 ? (
+                                shipmentsTable.getRowModel().rows.map(row => (
+                                    <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
+                                        {row.getVisibleCells().map(cell => (
+                                            <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow><TableCell colSpan={shipmentColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.shipments.noShipments')}</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </TabsContent>
         </div>
       </Tabs>
