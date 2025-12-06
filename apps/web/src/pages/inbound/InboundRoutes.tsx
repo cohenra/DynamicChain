@@ -1,4 +1,4 @@
-הimport { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import InboundOrdersList from '@/pages/Inbound/InboundOrdersList';
 import InboundOrderDetail from '@/pages/Inbound/InboundOrderDetail';
 
