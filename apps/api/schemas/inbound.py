@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, date
 from typing import Dict, Any, Optional, List
 from decimal import Decimal
@@ -112,7 +114,7 @@ class InboundOrderResponse(InboundOrderBase):
     created_at: datetime
     updated_at: datetime
     lines: List[InboundLineResponse] = Field(default_factory=list, description="Order lines")
-    shipments: List["InboundShipmentResponse"] = Field(default_factory=list, description="Shipments for this order")
+    shipments: List[InboundShipmentResponse] = Field(default_factory=list, description="Shipments for this order")
 
     class Config:
         from_attributes = True
