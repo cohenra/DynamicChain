@@ -72,8 +72,9 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   const [isShipmentSheetOpen, setIsShipmentSheetOpen] = useState(false);
   const [isLineSheetOpen, setIsLineSheetOpen] = useState(false);
   const [isCloseAlertOpen, setIsCloseAlertOpen] = useState(false);
+  const [isForceCloseAlertOpen, setIsForceCloseAlertOpen] = useState(false);
   const [editingLine, setEditingLine] = useState<InboundLine | null>(null);
-  
+
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const isOrderEditable = order.status === 'DRAFT' || order.status === 'CONFIRMED' || order.status === 'PARTIALLY_RECEIVED';
@@ -97,7 +98,25 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   
   const openAddLine = () => { setEditingLine(null); lineForm.reset({ product_id: '', uom_id: '', expected_quantity: '', expected_batch: '' }); setIsLineSheetOpen(true); };
   const openEditLine = (line: InboundLine) => { setEditingLine(line); lineForm.reset({ product_id: line.product_id.toString(), uom_id: line.uom_id.toString(), expected_quantity: line.expected_quantity.toString(), expected_batch: line.expected_batch || '' }); setIsLineSheetOpen(true); };
-  const closeOrderMutation = useMutation({ mutationFn: () => inboundService.closeOrder(order.id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsCloseAlertOpen(false); toast.success(t('inbound.closeSuccess')); } });
+  const closeOrderMutation = useMutation({
+    mutationFn: (force: boolean = false) => inboundService.closeOrder(order.id, force),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
+      setIsCloseAlertOpen(false);
+      setIsForceCloseAlertOpen(false);
+      toast.success(t('inbound.closeSuccess', 'ההזמנה נסגרה בהצלחה'));
+    },
+    onError: (error: any) => {
+      const errorDetail = error?.response?.data?.detail || '';
+      // Check if error is about no items received and requires force flag
+      if (error?.response?.status === 400 && errorDetail.includes('No items') && errorDetail.includes('force=True')) {
+        setIsCloseAlertOpen(false);
+        setIsForceCloseAlertOpen(true);
+      } else {
+        toast.error(errorDetail || t('inbound.closeError', 'שגיאה בסגירת ההזמנה'));
+      }
+    }
+  });
 
   // --- Tables Setup ---
   const lineColumns = useMemo<ColumnDef<InboundLine>[]>(() => [
@@ -275,7 +294,30 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
       <AlertDialog open={isCloseAlertOpen} onOpenChange={setIsCloseAlertOpen}>
           <AlertDialogContent>
               <AlertDialogHeader><AlertDialogTitle>{t('inbound.closeOrder')}</AlertDialogTitle><AlertDialogDescription>{t('inbound.closeOrderConfirm')}</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter><AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => closeOrderMutation.mutate()}>{t('inbound.closeOrder')}</AlertDialogAction></AlertDialogFooter>
+              <AlertDialogFooter><AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => closeOrderMutation.mutate(false)}>{t('inbound.closeOrder')}</AlertDialogAction></AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isForceCloseAlertOpen} onOpenChange={setIsForceCloseAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle className="text-amber-600">{t('inbound.forceClose.title', 'אזהרה: סגירה ללא קבלה')}</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                      <p>{t('inbound.forceClose.message', 'לא התקבלו פריטים בהזמנה זו. האם ברצונך לסגור את ההזמנה בכל זאת?')}</p>
+                      <p className="text-sm font-medium text-amber-700">
+                          {t('inbound.forceClose.warning', 'פעולה זו תסמן את ההזמנה כמבוטלת.')}
+                      </p>
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel', 'ביטול')}</AlertDialogCancel>
+                  <AlertDialogAction
+                      onClick={() => closeOrderMutation.mutate(true)}
+                      className="bg-amber-600 hover:bg-amber-700"
+                  >
+                      {t('inbound.forceClose.confirm', 'כן, סגור ובטל')}
+                  </AlertDialogAction>
+              </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
     </div>

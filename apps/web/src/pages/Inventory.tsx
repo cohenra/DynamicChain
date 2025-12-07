@@ -17,9 +17,10 @@ import { useTableSettings } from '@/hooks/use-table-settings';
 import { Badge } from '@/components/ui/badge';
 import { PackagePlus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-// ייבוא הטופס החדש שיצרנו
 import { InventoryReceiveForm } from '@/components/inventory/InventoryReceiveForm';
+import { TransactionsTable } from '@/components/inventory/TransactionsTable';
 
 export default function InventoryPage() {
   const { t } = useTranslation();
@@ -121,29 +122,40 @@ export default function InventoryPage() {
         <p className="text-muted-foreground mt-2">{t('inventory.subtitle')}</p>
       </div>
 
-      <SmartTable
-        table={table}
-        columnsLength={columns.length}
-        isLoading={isLoading}
-        searchValue={globalFilter}
-        onSearchChange={setGlobalFilter}
-        noDataMessage={t('inventory.noInventory')}
-        actions={
-          // --- התיקון: הוספת ה-onClick ---
-          <Button onClick={() => setIsReceiveSheetOpen(true)}>
-            <PackagePlus className="ml-2 h-4 w-4" />
-            {t('inventory.receiveStock')}
-          </Button>
-        }
-      />
+      <Tabs defaultValue="inventory" className="w-full">
+        <TabsList>
+          <TabsTrigger value="inventory">{t('inventory.tabs.inventory', 'מלאי')}</TabsTrigger>
+          <TabsTrigger value="transactions">{t('inventory.tabs.transactions', 'טרנזקציות')}</TabsTrigger>
+        </TabsList>
 
-      {/* --- החלק שהיה חסר: ה-Sheet עצמו --- */}
+        <TabsContent value="inventory" className="space-y-4 pt-4">
+          <SmartTable
+            table={table}
+            columnsLength={columns.length}
+            isLoading={isLoading}
+            searchValue={globalFilter}
+            onSearchChange={setGlobalFilter}
+            noDataMessage={t('inventory.noInventory')}
+            actions={
+              <Button onClick={() => setIsReceiveSheetOpen(true)}>
+                <PackagePlus className="ml-2 h-4 w-4" />
+                {t('inventory.receiveStock')}
+              </Button>
+            }
+          />
+        </TabsContent>
+
+        <TabsContent value="transactions" className="space-y-4 pt-4">
+          <TransactionsTable />
+        </TabsContent>
+      </Tabs>
+
       <Sheet open={isReceiveSheetOpen} onOpenChange={setIsReceiveSheetOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
             <SheetHeader>
                 <SheetTitle>{t('inventory.receiveStock')}</SheetTitle>
             </SheetHeader>
-            <InventoryReceiveForm 
+            <InventoryReceiveForm
                 onSubmit={(data) => receiveStockMutation.mutate(data)}
                 onCancel={() => setIsReceiveSheetOpen(false)}
                 isSubmitting={receiveStockMutation.isPending}

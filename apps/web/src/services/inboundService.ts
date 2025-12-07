@@ -119,8 +119,11 @@ export const inboundService = {
     return response.data;
   },
 
-  async closeOrder(orderId: number): Promise<InboundOrder> {
-    const response = await api.patch<InboundOrder>(`/api/inbound/orders/${orderId}/close`);
+  async closeOrder(orderId: number, force?: boolean): Promise<InboundOrder> {
+    const url = force
+      ? `/api/inbound/orders/${orderId}/close?force=true`
+      : `/api/inbound/orders/${orderId}/close`;
+    const response = await api.patch<InboundOrder>(url);
     return response.data;
   },
 

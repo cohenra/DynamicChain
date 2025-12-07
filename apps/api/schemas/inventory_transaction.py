@@ -5,6 +5,12 @@ from pydantic import BaseModel, Field
 from models.inventory_transaction import TransactionType
 
 
+class InventoryTransactionCorrectionRequest(BaseModel):
+    """Schema for correcting an inventory transaction."""
+    new_quantity: Decimal = Field(..., gt=0, description="Corrected quantity value")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for the correction")
+
+
 class InventoryTransactionResponse(BaseModel):
     """Schema for inventory transaction response."""
     id: int

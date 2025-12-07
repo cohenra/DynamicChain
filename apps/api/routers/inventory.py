@@ -9,7 +9,11 @@ from schemas.inventory import (
     InventoryResponse,
     InventoryListResponse
 )
-from schemas.inventory_transaction import InventoryTransactionResponse, InventoryTransactionListResponse
+from schemas.inventory_transaction import (
+    InventoryTransactionResponse,
+    InventoryTransactionListResponse,
+    InventoryTransactionCorrectionRequest
+)
 from services.inventory_service import InventoryService
 from repositories.inventory_transaction_repository import InventoryTransactionRepository
 from auth.dependencies import get_current_user
@@ -388,3 +392,59 @@ async def list_transactions(
         skip=skip,
         limit=limit
     )
+
+
+@router.post("/transactions/{transaction_id}/correct", response_model=InventoryTransactionResponse, status_code=status.HTTP_201_CREATED)
+async def correct_transaction(
+    transaction_id: int,
+    correction_data: InventoryTransactionCorrectionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> InventoryTransactionResponse:
+    """
+    Create a compensating transaction to correct a previous transaction.
+
+    This endpoint implements immutable ledger pattern by creating a CORRECTION
+    transaction instead of modifying the original transaction.
+
+    Args:
+        transaction_id: ID of the transaction to correct
+        correction_data: Correction data including new quantity and reason
+        current_user: Authenticated user from JWT token
+        db: Database session
+
+    Returns:
+        InventoryTransactionResponse: The newly created CORRECTION transaction
+
+    Raises:
+        400: If new quantity is same as original or would result in negative inventory
+        401: If user is not authenticated
+        404: If transaction or inventory not found
+
+    Example:
+        ```json
+        {
+          "new_quantity": 95.0,
+          "reason": "Miscount - actual quantity was 95, not 100"
+        }
+        ```
+    """
+    inventory_service = InventoryService(db)
+    correction_transaction = await inventory_service.correct_transaction(
+        original_transaction_id=transaction_id,
+        new_quantity=correction_data.new_quantity,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        reason=correction_data.reason
+    )
+
+    # Populate response with related entity names
+    response_data = InventoryTransactionResponse.model_validate(correction_transaction)
+    response_data.product_sku = correction_transaction.product.sku if correction_transaction.product else None
+    response_data.product_name = correction_transaction.product.name if correction_transaction.product else None
+    response_data.inventory_lpn = correction_transaction.inventory.lpn if correction_transaction.inventory else None
+    response_data.from_location_name = correction_transaction.from_location.name if correction_transaction.from_location else None
+    response_data.to_location_name = correction_transaction.to_location.name if correction_transaction.to_location else None
+    response_data.performed_by_name = correction_transaction.performed_by_user.full_name if correction_transaction.performed_by_user else None
+
+    return response_data

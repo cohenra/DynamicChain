@@ -70,14 +70,30 @@ async def get_inbound_order(
 @router.patch("/orders/{order_id}/close", response_model=InboundOrderResponse)
 async def close_inbound_order(
     order_id: int,
+    force: bool = False,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> InboundOrderResponse:
-    """Close an order manually (mark as COMPLETED)."""
+    """
+    Close an order with business validation.
+
+    Args:
+        order_id: ID of the order to close
+        force: If True, allow closing even if nothing was received (will set status to CANCELLED)
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        InboundOrderResponse: The closed order
+
+    Raises:
+        400: If no items received and force=False
+    """
     service = InboundService(db)
     order = await service.close_order(
         order_id=order_id,
-        tenant_id=current_user.tenant_id
+        tenant_id=current_user.tenant_id,
+        force=force
     )
     return InboundOrderResponse.model_validate(order)
 
