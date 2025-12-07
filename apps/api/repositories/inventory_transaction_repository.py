@@ -152,9 +152,3 @@ class InventoryTransactionRepository:
             .limit(1)
         )
         return result.scalar_one_or_none()
-
-    async def update(self, transaction: InventoryTransaction) -> InventoryTransaction:
-        """Update an existing inventory transaction (use sparingly - ledger should be immutable)."""
-        await self.db.flush()
-        await self.db.refresh(transaction)
-        return transaction

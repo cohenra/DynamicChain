@@ -23,6 +23,7 @@ class TransactionType(str, Enum):
     PICK = "PICK"
     SHIP = "SHIP"
     ADJUSTMENT = "ADJUSTMENT"
+    CORRECTION = "CORRECTION"  # Compensating transaction for immutable ledger corrections
     STATUS_CHANGE = "STATUS_CHANGE"
     PALLET_SPLIT = "PALLET_SPLIT"
     PALLET_MERGE = "PALLET_MERGE"

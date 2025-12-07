@@ -404,3 +404,110 @@ class InventoryService:
         await self.transaction_repo.create(transaction)
 
         return updated_inventory
+
+    async def correct_transaction(
+        self,
+        original_transaction_id: int,
+        new_quantity: Decimal,
+        tenant_id: int,
+        user_id: int,
+        reason: Optional[str] = None
+    ) -> InventoryTransaction:
+        """
+        Create a compensating transaction to correct a previous transaction.
+
+        This method implements immutable ledger pattern by creating a CORRECTION
+        transaction instead of modifying the original transaction.
+
+        Args:
+            original_transaction_id: ID of the transaction to correct
+            new_quantity: The corrected quantity value
+            tenant_id: ID of the tenant
+            user_id: ID of the user performing the correction
+            reason: Optional reason for the correction
+
+        Returns:
+            The newly created CORRECTION transaction
+
+        Raises:
+            HTTPException: If original transaction not found or validation fails
+        """
+        # Fetch the original transaction
+        original_transaction = await self.transaction_repo.get_by_id(
+            transaction_id=original_transaction_id,
+            tenant_id=tenant_id
+        )
+
+        if not original_transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Transaction with ID {original_transaction_id} not found"
+            )
+
+        # Calculate the delta (difference between new and original quantity)
+        original_quantity = original_transaction.quantity
+        quantity_diff = new_quantity - original_quantity
+
+        # Validate that there's actually a difference
+        if quantity_diff == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New quantity is the same as the original quantity. No correction needed."
+            )
+
+        # Get the inventory with lock to prevent race conditions
+        inventory = await self.inventory_repo.get_by_id_with_lock(
+            inventory_id=original_transaction.inventory_id,
+            tenant_id=tenant_id
+        )
+
+        if not inventory:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Inventory with ID {original_transaction.inventory_id} not found"
+            )
+
+        # Update the inventory quantity based on the correction
+        # The diff can be positive (increase) or negative (decrease)
+        new_inventory_quantity = inventory.quantity + quantity_diff
+
+        if new_inventory_quantity < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Correction would result in negative inventory quantity ({new_inventory_quantity})"
+            )
+
+        # Update inventory
+        inventory.quantity = new_inventory_quantity
+        inventory.updated_at = datetime.utcnow()
+        await self.inventory_repo.update(inventory)
+
+        # Create the CORRECTION transaction
+        # Note: quantity field stores the absolute value of the diff for tracking purposes
+        now = datetime.utcnow()
+        correction_transaction = InventoryTransaction(
+            tenant_id=tenant_id,
+            transaction_type=TransactionType.CORRECTION,
+            product_id=original_transaction.product_id,
+            from_location_id=original_transaction.from_location_id,
+            to_location_id=original_transaction.to_location_id,
+            inventory_id=original_transaction.inventory_id,
+            quantity=abs(quantity_diff),  # Store absolute value
+            reference_doc=f"CORRECTION-{original_transaction_id}",
+            performed_by=user_id,
+            timestamp=now,
+            billing_metadata={
+                "operation": "correction",
+                "original_transaction_id": original_transaction_id,
+                "original_quantity": str(original_quantity),
+                "corrected_quantity": str(new_quantity),
+                "quantity_diff": str(quantity_diff),
+                "adjustment_type": "increase" if quantity_diff > 0 else "decrease",
+                "reason": reason or "Manual correction",
+                "lpn": inventory.lpn
+            }
+        )
+
+        created_correction = await self.transaction_repo.create(correction_transaction)
+
+        return created_correction
