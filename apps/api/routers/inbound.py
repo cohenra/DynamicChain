@@ -15,7 +15,8 @@ from schemas.inbound import (
     InboundLineUpdate,
     InboundLineResponse,
     BulkCloseRequest,
-    BulkCloseResult
+    BulkCloseResult,
+    ReceiveShipmentItemRequest
 )
 from services.inbound_service import InboundService
 from auth.dependencies import get_current_user
@@ -222,3 +223,38 @@ async def bulk_close_orders(
         errors=errors,
         closed_order_ids=closed_order_ids
     )
+
+
+@router.post("/shipments/{shipment_id}/receive", response_model=InboundShipmentResponse)
+async def receive_shipment_item(
+    shipment_id: int,
+    receive_data: ReceiveShipmentItemRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> InboundShipmentResponse:
+    """
+    Receive an item from a shipment.
+
+    This endpoint:
+    - Creates inventory record with the received item
+    - Links the transaction to the shipment for traceability
+    - Updates the inbound line received quantity
+    - Changes shipment status from SCHEDULED to RECEIVING if needed
+
+    Args:
+        shipment_id: ID of the shipment
+        receive_data: Receiving data (line, location, quantity, etc.)
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        InboundShipmentResponse: The updated shipment
+    """
+    service = InboundService(db)
+    shipment = await service.receive_shipment_item(
+        shipment_id=shipment_id,
+        receive_data=receive_data,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )
+    return InboundShipmentResponse.model_validate(shipment)

@@ -110,6 +110,15 @@ export interface BulkCloseResult {
   closed_order_ids: number[];
 }
 
+export interface ReceiveShipmentItemRequest {
+  inbound_line_id: number;
+  location_id: number;
+  quantity: number;
+  lpn?: string;
+  batch_number?: string;
+  expiry_date?: string;
+}
+
 export const inboundService = {
   async getOrders(params?: {
     skip?: number;
@@ -169,6 +178,17 @@ export const inboundService = {
 
   async bulkCloseOrders(data: BulkCloseRequest): Promise<BulkCloseResult> {
     const response = await api.post<BulkCloseResult>('/api/inbound/orders/bulk-close', data);
+    return response.data;
+  },
+
+  async receiveShipmentItem(
+    shipmentId: number,
+    data: ReceiveShipmentItemRequest
+  ): Promise<InboundShipment> {
+    const response = await api.post<InboundShipment>(
+      `/api/inbound/shipments/${shipmentId}/receive`,
+      data
+    );
     return response.data;
   },
 };

@@ -271,3 +271,102 @@ class InboundService:
         await self.db.commit()
 
         return shipment
+
+    async def receive_shipment_item(
+        self,
+        shipment_id: int,
+        receive_data: "ReceiveShipmentItemRequest",
+        tenant_id: int,
+        user_id: int
+    ) -> InboundShipment:
+        """
+        Receive an item from a shipment, creating inventory and updating line quantities.
+
+        This method:
+        1. Validates shipment exists and is not CLOSED
+        2. Verifies inbound_line_id belongs to shipment's order
+        3. Creates inventory record via inventory_service
+        4. Updates InboundLine received_quantity
+        5. Changes shipment status from SCHEDULED to RECEIVING if needed
+
+        Args:
+            shipment_id: ID of the shipment
+            receive_data: Receiving data including line, location, quantity, etc.
+            tenant_id: ID of the tenant
+            user_id: ID of the user performing the operation
+
+        Returns:
+            Updated InboundShipment instance
+
+        Raises:
+            HTTPException: If validation fails
+        """
+        from schemas.inbound import ReceiveShipmentItemRequest
+        from services.inventory_service import InventoryService
+        from schemas.inventory import InventoryReceiveRequest
+
+        # 1. Validate shipment exists
+        shipment = await self.shipment_repo.get_by_id(shipment_id)
+        if not shipment:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Shipment {shipment_id} not found"
+            )
+
+        # 2. Verify shipment is not closed
+        if shipment.status == InboundShipmentStatus.CLOSED:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot receive items from a closed shipment"
+            )
+
+        # 3. Get the order to verify tenant and get customer_id
+        order = await self.order_repo.get_by_id(shipment.inbound_order_id, tenant_id)
+        if not order:
+            raise HTTPException(
+                status_code=404,
+                detail="Order not found or access denied"
+            )
+
+        # 4. Verify line belongs to this order
+        line = await self.line_repo.get_by_id(receive_data.inbound_line_id)
+        if not line or line.inbound_order_id != order.id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Line {receive_data.inbound_line_id} does not belong to this order"
+            )
+
+        # 5. Create inventory via inventory service
+        inventory_service = InventoryService(self.db)
+        inventory_receive_request = InventoryReceiveRequest(
+            depositor_id=order.customer_id,
+            product_id=line.product_id,
+            location_id=receive_data.location_id,
+            quantity=receive_data.quantity,
+            lpn=receive_data.lpn,
+            batch_number=receive_data.batch_number,
+            expiry_date=receive_data.expiry_date,
+            reference_doc=f"SHIPMENT-{shipment.shipment_number}"
+        )
+
+        # Call receive_stock with shipment_id for traceability
+        inventory = await inventory_service.receive_stock(
+            receive_data=inventory_receive_request,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            inbound_shipment_id=shipment_id  # Critical: Link transaction to shipment
+        )
+
+        # 6. Update line received_quantity
+        line.received_quantity += receive_data.quantity
+        await self.line_repo.update(line)
+
+        # 7. Update shipment status if needed
+        if shipment.status == InboundShipmentStatus.SCHEDULED:
+            shipment.status = InboundShipmentStatus.RECEIVING
+            await self.shipment_repo.update(shipment)
+
+        await self.db.commit()
+
+        # Return the updated shipment with fresh data
+        return await self.shipment_repo.get_by_id(shipment_id)

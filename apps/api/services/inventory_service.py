@@ -31,7 +31,8 @@ class InventoryService:
         self,
         receive_data: InventoryReceiveRequest,
         tenant_id: int,
-        user_id: int
+        user_id: int,
+        inbound_shipment_id: Optional[int] = None
     ) -> Inventory:
         """
         Receive new stock into the warehouse.
@@ -47,6 +48,7 @@ class InventoryService:
             receive_data: Stock receiving data
             tenant_id: ID of the tenant
             user_id: ID of the user performing the operation
+            inbound_shipment_id: Optional ID of the inbound shipment for traceability
 
         Returns:
             Created Inventory instance
@@ -137,6 +139,7 @@ class InventoryService:
             quantity=receive_data.quantity,
             reference_doc=receive_data.reference_doc,
             performed_by=user_id,
+            inbound_shipment_id=inbound_shipment_id,  # Critical: Link to shipment for traceability
             timestamp=now,
             billing_metadata={
                 "operation": "receive",

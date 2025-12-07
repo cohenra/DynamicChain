@@ -193,3 +193,13 @@ class BulkCloseResult(BaseModel):
     failed_count: int
     errors: List[str]
     closed_order_ids: List[int]
+
+
+class ReceiveShipmentItemRequest(BaseModel):
+    """Schema for receiving items from a shipment."""
+    inbound_line_id: int = Field(..., description="The line being received")
+    location_id: int = Field(..., description="Target location")
+    quantity: Decimal = Field(..., gt=0, description="Amount received")
+    lpn: Optional[str] = Field(None, max_length=255, description="Target LPN (auto-generated if not provided)")
+    batch_number: Optional[str] = Field(None, max_length=50, description="Batch number")
+    expiry_date: Optional[date] = Field(None, description="Expiry date")

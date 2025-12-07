@@ -21,6 +21,7 @@ import { productService } from '@/services/products';
 import { uomDefinitionService } from '@/services/uom-definitions';
 import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, ColumnDef, flexRender } from '@tanstack/react-table';
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
+import { ReceiveShipmentSheet } from './ReceiveShipmentSheet';
 
 interface InboundOrderRowDetailProps {
   order: InboundOrder;
@@ -74,6 +75,8 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   const [isCloseAlertOpen, setIsCloseAlertOpen] = useState(false);
   const [isForceCloseAlertOpen, setIsForceCloseAlertOpen] = useState(false);
   const [editingLine, setEditingLine] = useState<InboundLine | null>(null);
+  const [selectedShipment, setSelectedShipment] = useState<InboundShipment | null>(null);
+  const [isReceiveSheetOpen, setIsReceiveSheetOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -139,10 +142,10 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
       { accessorKey: 'driver_details', header: t('inbound.shipments.driver'), cell: ({row}) => row.original.driver_details || '-' },
       { accessorKey: 'arrival_date', header: t('inbound.shipments.arrived'), cell: ({row}) => formatDate(row.original.arrival_date) },
       { accessorKey: 'status', header: t('inbound.shipments.status'), cell: ({row}) => getShipmentStatusBadge(row.original.status) },
-      { 
-          id: 'actions', 
+      {
+          id: 'actions',
           header: () => isOrderEditable && <Button onClick={() => setIsShipmentSheetOpen(true)} variant="ghost" size="sm" className="h-6 px-2 text-primary hover:bg-primary/10 whitespace-nowrap"><Plus className="h-3.5 w-3.5 mr-1" /> {t('inbound.shipments.addShipment')}</Button>,
-          cell: ({row}) => row.original.status !== 'CLOSED' && <Button size="sm" variant={row.original.status === 'RECEIVING' ? "default" : "outline"} className="h-7 text-xs gap-1" onClick={() => toast.info('Receiving...')}><ArrowLeftRight className="h-3 w-3" /> {t('inbound.shipments.receive')}</Button>
+          cell: ({row}) => row.original.status !== 'CLOSED' && <Button size="sm" variant={row.original.status === 'RECEIVING' ? "default" : "outline"} className="h-7 text-xs gap-1" onClick={() => { setSelectedShipment(row.original); setIsReceiveSheetOpen(true); }}><ArrowLeftRight className="h-3 w-3" /> {t('inbound.shipments.receive')}</Button>
       }
   ], [t, isOrderEditable]);
 
@@ -320,6 +323,16 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
+
+      <ReceiveShipmentSheet
+        shipment={selectedShipment}
+        order={order}
+        open={isReceiveSheetOpen}
+        onClose={() => {
+          setIsReceiveSheetOpen(false);
+          setSelectedShipment(null);
+        }}
+      />
     </div>
   );
 }
