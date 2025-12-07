@@ -101,29 +101,34 @@ export default function InboundOrders() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
       setRowSelection({});
+      
       if (result.failed_count > 0) {
-        toast.warning(`${result.success_count} ${t('inbound.bulk.closed')}, ${result.failed_count} ${t('inbound.bulk.failed')}`);
+        toast.warning(`${result.success_count} נסגרו בהצלחה, ${result.failed_count} נכשלו`);
+        // הצגת שגיאות מפורטות בקונסול למפתח
+        console.error("Bulk close errors:", result.errors);
       } else {
-        toast.success(`${result.success_count} ${t('inbound.bulk.closedSuccess', 'הזמנות נסגרו בהצלחה')}`);
+        toast.success(`${result.success_count} הזמנות נסגרו בהצלחה`);
       }
     },
-    onError: () => {
+    onError: (err) => {
+      console.error(err);
       toast.error(t('inbound.bulk.error', 'שגיאה בסגירה המונית'));
     }
   });
 
+  // --- התיקון המרכזי: שימוש ב-IDs ישירים ---
   const handleBulkClose = () => {
-    const selectedIds = Object.keys(rowSelection)
-      .filter(key => rowSelection[key])
-      .map(key => orders?.[parseInt(key)]?.id)
-      .filter((id): id is number => id !== undefined);
+    // בגלל השימוש ב-getRowId למטה, המפתחות ב-rowSelection הם ה-IDs עצמם
+    const selectedIds = Object.keys(rowSelection).map(Number);
 
     if (selectedIds.length === 0) {
       toast.error(t('inbound.bulk.noSelection', 'נא לבחור הזמנות'));
       return;
     }
 
-    bulkCloseMutation.mutate(selectedIds);
+    if (confirm(`האם לסגור ${selectedIds.length} הזמנות שנבחרו?`)) {
+        bulkCloseMutation.mutate(selectedIds);
+    }
   };
 
   const columns = useMemo<ColumnDef<InboundOrder>[]>(() => [
@@ -263,6 +268,8 @@ export default function InboundOrders() {
   const table = useReactTable({
     data: orders || [],
     columns,
+    // --- תיקון חשוב: הגדרת מזהה שורה ייחודי ---
+    getRowId: (row) => row.id.toString(), 
     state: { expanded, sorting, globalFilter, pagination, columnVisibility, rowSelection },
     onExpandedChange: setExpanded,
     onSortingChange: setSorting,
@@ -279,18 +286,18 @@ export default function InboundOrders() {
     enableRowSelection: true,
   });
 
-  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length;
+  const selectedCount = Object.keys(rowSelection).length;
 
   return (
-    <div className="flex flex-col space-y-4">
-      <div>
+    <div className="flex flex-col h-[calc(100vh-6rem)]">
+      <div className="mb-4 shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">{t('inbound.title')}</h1>
         <p className="text-muted-foreground mt-2">{t('inbound.description')}</p>
       </div>
 
       {/* Bulk Actions Bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 shrink-0 mb-4">
           <span className="text-sm font-medium text-blue-900">
             {selectedCount} {t('inbound.bulk.selected', 'נבחרו')}
           </span>
@@ -315,7 +322,7 @@ export default function InboundOrders() {
         </div>
       )}
 
-      <div>
+      <div className="flex-1 min-h-0">
         <SmartTable
             table={table}
             columnsLength={columns.length}
@@ -323,6 +330,7 @@ export default function InboundOrders() {
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('inbound.noOrders')}
+            containerClassName="h-full"
             actions={
                 <Button onClick={() => setIsCreateOpen(true)}>
                     <Plus className="ml-2 h-4 w-4" />

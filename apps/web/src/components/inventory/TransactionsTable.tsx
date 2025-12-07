@@ -9,20 +9,15 @@ import {
   getFilteredRowModel,
   ColumnDef,
   SortingState,
-} from '@tantml:parameter>
-<parameter name="content">import { SmartTable } from '@/components/ui/data-table/SmartTable';
+} from '@tanstack/react-table';
+import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
 import { inventoryService, InventoryTransaction } from '@/services/inventory';
-import { Button } from '@/components/ui/button';
-import { Edit } from 'lucide-react';
-import { CorrectionSheet } from './CorrectionSheet';
 
 export function TransactionsTable() {
   const { t } = useTranslation();
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<InventoryTransaction | null>(null);
-  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
 
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } =
     useTableSettings({ tableName: 'inventory_transactions_table' });
@@ -65,29 +60,8 @@ export function TransactionsTable() {
     }
   };
 
-  const handleCorrect = (transaction: InventoryTransaction) => {
-    setSelectedTransaction(transaction);
-    setIsCorrectionOpen(true);
-  };
-
   const columns = useMemo<ColumnDef<InventoryTransaction>[]>(
     () => [
-      {
-        id: 'actions',
-        header: t('common.actions', 'פעולות'),
-        cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleCorrect(row.original)}
-            className="h-8 px-2"
-          >
-            <Edit className="h-4 w-4 ml-1" />
-            {t('inventory.correct', 'תקן')}
-          </Button>
-        ),
-        enableHiding: false,
-      },
       {
         accessorKey: 'id',
         header: 'ID',
@@ -101,15 +75,21 @@ export function TransactionsTable() {
       {
         accessorKey: 'transaction_type',
         header: t('inventory.type', 'סוג'),
-        cell: ({ row }) => (
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-semibold border ${getTransactionTypeBadgeColor(
-              row.original.transaction_type
-            )}`}
-          >
-            {row.original.transaction_type}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const typeKey = row.original.transaction_type;
+          // שימוש במפתח התרגום כדי להציג בעברית
+          const translatedType = t(`inventory.transactionTypes.${typeKey}`, typeKey);
+          
+          return (
+            <span
+              className={`px-2 py-1 rounded-full text-xs font-semibold border ${getTransactionTypeBadgeColor(
+                typeKey
+              )}`}
+            >
+              {translatedType}
+            </span>
+          );
+        },
       },
       {
         accessorKey: 'inventory_lpn',
@@ -172,21 +152,13 @@ export function TransactionsTable() {
   });
 
   return (
-    <>
-      <SmartTable
-        table={table}
-        columnsLength={columns.length}
-        isLoading={isLoading}
-        searchValue={globalFilter}
-        onSearchChange={setGlobalFilter}
-        noDataMessage={t('inventory.noTransactions', 'אין טרנזקציות להצגה')}
-      />
-
-      <CorrectionSheet
-        transaction={selectedTransaction}
-        open={isCorrectionOpen}
-        onOpenChange={setIsCorrectionOpen}
-      />
-    </>
+    <SmartTable
+      table={table}
+      columnsLength={columns.length}
+      isLoading={isLoading}
+      searchValue={globalFilter}
+      onSearchChange={setGlobalFilter}
+      noDataMessage={t('inventory.noTransactions', 'אין טרנזקציות להצגה')}
+    />
   );
 }

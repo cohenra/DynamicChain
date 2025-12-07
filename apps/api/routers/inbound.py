@@ -1,6 +1,8 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, Query
+# --- התיקון: הוספת HTTPException לרשימה ---
+from fastapi import APIRouter, Depends, status, Query, HTTPException 
 from sqlalchemy.ext.asyncio import AsyncSession
+# ... שאר האימפורטים נשארים אותו דבר
 
 from database import get_db
 from schemas.inbound import (
@@ -175,17 +177,7 @@ async def bulk_close_orders(
 ) -> BulkCloseResult:
     """
     Close multiple orders at once.
-
-    Iterates through provided order IDs and attempts to close each one.
-    Collects successes and failures.
-
-    Args:
-        bulk_data: Request containing list of order IDs to close
-        current_user: Authenticated user
-        db: Database session
-
-    Returns:
-        BulkCloseResult: Summary of successes, failures, and errors
+    Automatically forces closure (Cancellation) for empty/draft orders.
     """
     service = InboundService(db)
     success_count = 0
@@ -195,6 +187,7 @@ async def bulk_close_orders(
 
     for order_id in bulk_data.order_ids:
         try:
+            # שלב 1: נסה לסגור רגיל
             await service.close_order(
                 order_id=order_id,
                 tenant_id=current_user.tenant_id,
@@ -202,10 +195,26 @@ async def bulk_close_orders(
             )
             success_count += 1
             closed_order_ids.append(order_id)
+        except HTTPException as e:
+            # שלב 2: אם נכשל כי אין פריטים (400) - נסה לסגור בכוח (ביטול)
+            if e.status_code == 400 and "Use force=True" in str(e.detail):
+                try:
+                    await service.close_order(
+                        order_id=order_id,
+                        tenant_id=current_user.tenant_id,
+                        force=True # Force close empty orders in bulk
+                    )
+                    success_count += 1
+                    closed_order_ids.append(order_id)
+                except Exception as inner_e:
+                    failed_count += 1
+                    errors.append(f"Order {order_id} (Force): {str(inner_e)}")
+            else:
+                failed_count += 1
+                errors.append(f"Order {order_id}: {str(e.detail)}")
         except Exception as e:
             failed_count += 1
-            error_msg = f"Order {order_id}: {str(e)}"
-            errors.append(error_msg)
+            errors.append(f"Order {order_id}: {str(e)}")
 
     return BulkCloseResult(
         success_count=success_count,

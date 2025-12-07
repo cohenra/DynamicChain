@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
+from fastapi import HTTPException, status  # <--- התיקון: הוספת status
 
 from models.inbound_order import InboundOrder, InboundOrderStatus
 from models.inbound_shipment import InboundShipment, InboundShipmentStatus
@@ -142,22 +142,6 @@ class InboundService:
     async def close_order(self, order_id: int, tenant_id: int, force: bool = False) -> InboundOrder:
         """
         Close an order with business validation.
-
-        Args:
-            order_id: ID of the order to close
-            tenant_id: ID of the tenant
-            force: If True, allow closing even if nothing was received
-
-        Returns:
-            Updated InboundOrder
-
-        Raises:
-            HTTPException: If order has no items received and force=False
-
-        Business Logic:
-            - Fully received (all items): Set status to COMPLETED
-            - Partially received (some items): Set status to SHORT_CLOSED with warning in notes
-            - Nothing received: Require force flag, otherwise raise error
         """
         order = await self.get_order(order_id, tenant_id)
 
@@ -189,7 +173,7 @@ class InboundService:
         if fully_received_count == total_lines:
             # All items fully received
             order.status = InboundOrderStatus.COMPLETED
-        elif received_quantity_total := sum(line.received_quantity for line in order.lines) > 0:
+        elif sum(line.received_quantity for line in order.lines) > 0:
             # Some items received (partial or complete on some lines)
             order.status = InboundOrderStatus.SHORT_CLOSED
 

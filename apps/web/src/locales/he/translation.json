@@ -31,7 +31,8 @@
     "lastPage": "עמוד אחרון",
     "nextPage": "עמוד הבא",
     "prevPage": "עמוד קודם",
-    "selected": "נבחרו {{count}} רשומות"
+    "selected": "נבחרו {{count}} רשומות",
+    "clearSelection": "נקה בחירה"
   },
   "auth": {
     "login": "התחברות למערכת",
@@ -54,21 +55,60 @@
     "locations": "מיקומים",
     "invoices": "חשבוניות"
   },
-  "dashboard": {
-    "title": "דשבורד",
-    "welcome": "ברוכים הבאים ל-LogiSnap",
-    "welcomeDescription": "מערכת ניהול מחסנים מתקדמת",
-    "phase1Complete": "שלב 1 הושלם בהצלחה - מערכת האימות והתשתית הבסיסית מוכנות לשימוש",
-    "systemStatus": "סטטוס מערכת",
-    "generalInfo": "מידע כללי",
-    "version": "גרסה:",
-    "status": "סטטוס:",
-    "active": "פעיל",
-    "nextSteps": "שלבים הבאים",
-    "whatNext": "מה בהמשך?",
-    "phase2": "• שלב 2: WMS Core",
-    "phase3": "• שלב 3: מנוע חיוב",
-    "phase4": "• שלב 4: שיפורים"
+  "inventory": {
+    "title": "ניהול מלאי",
+    "subtitle": "תמונת מצב מלאי נוכחית (LPNs)",
+    "lpn": "מספר לוחית (LPN)",
+    "quantity": "כמות",
+    "status": "סטטוס",
+    "batch": "אצווה",
+    "expiry": "תוקף",
+    "receiveStock": "קליטת מלאי",
+    "noInventory": "אין מלאי במערכת",
+    "timestamp": "תאריך ושעה",
+    "type": "סוג פעולה",
+    "from": "ממיקום",
+    "to": "למיקום",
+    "performedBy": "בוצע ע״י",
+    "reference": "אסמכתא",
+    "correct": "תקן",
+    "noTransactions": "אין תנועות להצגה",
+    "tabs": {
+        "inventory": "מלאי נוכחי",
+        "transactions": "היסטוריית תנועות"
+    },
+    "statuses": {
+      "AVAILABLE": "זמין",
+      "RESERVED": "שמור",
+      "QUARANTINE": "הסגר",
+      "DAMAGED": "פגום",
+      "MISSING": "חסר"
+    },
+    "transactionTypes": {
+        "INBOUND_RECEIVE": "קליטה מספק",
+        "PUTAWAY": "פיזור למדף",
+        "MOVE": "העברה",
+        "PICK": "ליקוט",
+        "SHIP": "משלוח",
+        "ADJUSTMENT": "התאמת מלאי",
+        "CORRECTION": "תיקון טעות",
+        "STATUS_CHANGE": "שינוי סטטוס",
+        "PALLET_SPLIT": "פיצול משטח",
+        "PALLET_MERGE": "איחוד משטח"
+    },
+    "correction": {
+        "title": "תיקון טרנזקציה",
+        "description": "יצירת שורת קיזוז לתיקון טעות",
+        "original": "פרטים מקוריים",
+        "newQuantity": "כמות נכונה",
+        "quantityPlaceholder": "הזן את הכמות שהייתה צריכה להיות",
+        "delta": "הפרש לקיזוז",
+        "reason": "סיבת התיקון",
+        "reasonPlaceholder": "לדוגמה: טעות בהקלדה, ספירה חוזרת...",
+        "submit": "בצע תיקון",
+        "warning": "שים לב",
+        "warningText": "פעולה זו לא תמחק את השורה המקורית אלא תיצור שורה חדשה ביומן עם ההפרש."
+    }
   },
   "inbound": {
     "title": "הזמנות קבלה",
@@ -79,17 +119,29 @@
     "status": "סטטוס",
     "supplier": "ספק",
     "expectedDate": "צפי הגעה",
+    "totalItems": "סה״כ פריטים",
+    "progress": "התקדמות",
     "noOrders": "לא נמצאו הזמנות",
     "createSuccess": "ההזמנה נוצרה בהצלחה",
     "createError": "שגיאה ביצירת ההזמנה",
     "closeOrder": "סגור הזמנה",
     "closeOrderConfirm": "האם אתה בטוח שברצונך לסגור את ההזמנה? לא ניתן יהיה לבצע שינויים נוספים.",
     "closeSuccess": "הזמנה נסגרה בהצלחה",
-    "details": {
-        "title": "פרטי הזמנה",
-        "overview": {
-            "summary": "סטטוס"
-        }
+    "closeError": "שגיאה בסגירת ההזמנה",
+    "bulk": {
+        "selected": "נבחרו",
+        "close": "סגור נבחרים",
+        "closed": "נסגרו בהצלחה",
+        "failed": "נכשלו",
+        "closedSuccess": "הזמנות נסגרו בהצלחה",
+        "error": "שגיאה בביצוע הפעולה",
+        "noSelection": "לא נבחרו הזמנות"
+    },
+    "forceClose": {
+        "title": "אזהרה: סגירה ללא קבלה",
+        "message": "לא התקבלו פריטים בהזמנה זו. האם ברצונך לסגור אותה?",
+        "warning": "פעולה זו תבטל את ההזמנה (סטטוס CANCELLED).",
+        "confirm": "כן, סגור ובטל"
     },
     "orderTypes": {
         "PO": "רכש (PO)",
@@ -101,10 +153,11 @@
         "orderNumberRequired": "חובה להזין מספר הזמנה",
         "supplierName": "שם ספק",
         "supplierNameRequired": "חובה להזין שם ספק",
-        "expectedDate": "תאריך צפוי"
+        "expectedDate": "תאריך צפוי",
+        "notes": "הערות"
     },
     "lines": {
-        "title": "שורות הזמנה (פריטים)",
+        "title": "שורות הזמנה",
         "addLine": "הוסף פריט",
         "editLine": "ערוך שורה",
         "product": "מוצר",
@@ -123,14 +176,14 @@
         "updateSuccess": "שורה עודכנה בהצלחה"
     },
     "shipments": {
-        "title": "משלוחים (מכולות/משאיות)",
+        "title": "משלוחים",
         "addShipment": "הוסף משלוח",
         "shipmentNumber": "מספר משלוח",
         "container": "מכולה/רכב",
         "driver": "נהג",
         "status": "סטטוס",
         "arrived": "תאריך הגעה",
-        "receive": "קליטה למלאי",
+        "receive": "קליטה",
         "noShipments": "טרם נוצרו משלוחים",
         "createSuccess": "משלוח נוצר בהצלחה"
     }

@@ -15,7 +15,6 @@ export default function Layout() {
     navigate('/login');
   };
 
-  // שימוש ב-t() לכל הפריטים בתפריט
   const menuItems = [
     { icon: LayoutDashboard, label: t('layout.dashboard'), path: '/' },
     { icon: Boxes, label: t('layout.inventory'), path: '/inventory' },
@@ -28,9 +27,9 @@ export default function Layout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header dir="ltr" className="bg-white border-b border-gray-200 h-16 flex items-center px-6">
+      <header dir="ltr" className="bg-white border-b border-gray-200 h-16 flex items-center px-6 shrink-0 sticky top-0 z-50">
         <div className="flex items-center justify-between w-full">
           <h1 className="text-xl font-bold text-primary">{t('layout.appName')}</h1>
           <div className="flex items-center gap-4">
@@ -43,9 +42,9 @@ export default function Layout() {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar - positioned on the right for RTL */}
-        <aside className="w-64 bg-white border-l border-gray-200 p-4">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-l border-gray-200 p-4 hidden md:block overflow-y-auto">
           <nav className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -63,8 +62,8 @@ export default function Layout() {
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6">
+        {/* Main Content - Fix: Limit width to prevent page horizontal scroll */}
+        <main className="flex-1 p-6 overflow-x-hidden overflow-y-auto w-full max-w-[100vw] md:max-w-[calc(100vw-16rem)]">
           <Outlet />
         </main>
       </div>
