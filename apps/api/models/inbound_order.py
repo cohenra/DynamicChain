@@ -16,6 +16,7 @@ class InboundOrderStatus(str, Enum):
     CONFIRMED = "CONFIRMED"
     PARTIALLY_RECEIVED = "PARTIALLY_RECEIVED"
     COMPLETED = "COMPLETED"
+    SHORT_CLOSED = "SHORT_CLOSED"  # Closed with incomplete items
     CANCELLED = "CANCELLED"
 
 

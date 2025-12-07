@@ -139,15 +139,93 @@ class InboundService:
         await self.db.commit()
         return line
 
-    # --- התיקון הקריטי: הפונקציה שחסרה ---
-    async def close_order(self, order_id: int, tenant_id: int) -> InboundOrder:
-        """Close an order manually."""
+    async def close_order(self, order_id: int, tenant_id: int, force: bool = False) -> InboundOrder:
+        """
+        Close an order with business validation.
+
+        Args:
+            order_id: ID of the order to close
+            tenant_id: ID of the tenant
+            force: If True, allow closing even if nothing was received
+
+        Returns:
+            Updated InboundOrder
+
+        Raises:
+            HTTPException: If order has no items received and force=False
+
+        Business Logic:
+            - Fully received (all items): Set status to COMPLETED
+            - Partially received (some items): Set status to SHORT_CLOSED with warning in notes
+            - Nothing received: Require force flag, otherwise raise error
+        """
         order = await self.get_order(order_id, tenant_id)
-        order.status = InboundOrderStatus.COMPLETED
+
+        # Validate that order has lines
+        if not order.lines or len(order.lines) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot close order: Order has no line items"
+            )
+
+        # Check reception status of all lines
+        fully_received_count = 0
+        partially_received_count = 0
+        not_received_count = 0
+        total_lines = len(order.lines)
+
+        for line in order.lines:
+            expected = line.expected_quantity
+            received = line.received_quantity
+
+            if received >= expected:
+                fully_received_count += 1
+            elif received > 0:
+                partially_received_count += 1
+            else:
+                not_received_count += 1
+
+        # Determine final status based on reception
+        if fully_received_count == total_lines:
+            # All items fully received
+            order.status = InboundOrderStatus.COMPLETED
+        elif received_quantity_total := sum(line.received_quantity for line in order.lines) > 0:
+            # Some items received (partial or complete on some lines)
+            order.status = InboundOrderStatus.SHORT_CLOSED
+
+            # Log warning in notes
+            warning_msg = (
+                f"SHORT CLOSED: {fully_received_count}/{total_lines} lines fully received, "
+                f"{partially_received_count} partially received, "
+                f"{not_received_count} not received. "
+                f"Closed on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC."
+            )
+
+            if order.notes:
+                order.notes = f"{order.notes}\n\n{warning_msg}"
+            else:
+                order.notes = warning_msg
+        else:
+            # Nothing received at all
+            if not force:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Cannot close order: No items have been received. "
+                        "Use force=True parameter to close anyway."
+                    )
+                )
+            # Force close with nothing received
+            order.status = InboundOrderStatus.CANCELLED
+            warning_msg = f"FORCE CLOSED: No items received. Closed on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC."
+            if order.notes:
+                order.notes = f"{order.notes}\n\n{warning_msg}"
+            else:
+                order.notes = warning_msg
+
         await self.order_repo.update(order)
         await self.db.commit()
         return order
-    # ---------------------------------------
 
     async def create_shipment(
         self,
