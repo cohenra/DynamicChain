@@ -45,7 +45,7 @@ export default function Layout() {
 
       <div className="flex">
         {/* Sidebar - positioned on the right for RTL */}
-        <aside className="w-64 bg-white border-l border-gray-200 min-h-[calc(100vh-4rem)] p-4">
+        <aside className="w-64 bg-white border-l border-gray-200 p-4">
           <nav className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;

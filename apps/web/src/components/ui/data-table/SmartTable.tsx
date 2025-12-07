@@ -58,7 +58,7 @@ export function SmartTable<TData>({
   }, []);
 
   return (
-    <div className="flex flex-col h-full space-y-4" ref={tableContainerRef}>
+    <div className="flex flex-col space-y-4" ref={tableContainerRef}>
       <DataTableToolbar
         table={table}
         searchKey={searchKey}
@@ -68,10 +68,10 @@ export function SmartTable<TData>({
         actions={actions}
       />
 
-      <div className={cn("rounded-md border bg-white shadow-sm overflow-hidden flex-1 flex flex-col", containerClassName)}>
-        <div className="flex-1 overflow-auto relative">
+      <div className={cn("rounded-md border bg-white shadow-sm overflow-x-auto", containerClassName)}>
+        <div className="relative">
             <Table className="w-full">
-            <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
+            <TableHeader className="bg-white">
                 {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
                     {headerGroup.headers.map((header) => (

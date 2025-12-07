@@ -223,13 +223,13 @@ export default function InboundOrders() {
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]"> {/* קיבוע גובה המסך למניעת גלילה חיצונית */}
-      <div className="mb-4 shrink-0">
+    <div className="flex flex-col space-y-4">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('inbound.title')}</h1>
         <p className="text-muted-foreground mt-2">{t('inbound.description')}</p>
       </div>
 
-      <div className="flex-1 min-h-0"> {/* ניצול שטח נותר לטבלה */}
+      <div>
         <SmartTable
             table={table}
             columnsLength={columns.length}
@@ -237,7 +237,6 @@ export default function InboundOrders() {
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('inbound.noOrders')}
-            containerClassName="h-full" // העברת הגובה למיכל הטבלה
             actions={
                 <Button onClick={() => setIsCreateOpen(true)}>
                     <Plus className="ml-2 h-4 w-4" />
