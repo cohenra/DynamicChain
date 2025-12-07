@@ -99,6 +99,17 @@ export interface UpdateShipmentStatusRequest {
   status: InboundShipmentStatus;
 }
 
+export interface BulkCloseRequest {
+  order_ids: number[];
+}
+
+export interface BulkCloseResult {
+  success_count: number;
+  failed_count: number;
+  errors: string[];
+  closed_order_ids: number[];
+}
+
 export const inboundService = {
   async getOrders(params?: {
     skip?: number;
@@ -153,6 +164,11 @@ export const inboundService = {
       `/api/inbound/shipments/${shipmentId}/status`,
       data
     );
+    return response.data;
+  },
+
+  async bulkCloseOrders(data: BulkCloseRequest): Promise<BulkCloseResult> {
+    const response = await api.post<BulkCloseResult>('/api/inbound/orders/bulk-close', data);
     return response.data;
   },
 };

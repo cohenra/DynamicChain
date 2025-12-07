@@ -11,7 +11,9 @@ from schemas.inbound import (
     InboundOrderCreateRequest,
     InboundLineCreate,
     InboundLineUpdate,
-    InboundLineResponse
+    InboundLineResponse,
+    BulkCloseRequest,
+    BulkCloseResult
 )
 from services.inbound_service import InboundService
 from auth.dependencies import get_current_user
@@ -163,3 +165,51 @@ async def update_shipment_status(
         tenant_id=current_user.tenant_id
     )
     return InboundShipmentResponse.model_validate(shipment)
+
+
+@router.post("/orders/bulk-close", response_model=BulkCloseResult)
+async def bulk_close_orders(
+    bulk_data: BulkCloseRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> BulkCloseResult:
+    """
+    Close multiple orders at once.
+
+    Iterates through provided order IDs and attempts to close each one.
+    Collects successes and failures.
+
+    Args:
+        bulk_data: Request containing list of order IDs to close
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        BulkCloseResult: Summary of successes, failures, and errors
+    """
+    service = InboundService(db)
+    success_count = 0
+    failed_count = 0
+    errors = []
+    closed_order_ids = []
+
+    for order_id in bulk_data.order_ids:
+        try:
+            await service.close_order(
+                order_id=order_id,
+                tenant_id=current_user.tenant_id,
+                force=False
+            )
+            success_count += 1
+            closed_order_ids.append(order_id)
+        except Exception as e:
+            failed_count += 1
+            error_msg = f"Order {order_id}: {str(e)}"
+            errors.append(error_msg)
+
+    return BulkCloseResult(
+        success_count=success_count,
+        failed_count=failed_count,
+        errors=errors,
+        closed_order_ids=closed_order_ids
+    )

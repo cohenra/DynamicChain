@@ -180,3 +180,16 @@ class InboundOrderListResponse(BaseModel):
 class ShipmentStatusUpdate(BaseModel):
     """Schema for updating shipment status."""
     status: InboundShipmentStatus
+
+
+class BulkCloseRequest(BaseModel):
+    """Schema for bulk closing orders."""
+    order_ids: List[int] = Field(..., min_items=1, description="List of order IDs to close")
+
+
+class BulkCloseResult(BaseModel):
+    """Schema for bulk close results."""
+    success_count: int
+    failed_count: int
+    errors: List[str]
+    closed_order_ids: List[int]

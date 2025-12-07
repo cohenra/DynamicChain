@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inboundService, InboundOrder, InboundOrderCreateRequest } from '@/services/inboundService';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,8 +13,9 @@ import {
   ColumnDef,
   ExpandedState,
   SortingState,
+  RowSelectionState,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
@@ -68,6 +70,7 @@ export default function InboundOrders() {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const { t } = useTranslation();
@@ -93,7 +96,57 @@ export default function InboundOrders() {
     }
   });
 
+  const bulkCloseMutation = useMutation({
+    mutationFn: (orderIds: number[]) => inboundService.bulkCloseOrders({ order_ids: orderIds }),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
+      setRowSelection({});
+      if (result.failed_count > 0) {
+        toast.warning(`${result.success_count} ${t('inbound.bulk.closed')}, ${result.failed_count} ${t('inbound.bulk.failed')}`);
+      } else {
+        toast.success(`${result.success_count} ${t('inbound.bulk.closedSuccess', 'הזמנות נסגרו בהצלחה')}`);
+      }
+    },
+    onError: () => {
+      toast.error(t('inbound.bulk.error', 'שגיאה בסגירה המונית'));
+    }
+  });
+
+  const handleBulkClose = () => {
+    const selectedIds = Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(key => orders?.[parseInt(key)]?.id)
+      .filter((id): id is number => id !== undefined);
+
+    if (selectedIds.length === 0) {
+      toast.error(t('inbound.bulk.noSelection', 'נא לבחור הזמנות'));
+      return;
+    }
+
+    bulkCloseMutation.mutate(selectedIds);
+  };
+
   const columns = useMemo<ColumnDef<InboundOrder>[]>(() => [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label={t('common.selectAll', 'בחר הכל')}
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label={t('common.select', 'בחר')}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableHiding: false,
+      size: 40,
+    },
     {
       id: 'expander',
       header: () => null,
@@ -210,19 +263,23 @@ export default function InboundOrders() {
   const table = useReactTable({
     data: orders || [],
     columns,
-    state: { expanded, sorting, globalFilter, pagination, columnVisibility },
+    state: { expanded, sorting, globalFilter, pagination, columnVisibility, rowSelection },
     onExpandedChange: setExpanded,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange,
     onColumnVisibilityChange,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getRowCanExpand: () => true,
+    enableRowSelection: true,
   });
+
+  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length;
 
   return (
     <div className="flex flex-col space-y-4">
@@ -230,6 +287,33 @@ export default function InboundOrders() {
         <h1 className="text-3xl font-bold tracking-tight">{t('inbound.title')}</h1>
         <p className="text-muted-foreground mt-2">{t('inbound.description')}</p>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <span className="text-sm font-medium text-blue-900">
+            {selectedCount} {t('inbound.bulk.selected', 'נבחרו')}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRowSelection({})}
+            >
+              {t('common.clearSelection', 'נקה בחירה')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleBulkClose}
+              disabled={bulkCloseMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <CheckCircle2 className="ml-2 h-4 w-4" />
+              {t('inbound.bulk.close', 'סגור נבחרים')} ({selectedCount})
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div>
         <SmartTable
