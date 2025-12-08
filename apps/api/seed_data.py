@@ -51,20 +51,38 @@ async def seed_data():
         else:
             print("✅ Admin user exists.")
 
-        # 3. יצירת מחסן
-        print("🏭 Creating Warehouse...")
-        warehouse = (await session.execute(select(Warehouse).where(Warehouse.code == "WH-MAIN"))).scalar_one_or_none()
-        if not warehouse:
-            warehouse = Warehouse(
+        # 3. יצירת מחסנים
+        print("🏭 Creating Warehouses...")
+
+        # Warehouse 1 - Main
+        warehouse_main = (await session.execute(select(Warehouse).where(Warehouse.code == "WH-MAIN"))).scalar_one_or_none()
+        if not warehouse_main:
+            warehouse_main = Warehouse(
                 tenant_id=TENANT_ID,
                 name="מרכז לוגיסטי ראשי",
                 code="WH-MAIN",
                 address="רחוב התעשייה 10, חולון"
             )
-            session.add(warehouse)
+            session.add(warehouse_main)
             await session.flush()
 
-        # 4. יצירת אזורים
+        # Warehouse 2 - Tel Aviv
+        warehouse_tlv = (await session.execute(select(Warehouse).where(Warehouse.code == "WH-TLV"))).scalar_one_or_none()
+        if not warehouse_tlv:
+            warehouse_tlv = Warehouse(
+                tenant_id=TENANT_ID,
+                name="מחסן תל אביב",
+                code="WH-TLV",
+                address="דרך בגין 132, תל אביב"
+            )
+            session.add(warehouse_tlv)
+            await session.flush()
+
+        # Use main warehouse as default
+        warehouse = warehouse_main
+        created_warehouses = {"WH-MAIN": warehouse_main, "WH-TLV": warehouse_tlv}
+
+        # 4. יצירת אזורים (לשני המחסנים)
         print("🚧 Creating Zones...")
         zones_data = [
             {"name": "אזור יבש", "code": "DRY"},
@@ -72,18 +90,36 @@ async def seed_data():
             {"name": "אזור קבלה", "code": "STAGING"}
         ]
         created_zones = {}
+
+        # Create zones for WH-MAIN
         for z_data in zones_data:
-            zone = (await session.execute(select(Zone).where(Zone.code == z_data["code"]))).scalar_one_or_none()
+            code_with_wh = f"{z_data['code']}-MAIN"
+            zone = (await session.execute(select(Zone).where(Zone.code == code_with_wh))).scalar_one_or_none()
             if not zone:
                 zone = Zone(
                     tenant_id=TENANT_ID,
-                    warehouse_id=warehouse.id,
-                    name=z_data["name"],
-                    code=z_data["code"]
+                    warehouse_id=warehouse_main.id,
+                    name=f"{z_data['name']} - מחסן ראשי",
+                    code=code_with_wh
                 )
                 session.add(zone)
                 await session.flush()
-            created_zones[z_data["code"]] = zone
+            created_zones[code_with_wh] = zone
+
+        # Create zones for WH-TLV
+        for z_data in zones_data:
+            code_with_wh = f"{z_data['code']}-TLV"
+            zone = (await session.execute(select(Zone).where(Zone.code == code_with_wh))).scalar_one_or_none()
+            if not zone:
+                zone = Zone(
+                    tenant_id=TENANT_ID,
+                    warehouse_id=warehouse_tlv.id,
+                    name=f"{z_data['name']} - תל אביב",
+                    code=code_with_wh
+                )
+                session.add(zone)
+                await session.flush()
+            created_zones[code_with_wh] = zone
 
         # 5. הגדרות מיקום
         loc_type = (await session.execute(select(LocationTypeDefinition).limit(1))).scalar_one_or_none()
@@ -98,20 +134,22 @@ async def seed_data():
             session.add(loc_usage)
             await session.flush()
 
-        # 6. יצירת מיקומים
+        # 6. יצירת מיקומים (לשני המחסנים)
         print("📍 Generating Locations...")
-        locations_count = 0
-        dry_zone = created_zones["DRY"]
-        existing_loc = (await session.execute(select(Location).where(Location.zone_id == dry_zone.id))).first()
+
+        # Locations for WH-MAIN (DRY zone)
+        dry_zone_main = created_zones["DRY-MAIN"]
+        existing_loc = (await session.execute(select(Location).where(Location.zone_id == dry_zone_main.id))).first()
         if not existing_loc:
+            locations_count = 0
             for aisle in ['A', 'B', 'C']:
                 for bay in range(1, 6):
                     for level in range(1, 4):
-                        name = f"{aisle}-{str(bay).zfill(2)}-{str(level).zfill(2)}-01"
+                        name = f"MAIN-{aisle}-{str(bay).zfill(2)}-{str(level).zfill(2)}-01"
                         loc = Location(
                             tenant_id=TENANT_ID,
-                            warehouse_id=warehouse.id,
-                            zone_id=dry_zone.id,
+                            warehouse_id=warehouse_main.id,
+                            zone_id=dry_zone_main.id,
                             name=name,
                             aisle=aisle,
                             bay=str(bay).zfill(2),
@@ -123,7 +161,33 @@ async def seed_data():
                         )
                         session.add(loc)
                         locations_count += 1
-            print(f"   Created {locations_count} locations in DRY zone.")
+            print(f"   Created {locations_count} locations in WH-MAIN DRY zone.")
+
+        # Locations for WH-TLV (DRY zone)
+        dry_zone_tlv = created_zones["DRY-TLV"]
+        existing_loc_tlv = (await session.execute(select(Location).where(Location.zone_id == dry_zone_tlv.id))).first()
+        if not existing_loc_tlv:
+            locations_count = 0
+            for aisle in ['D', 'E']:
+                for bay in range(1, 4):
+                    for level in range(1, 3):
+                        name = f"TLV-{aisle}-{str(bay).zfill(2)}-{str(level).zfill(2)}-01"
+                        loc = Location(
+                            tenant_id=TENANT_ID,
+                            warehouse_id=warehouse_tlv.id,
+                            zone_id=dry_zone_tlv.id,
+                            name=name,
+                            aisle=aisle,
+                            bay=str(bay).zfill(2),
+                            level=str(level).zfill(2),
+                            slot="01",
+                            type_id=loc_type.id,
+                            usage_id=loc_usage.id,
+                            pick_sequence=locations_count * 10
+                        )
+                        session.add(loc)
+                        locations_count += 1
+            print(f"   Created {locations_count} locations in WH-TLV DRY zone.")
 
         # 7. יצירת מאחסנים
         print("👥 Creating Depositors...")
@@ -304,7 +368,12 @@ async def seed_data():
                     "partial_policy": "ALLOW_PARTIAL",
                     "pallet_logic": "PRIORITIZE_LOOSE",
                     "batch_matching": False,
-                    "expiry_days_threshold": 30
+                    "expiry_days_threshold": 30,
+                    "warehouse_logic": {
+                        "mode": "PRIORITY",
+                        "priority_warehouses": [warehouse_main.id, warehouse_tlv.id],
+                        "max_splits": 2
+                    }
                 }
             },
             {
@@ -320,7 +389,12 @@ async def seed_data():
                     "partial_policy": "FILL_OR_KILL",
                     "pallet_logic": "PRIORITIZE_FULL_PALLET",
                     "batch_matching": True,
-                    "expiry_days_threshold": 60
+                    "expiry_days_threshold": 60,
+                    "warehouse_logic": {
+                        "mode": "OPTIMAL",
+                        "priority_warehouses": [warehouse_main.id, warehouse_tlv.id],
+                        "max_splits": 1
+                    }
                 }
             }
         ]

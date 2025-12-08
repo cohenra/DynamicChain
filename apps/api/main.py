@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from routers import auth_router, products_router, depositors_router, warehouses_router, product_uoms_router, uom_definitions_router, zones_router, locations_router, location_type_definitions_router, location_usage_definitions_router, user_table_settings_router, inventory_router, inbound_router
+from routers import auth_router, products_router, depositors_router, warehouses_router, product_uoms_router, uom_definitions_router, zones_router, locations_router, location_type_definitions_router, location_usage_definitions_router, user_table_settings_router, inventory_router, inbound_router, outbound_router
 
 
 # Create FastAPI app
@@ -36,6 +36,7 @@ app.include_router(zones_router)
 app.include_router(locations_router)
 app.include_router(inventory_router)
 app.include_router(inbound_router)
+app.include_router(outbound_router)
 
 
 @app.get("/api/health")
