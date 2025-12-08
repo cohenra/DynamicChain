@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2, Boxes, TruckIcon } from 'lucide-react';
+import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2, Boxes, TruckIcon, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -19,6 +19,7 @@ export default function Layout() {
     { icon: LayoutDashboard, label: t('layout.dashboard'), path: '/' },
     { icon: Boxes, label: t('layout.inventory'), path: '/inventory' },
     { icon: TruckIcon, label: t('layout.inbound'), path: '/inbound' },
+    { icon: Send, label: t('layout.outbound'), path: '/outbound' },
     { icon: Package, label: t('layout.products'), path: '/products' },
     { icon: Users, label: t('layout.depositors'), path: '/depositors' },
     { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },

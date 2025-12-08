@@ -9,6 +9,7 @@ import Depositors from './pages/Depositors';
 import Warehouses from './pages/Warehouses';
 import InventoryPage from './pages/Inventory';
 import InboundOrders from './pages/Inbound/InboundOrders';
+import OutboundOrders from './pages/OutboundOrders';
 import { useAuthStore } from './store/authStore';
 
 
@@ -43,6 +44,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="inbound" element={<InboundOrders />} />
+            <Route path="outbound" element={<OutboundOrders />} />
             <Route path="products" element={<Products />} />
             <Route path="depositors" element={<Depositors />} />
             <Route path="warehouses" element={<Warehouses />} />

@@ -47,6 +47,8 @@
     "appName": "LogiSnap",
     "dashboard": "Dashboard",
     "inventory": "Inventory",
+    "inbound": "Inbound",
+    "outbound": "Outbound",
     "products": "Products",
     "depositors": "Depositors",
     "warehouses": "Warehouses",
