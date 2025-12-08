@@ -202,7 +202,12 @@ class AllocationService:
                 if total_allocated >= qty_needed:
                     break
 
-                qty_to_pick = min(inv_item.quantity, remaining)
+                # Calculate available quantity for this inventory item
+                available = inv_item.quantity - inv_item.allocated_quantity
+                qty_to_pick = min(available, remaining)
+
+                if qty_to_pick <= 0:
+                    continue
 
                 # Create pick task
                 task = PickTask(
@@ -216,8 +221,22 @@ class AllocationService:
                 )
                 self.db.add(task)
 
-                # Update inventory status
-                inv_item.status = InventoryStatus.RESERVED
+                # Update allocated_quantity (NO status change, NO splitting)
+                inv_item.allocated_quantity += qty_to_pick
+
+                # Create audit transaction for allocation
+                from models.inventory_transaction import InventoryTransaction
+                transaction = InventoryTransaction(
+                    inventory_id=inv_item.id,
+                    transaction_type="ALLOCATION",
+                    quantity_change=-qty_to_pick,  # Negative because we're reserving
+                    quantity_after=inv_item.quantity,  # Physical quantity unchanged
+                    location_id=inv_item.location_id,
+                    reference_type="OUTBOUND_ORDER",
+                    reference_id=order.id,
+                    notes=f"Allocated {qty_to_pick} for order {order.order_number}, line {line.id}"
+                )
+                self.db.add(transaction)
 
                 total_allocated += qty_to_pick
                 remaining = qty_needed - total_allocated
@@ -226,7 +245,15 @@ class AllocationService:
         # 3. Update line quantities
         line.qty_allocated = total_allocated
 
-        # 4. Handle partial allocation
+        # 4. Set line status based on allocation result
+        if total_allocated == 0:
+            line.line_status = "SHORT"  # No inventory found
+        elif total_allocated < qty_needed:
+            line.line_status = "PARTIAL"  # Some allocated but not all
+        else:
+            line.line_status = "ALLOCATED"  # Fully allocated
+
+        # 5. Handle partial allocation
         partial_policy = rules.get("partial_policy", "ALLOW_PARTIAL")
         if total_allocated < qty_needed:
             if partial_policy == "FILL_OR_KILL":
@@ -235,7 +262,7 @@ class AllocationService:
                     detail=f"Cannot fully allocate line {line.id} (needed: {qty_needed}, found: {total_allocated})"
                 )
             else:
-                print(f"⚠️ Partial allocation for line {line.id}: {total_allocated}/{qty_needed}")
+                print(f"⚠️ Partial allocation for line {line.id}: {total_allocated}/{qty_needed} (status: {line.line_status})")
 
         return tasks_created
 
@@ -259,25 +286,25 @@ class AllocationService:
         max_splits = warehouse_logic.get("max_splits", 2)
 
         if mode == "OPTIMAL":
-            # Find warehouse with most inventory for this product
+            # Find warehouse with most AVAILABLE inventory for this product
             from sqlalchemy import func
 
             stmt = (
                 select(
                     Location.warehouse_id,
-                    func.sum(Inventory.quantity).label('total_qty')
+                    func.sum(Inventory.quantity - Inventory.allocated_quantity).label('available_qty')
                 )
                 .join(Inventory, Inventory.location_id == Location.id)
                 .where(
                     and_(
                         Inventory.product_id == product_id,
                         Inventory.tenant_id == tenant_id,
-                        Inventory.status == InventoryStatus.AVAILABLE,
+                        Inventory.quantity > Inventory.allocated_quantity,  # Has available quantity
                         Location.warehouse_id.in_(priority_warehouses)
                     )
                 )
                 .group_by(Location.warehouse_id)
-                .order_by(func.sum(Inventory.quantity).desc())
+                .order_by(func.sum(Inventory.quantity - Inventory.allocated_quantity).desc())
                 .limit(max_splits)
             )
             result = await self.db.execute(stmt)
@@ -295,10 +322,11 @@ class AllocationService:
         qty_needed: Decimal
     ) -> List[Inventory]:
         """
-        Find available inventory for allocation.
+        Find available inventory for allocation with row-level locking.
         Applies sorting based on picking_policy (FEFO/LIFO/BEST_FIT).
+        Uses allocated_quantity to track reservations without status changes.
         """
-        # Build base query
+        # Build base query with FOR UPDATE lock for concurrency control
         stmt = (
             select(Inventory)
             .join(Location, Inventory.location_id == Location.id)
@@ -306,11 +334,12 @@ class AllocationService:
                 and_(
                     Inventory.product_id == product_id,
                     Inventory.tenant_id == tenant_id,
-                    Inventory.status == InventoryStatus.AVAILABLE,
                     Location.warehouse_id == warehouse_id,
-                    Inventory.quantity > 0
+                    # Only consider inventory with available quantity
+                    Inventory.quantity > Inventory.allocated_quantity
                 )
             )
+            .with_for_update()  # Row-level locking for concurrency
         )
 
         # Apply sorting based on policy

@@ -23,6 +23,8 @@ class Inventory(Base):
     __table_args__ = (
         UniqueConstraint('tenant_id', 'lpn', name='uq_tenant_lpn'),
         CheckConstraint('quantity >= 0', name='ck_inventory_quantity_positive'),
+        CheckConstraint('allocated_quantity >= 0', name='ck_inventory_allocated_quantity_nonnegative'),
+        CheckConstraint('allocated_quantity <= quantity', name='ck_inventory_allocated_not_exceed_quantity'),
         Index('ix_inventory_tenant_id', 'tenant_id'),
         Index('ix_inventory_depositor_id', 'depositor_id'),
         Index('ix_inventory_product_id', 'product_id'),
@@ -45,7 +47,8 @@ class Inventory(Base):
     
     lpn: Mapped[str] = mapped_column(String(255), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=6), nullable=False)
-    
+    allocated_quantity: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=6), nullable=False, default=Decimal('0'), server_default='0')
+
     # --- התיקון הקריטי: native_enum=False ---
     status: Mapped[InventoryStatus] = mapped_column(
         SQLEnum(InventoryStatus, native_enum=False, length=50),
@@ -71,5 +74,10 @@ class Inventory(Base):
         cascade="all, delete-orphan"
     )
 
+    @property
+    def available_quantity(self) -> Decimal:
+        """Calculate available quantity (quantity - allocated_quantity)."""
+        return self.quantity - self.allocated_quantity
+
     def __repr__(self) -> str:
-        return f"<Inventory(id={self.id}, lpn='{self.lpn}', product_id={self.product_id}, qty={self.quantity}, status='{self.status}')>"
+        return f"<Inventory(id={self.id}, lpn='{self.lpn}', product_id={self.product_id}, qty={self.quantity}, allocated={self.allocated_quantity}, available={self.available_quantity}, status='{self.status}')>"

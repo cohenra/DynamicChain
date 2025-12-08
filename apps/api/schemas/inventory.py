@@ -61,12 +61,16 @@ class InventoryResponse(BaseModel):
     location_id: int
     lpn: str
     quantity: Decimal
+    allocated_quantity: Decimal = Field(default=Decimal('0'), description="Quantity allocated to outbound orders")
     status: InventoryStatus
     batch_number: Optional[str]
     expiry_date: Optional[date]
     fifo_date: datetime
     created_at: datetime
     updated_at: datetime
+
+    # Computed fields
+    available_quantity: Optional[Decimal] = Field(None, description="Available quantity (quantity - allocated_quantity)")
 
     # Populated fields
     product_sku: Optional[str] = Field(None, description="Product SKU")

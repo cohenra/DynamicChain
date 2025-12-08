@@ -299,3 +299,57 @@ async def release_wave(
         tenant_id=current_user.tenant_id
     )
     return OutboundWaveResponse.model_validate(wave)
+
+
+# ============================================================================
+# Pick Tasks & Shortage Management
+# ============================================================================
+
+@router.post("/orders/{order_id}/accept-shortages", response_model=OutboundOrderResponse)
+async def accept_order_shortages(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> OutboundOrderResponse:
+    """
+    Accept shortages for an order and release it for picking.
+
+    This allows orders with PARTIAL or SHORT line statuses to proceed.
+    The remaining unallocated quantity stays as backorder (not cancelled).
+
+    Order must be in PLANNED or VERIFIED status.
+    """
+    service = OutboundService(db)
+    order = await service.accept_shortages(
+        order_id=order_id,
+        tenant_id=current_user.tenant_id
+    )
+    return OutboundOrderResponse.model_validate(order)
+
+
+@router.post("/tasks/{task_id}/complete")
+async def complete_pick_task(
+    task_id: int,
+    qty_picked: float = Query(..., gt=0, description="Quantity picked"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Complete a pick task and update inventory.
+
+    This endpoint:
+    - Validates the picked quantity
+    - Decreases both quantity and allocated_quantity from inventory
+    - Creates audit transaction
+    - Updates pick task status to COMPLETED
+    - Updates outbound line qty_picked
+
+    Returns inventory status after the pick.
+    """
+    service = OutboundService(db)
+    result = await service.complete_pick_task(
+        task_id=task_id,
+        qty_picked=qty_picked,
+        tenant_id=current_user.tenant_id
+    )
+    return result

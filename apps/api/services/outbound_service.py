@@ -309,3 +309,151 @@ class OutboundService:
         await self.db.commit()
 
         return await self.get_wave(wave_id, tenant_id)
+
+    # ============================================================
+    # Pick Task Management
+    # ============================================================
+
+    async def complete_pick_task(
+        self,
+        task_id: int,
+        qty_picked: float,
+        tenant_id: int
+    ) -> dict:
+        """
+        Complete a pick task and update inventory.
+        Decreases both quantity and allocated_quantity from inventory.
+        """
+        from models.pick_task import PickTask, PickTaskStatus
+        from models.inventory import Inventory
+        from models.inventory_transaction import InventoryTransaction
+        from sqlalchemy import select
+        from decimal import Decimal
+
+        # Get pick task
+        stmt = select(PickTask).where(PickTask.id == task_id)
+        result = await self.db.execute(stmt)
+        task = result.scalar_one_or_none()
+
+        if not task:
+            raise HTTPException(status_code=404, detail=f"Pick task {task_id} not found")
+
+        if task.status == PickTaskStatus.COMPLETED:
+            raise HTTPException(status_code=400, detail="Pick task already completed")
+
+        qty_picked_decimal = Decimal(str(qty_picked))
+
+        if qty_picked_decimal > task.qty_to_pick:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Picked quantity {qty_picked} exceeds task quantity {task.qty_to_pick}"
+            )
+
+        # Get inventory with row lock
+        stmt = select(Inventory).where(Inventory.id == task.inventory_id).with_for_update()
+        result = await self.db.execute(stmt)
+        inventory = result.scalar_one_or_none()
+
+        if not inventory:
+            raise HTTPException(status_code=404, detail="Inventory not found")
+
+        # Validate quantities
+        if inventory.allocated_quantity < qty_picked_decimal:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Allocated quantity ({inventory.allocated_quantity}) < picked quantity ({qty_picked_decimal})"
+            )
+
+        if inventory.quantity < qty_picked_decimal:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Physical quantity ({inventory.quantity}) < picked quantity ({qty_picked_decimal})"
+            )
+
+        # Update inventory: decrease both quantity and allocated_quantity
+        inventory.quantity -= qty_picked_decimal
+        inventory.allocated_quantity -= qty_picked_decimal
+
+        # Create audit transaction
+        transaction = InventoryTransaction(
+            inventory_id=inventory.id,
+            transaction_type="PICK",
+            quantity_change=-qty_picked_decimal,
+            quantity_after=inventory.quantity,
+            location_id=inventory.location_id,
+            reference_type="PICK_TASK",
+            reference_id=task.id,
+            notes=f"Picked {qty_picked_decimal} for task {task.id}"
+        )
+        self.db.add(transaction)
+
+        # Update pick task
+        task.qty_picked = qty_picked_decimal
+        task.status = PickTaskStatus.COMPLETED
+        task.completed_at = datetime.utcnow()
+
+        # Update line quantities
+        from models.outbound_line import OutboundLine
+        stmt = select(OutboundLine).where(OutboundLine.id == task.line_id)
+        result = await self.db.execute(stmt)
+        line = result.scalar_one_or_none()
+
+        if line:
+            line.qty_picked += qty_picked_decimal
+
+        await self.db.commit()
+
+        return {
+            "task_id": task.id,
+            "qty_picked": float(qty_picked_decimal),
+            "inventory_remaining": float(inventory.quantity),
+            "inventory_allocated": float(inventory.allocated_quantity),
+            "inventory_available": float(inventory.available_quantity)
+        }
+
+    async def accept_shortages(
+        self,
+        order_id: int,
+        tenant_id: int
+    ) -> OutboundOrder:
+        """
+        Accept shortages for an order and release it for picking.
+
+        This allows orders with PARTIAL or SHORT line statuses to proceed.
+        The remaining unallocated quantity stays as backorder (not cancelled).
+        """
+        order = await self.get_order(order_id, tenant_id)
+
+        if order.status not in [OutboundOrderStatus.PLANNED, OutboundOrderStatus.VERIFIED]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Order {order.order_number} must be in PLANNED or VERIFIED status to accept shortages"
+            )
+
+        # Check if there are any lines with shortages
+        has_shortages = any(
+            line.line_status in ["PARTIAL", "SHORT"]
+            for line in order.lines
+        )
+
+        if not has_shortages:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Order {order.order_number} has no shortages to accept"
+            )
+
+        # Release the order (allow picking of allocated quantities)
+        order.status = OutboundOrderStatus.RELEASED
+        order.status_changed_at = datetime.utcnow()
+
+        # Add note to metrics
+        order.metrics = {
+            **order.metrics,
+            "shortages_accepted_at": datetime.utcnow().isoformat(),
+            "partial_lines": sum(1 for line in order.lines if line.line_status == "PARTIAL"),
+            "short_lines": sum(1 for line in order.lines if line.line_status == "SHORT")
+        }
+
+        await self.db.commit()
+
+        return await self.get_order(order_id, tenant_id)
