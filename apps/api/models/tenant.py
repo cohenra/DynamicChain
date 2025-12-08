@@ -88,6 +88,21 @@ class Tenant(Base):
         back_populates="tenant",
         cascade="all, delete-orphan"
     )
+    allocation_strategies: Mapped[list["AllocationStrategy"]] = relationship(
+        "AllocationStrategy",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+    outbound_waves: Mapped[list["OutboundWave"]] = relationship(
+        "OutboundWave",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+    outbound_orders: Mapped[list["OutboundOrder"]] = relationship(
+        "OutboundOrder",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name='{self.name}')>"

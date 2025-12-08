@@ -16,17 +16,22 @@ from models.system_audit_log import SystemAuditLog
 from models.inbound_order import InboundOrder, InboundOrderType, InboundOrderStatus
 from models.inbound_line import InboundLine
 from models.inbound_shipment import InboundShipment, InboundShipmentStatus
+from models.allocation_strategy import AllocationStrategy, PickingType
+from models.outbound_wave import OutboundWave, OutboundWaveStatus
+from models.outbound_order import OutboundOrder, OutboundOrderStatus
+from models.outbound_line import OutboundLine
+from models.pick_task import PickTask, PickTaskStatus
 
 __all__ = [
-    "Tenant", 
+    "Tenant",
     "User",
     "UserRole", # <--- הוסף גם כאן
-    "Product", 
-    "Depositor", 
-    "Warehouse", 
-    "UomDefinition", 
-    "ProductUOM", 
-    "Zone", 
+    "Product",
+    "Depositor",
+    "Warehouse",
+    "UomDefinition",
+    "ProductUOM",
+    "Zone",
     "Location",
     "LocationTypeDefinition",
     "LocationUsageDefinition",
@@ -39,5 +44,14 @@ __all__ = [
     "InboundOrderStatus",
     "InboundLine",
     "InboundShipment",
-    "InboundShipmentStatus"
+    "InboundShipmentStatus",
+    "AllocationStrategy",
+    "PickingType",
+    "OutboundWave",
+    "OutboundWaveStatus",
+    "OutboundOrder",
+    "OutboundOrderStatus",
+    "OutboundLine",
+    "PickTask",
+    "PickTaskStatus"
 ]

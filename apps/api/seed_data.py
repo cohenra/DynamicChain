@@ -4,11 +4,13 @@ import random
 from sqlalchemy import select
 from database import AsyncSessionLocal
 from models import (
-    Tenant, User, UserRole, Warehouse, Zone, Location, 
+    Tenant, User, UserRole, Warehouse, Zone, Location,
     LocationTypeDefinition, LocationUsageDefinition,
     Depositor, UomDefinition, Product, ProductUOM,
     InboundOrder, InboundLine, InboundOrderType, InboundOrderStatus,
-    InboundShipment, InboundShipmentStatus
+    InboundShipment, InboundShipmentStatus,
+    AllocationStrategy, PickingType,
+    OutboundOrder, OutboundOrderStatus
 )
 from auth.utils import hash_password
 
@@ -282,6 +284,174 @@ async def seed_data():
                         notes="נהג ממתין ברמפה 2"
                     )
                     session.add(shipment)
+
+        # ============================================================
+        # 11. יצירת Allocation Strategies
+        # ============================================================
+        print("🧠 Creating Allocation Strategies...")
+
+        strategies_data = [
+            {
+                "name": "Standard FEFO",
+                "picking_type": PickingType.DISCRETE,
+                "description": "First Expired First Out - prioritizes items by expiry date, allows partial fulfillment",
+                "rules_config": {
+                    "inventory_source": {
+                        "status_list": ["AVAILABLE"],
+                        "zone_priority": ["DRY", "COOL", "STAGING"]
+                    },
+                    "picking_policy": "FEFO",
+                    "partial_policy": "ALLOW_PARTIAL",
+                    "pallet_logic": "PRIORITIZE_LOOSE",
+                    "batch_matching": False,
+                    "expiry_days_threshold": 30
+                }
+            },
+            {
+                "name": "Retail Full Pallet",
+                "picking_type": PickingType.WAVE,
+                "description": "Prioritizes full pallets for retail orders, no loose items allowed",
+                "rules_config": {
+                    "inventory_source": {
+                        "status_list": ["AVAILABLE"],
+                        "zone_priority": ["DRY", "COOL"]
+                    },
+                    "picking_policy": "BEST_FIT",
+                    "partial_policy": "FILL_OR_KILL",
+                    "pallet_logic": "PRIORITIZE_FULL_PALLET",
+                    "batch_matching": True,
+                    "expiry_days_threshold": 60
+                }
+            }
+        ]
+
+        created_strategies = []
+        for s_data in strategies_data:
+            strategy = (await session.execute(
+                select(AllocationStrategy).where(AllocationStrategy.name == s_data["name"])
+            )).scalar_one_or_none()
+
+            if not strategy:
+                strategy = AllocationStrategy(
+                    tenant_id=TENANT_ID,
+                    name=s_data["name"],
+                    picking_type=s_data["picking_type"].value,
+                    description=s_data["description"],
+                    rules_config=s_data["rules_config"],
+                    is_active=True
+                )
+                session.add(strategy)
+                await session.flush()
+            created_strategies.append(strategy)
+
+        # ============================================================
+        # 12. יצירת Outbound Orders
+        # ============================================================
+        print("📤 Creating Outbound Orders...")
+
+        outbound_orders_data = [
+            {
+                "order_number": "OUT-2025-001",
+                "customer_idx": 0,  # אלקטרוניקה פלוס
+                "order_type": "B2B",
+                "priority": 3,
+                "status": OutboundOrderStatus.DRAFT,
+                "requested_delivery_date": datetime.now().date() + timedelta(days=3),
+                "shipping_details": {
+                    "carrier": "דואר שליחים",
+                    "dock_id": "DOCK-A1"
+                },
+                "notes": "הזמנה דחופה לרשת אלקטרוניקה",
+                "products": [0, 1]  # טלוויזיה ומחשב נייד
+            },
+            {
+                "order_number": "OUT-2025-002",
+                "customer_idx": 1,  # מזון מהיר
+                "order_type": "ECOM",
+                "priority": 5,
+                "status": OutboundOrderStatus.DRAFT,
+                "requested_delivery_date": datetime.now().date() + timedelta(days=1),
+                "shipping_details": {
+                    "carrier": "משלוחים מהירים",
+                    "dock_id": "DOCK-B2"
+                },
+                "notes": "הזמנת אי-קומרס רגילה",
+                "products": [4, 5]  # פסטה ורוטב
+            },
+            {
+                "order_number": "OUT-2025-003",
+                "customer_idx": 0,  # אלקטרוניקה פלוס
+                "order_type": "RETAIL",
+                "priority": 2,
+                "status": OutboundOrderStatus.VERIFIED,
+                "requested_delivery_date": datetime.now().date() + timedelta(days=5),
+                "shipping_details": {
+                    "carrier": "הובלות כבדות בע״מ",
+                    "dock_id": "DOCK-C1",
+                    "driver_name": "משה כהן",
+                    "license_plate": "12-345-67"
+                },
+                "notes": "משלוח משטחים שלמים לסניף",
+                "products": [2, 3]  # ראוטר וכבל HDMI
+            },
+            {
+                "order_number": "OUT-2025-004",
+                "customer_idx": 1,  # מזון מהיר
+                "order_type": "B2B",
+                "priority": 1,
+                "status": OutboundOrderStatus.DRAFT,
+                "requested_delivery_date": datetime.now().date() + timedelta(days=2),
+                "shipping_details": {
+                    "carrier": "שירותי לוגיסטיקה",
+                    "dock_id": "DOCK-A2"
+                },
+                "notes": "הזמנה קריטית - SLA חמור",
+                "products": [4]  # פסטה
+            }
+        ]
+
+        for o_data in outbound_orders_data:
+            existing_order = (await session.execute(
+                select(OutboundOrder).where(OutboundOrder.order_number == o_data["order_number"])
+            )).scalar_one_or_none()
+
+            if not existing_order:
+                customer = created_depositors[o_data["customer_idx"]]
+
+                order = OutboundOrder(
+                    tenant_id=TENANT_ID,
+                    order_number=o_data["order_number"],
+                    customer_id=customer.id,
+                    order_type=o_data["order_type"],
+                    priority=o_data["priority"],
+                    status=o_data["status"].value,
+                    requested_delivery_date=o_data["requested_delivery_date"],
+                    shipping_details=o_data["shipping_details"],
+                    notes=o_data["notes"],
+                    metrics={
+                        "total_lines": len(o_data["products"]),
+                        "total_units": 0,
+                        "progress_percent": 0
+                    }
+                )
+                session.add(order)
+                await session.flush()
+
+                # יצירת שורות להזמנה
+                from models import OutboundLine
+                for prod_idx in o_data["products"]:
+                    prod = created_products[prod_idx]
+                    qty = random.randint(5, 50)
+
+                    line = OutboundLine(
+                        order_id=order.id,
+                        product_id=prod.id,
+                        uom_id=base_uom.id,
+                        qty_ordered=qty,
+                        constraints={},
+                        notes=f"שורת הזמנה עבור {prod.name}"
+                    )
+                    session.add(line)
 
         await session.commit()
         print("✅ Database seed completed successfully!")

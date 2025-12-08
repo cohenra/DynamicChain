@@ -14,6 +14,17 @@ from models import Tenant, User, Product, Depositor, Warehouse, UomDefinition, P
 from models.location_type_definition import LocationTypeDefinition
 from models.location_usage_definition import LocationUsageDefinition
 from models.user_table_setting import UserTableSetting
+from models.inventory import Inventory
+from models.inventory_transaction import InventoryTransaction
+from models.system_audit_log import SystemAuditLog
+from models.inbound_order import InboundOrder
+from models.inbound_line import InboundLine
+from models.inbound_shipment import InboundShipment
+from models.allocation_strategy import AllocationStrategy
+from models.outbound_wave import OutboundWave
+from models.outbound_order import OutboundOrder
+from models.outbound_line import OutboundLine
+from models.pick_task import PickTask
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
