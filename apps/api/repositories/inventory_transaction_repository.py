@@ -56,6 +56,7 @@ class InventoryTransactionRepository:
         product_id: Optional[int] = None,
         transaction_type: Optional[TransactionType] = None,
         reference_doc: Optional[str] = None,
+        inbound_shipment_id: Optional[int] = None,  # <--- NEW
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> List[InventoryTransaction]:
@@ -77,6 +78,8 @@ class InventoryTransactionRepository:
             query = query.where(InventoryTransaction.transaction_type == transaction_type)
         if reference_doc is not None:
             query = query.where(InventoryTransaction.reference_doc.ilike(f"%{reference_doc}%"))
+        if inbound_shipment_id is not None:  # <--- NEW
+            query = query.where(InventoryTransaction.inbound_shipment_id == inbound_shipment_id)
         if start_date is not None:
             query = query.where(InventoryTransaction.timestamp >= start_date)
         if end_date is not None:
@@ -124,7 +127,8 @@ class InventoryTransactionRepository:
         tenant_id: int,
         inventory_id: Optional[int] = None,
         product_id: Optional[int] = None,
-        transaction_type: Optional[TransactionType] = None
+        transaction_type: Optional[TransactionType] = None,
+        inbound_shipment_id: Optional[int] = None  # <--- NEW
     ) -> int:
         """Count transactions with optional filters."""
         from sqlalchemy import func
@@ -139,6 +143,8 @@ class InventoryTransactionRepository:
             query = query.where(InventoryTransaction.product_id == product_id)
         if transaction_type is not None:
             query = query.where(InventoryTransaction.transaction_type == transaction_type)
+        if inbound_shipment_id is not None:  # <--- NEW
+            query = query.where(InventoryTransaction.inbound_shipment_id == inbound_shipment_id)
 
         result = await self.db.execute(query)
         return result.scalar_one()

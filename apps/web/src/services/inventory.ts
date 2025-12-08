@@ -108,6 +108,7 @@ export const inventoryService = {
     inventory_id?: number;
     product_id?: number;
     reference_doc?: string;
+    inbound_shipment_id?: number;
   }): Promise<InventoryTransactionListResponse> {
     const response = await api.get<InventoryTransactionListResponse>('/api/inventory/transactions/', { params });
     return response.data;

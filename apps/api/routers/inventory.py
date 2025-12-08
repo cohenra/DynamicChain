@@ -327,6 +327,7 @@ async def adjust_stock(
     return response_data
 
 
+
 @router.get("/transactions/", response_model=InventoryTransactionListResponse)
 async def list_transactions(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
@@ -334,29 +335,12 @@ async def list_transactions(
     inventory_id: Optional[int] = Query(None, description="Filter by inventory ID"),
     product_id: Optional[int] = Query(None, description="Filter by product ID"),
     reference_doc: Optional[str] = Query(None, description="Search by reference document"),
+    inbound_shipment_id: Optional[int] = Query(None, description="Filter by inbound shipment ID"), # <--- NEW
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> InventoryTransactionListResponse:
     """
     List inventory transactions with optional filters.
-
-    View the complete audit trail of all inventory movements and changes.
-    This is the source of truth for billing.
-
-    Args:
-        skip: Number of records to skip (default: 0)
-        limit: Maximum records to return (default: 100, max: 1000)
-        inventory_id: Optional inventory ID filter
-        product_id: Optional product ID filter
-        reference_doc: Optional reference document search
-        current_user: Authenticated user from JWT token
-        db: Database session
-
-    Returns:
-        InventoryTransactionListResponse: Paginated list of transactions
-
-    Raises:
-        401: If user is not authenticated
     """
     transaction_repo = InventoryTransactionRepository(db)
     transactions = await transaction_repo.list_transactions(
@@ -365,13 +349,15 @@ async def list_transactions(
         limit=limit,
         inventory_id=inventory_id,
         product_id=product_id,
-        reference_doc=reference_doc
+        reference_doc=reference_doc,
+        inbound_shipment_id=inbound_shipment_id # <--- NEW
     )
 
     total = await transaction_repo.count(
         tenant_id=current_user.tenant_id,
         inventory_id=inventory_id,
-        product_id=product_id
+        product_id=product_id,
+        inbound_shipment_id=inbound_shipment_id # <--- NEW
     )
 
     # Populate response with related entity names
@@ -392,6 +378,7 @@ async def list_transactions(
         skip=skip,
         limit=limit
     )
+
 
 
 @router.post("/transactions/{transaction_id}/correct", response_model=InventoryTransactionResponse, status_code=status.HTTP_201_CREATED)

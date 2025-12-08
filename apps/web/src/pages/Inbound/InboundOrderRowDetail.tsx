@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InboundOrder, inboundService, CreateShipmentRequest, InboundLine, InboundLineCreate, InboundLineUpdate, InboundShipment } from '@/services/inboundService';
+import { inventoryService } from '@/services/inventory';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -10,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Package, Truck, ArrowLeftRight, Edit, CheckCircle, Lock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Plus, Package, Truck, ArrowLeftRight, Edit, CheckCircle, Lock, ChevronLeft, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,12 +20,52 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { productService } from '@/services/products';
 import { uomDefinitionService } from '@/services/uom-definitions';
-import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, ColumnDef, flexRender } from '@tanstack/react-table';
+import { useReactTable, getCoreRowModel, getPaginationRowModel, getExpandedRowModel, ColumnDef, flexRender, ExpandedState } from '@tanstack/react-table';
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 import { ReceiveShipmentSheet } from './ReceiveShipmentSheet';
 
 interface InboundOrderRowDetailProps {
   order: InboundOrder;
+}
+
+// --- New Component: Received Items Sub-Table ---
+function ShipmentReceivedItems({ shipmentId }: { shipmentId: number }) {
+    const { t } = useTranslation();
+    const { data, isLoading } = useQuery({
+        queryKey: ['inventory-transactions', { inbound_shipment_id: shipmentId }],
+        queryFn: () => inventoryService.getTransactions({ inbound_shipment_id: shipmentId, limit: 100 }),
+    });
+
+    if (isLoading) return <div className="p-4 flex justify-center"><Loader2 className="animate-spin h-4 w-4" /></div>;
+    if (!data?.items || data.items.length === 0) return <div className="p-4 text-center text-sm text-muted-foreground">טרם נקלטו פריטים ממשלוח זה</div>;
+
+    return (
+        <div className="bg-slate-50 p-2 rounded-b border-t">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2 mr-2">פריטים שנקלטו:</h4>
+            <Table>
+                <TableHeader>
+                    <TableRow className="h-8">
+                        <TableHead className="h-8 text-xs">מוצר</TableHead>
+                        <TableHead className="h-8 text-xs">כמות</TableHead>
+                        <TableHead className="h-8 text-xs">LPN</TableHead>
+                        <TableHead className="h-8 text-xs">מיקום</TableHead>
+                        <TableHead className="h-8 text-xs">תאריך</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {data.items.map((tx) => (
+                        <TableRow key={tx.id} className="h-8 hover:bg-white">
+                            <TableCell className="py-1 text-xs font-medium">{tx.product_name}</TableCell>
+                            <TableCell className="py-1 text-xs">{tx.quantity}</TableCell>
+                            <TableCell className="py-1 text-xs font-mono">{tx.inventory_lpn}</TableCell>
+                            <TableCell className="py-1 text-xs"><Badge variant="outline" className="text-[10px] h-5">{tx.to_location_name}</Badge></TableCell>
+                            <TableCell className="py-1 text-xs text-muted-foreground">{new Date(tx.timestamp).toLocaleString()}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
 }
 
 const formatDate = (dateStr: string | null) => {
@@ -52,19 +93,6 @@ function CompactPagination({ table, total }: { table: any, total: number }) {
                 {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
             </span>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}><ChevronLeft className="h-3 w-3" /></Button>
-            <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => table.setPageSize(Number(value))}
-            >
-                <SelectTrigger className="h-5 w-[50px] text-[10px] px-1 border-none bg-transparent focus:ring-0">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {[5, 10, 20, 50].map((pageSize) => (
-                        <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
         </div>
     );
 }
@@ -75,15 +103,16 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   const [isCloseAlertOpen, setIsCloseAlertOpen] = useState(false);
   const [isForceCloseAlertOpen, setIsForceCloseAlertOpen] = useState(false);
   const [editingLine, setEditingLine] = useState<InboundLine | null>(null);
+  
+  // New state for receiving
   const [selectedShipment, setSelectedShipment] = useState<InboundShipment | null>(null);
-  const [isReceiveSheetOpen, setIsReceiveSheetOpen] = useState(false);
-
+  const [shipmentsExpanded, setShipmentsExpanded] = useState<ExpandedState>({});
+  
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const isOrderEditable = order.status === 'DRAFT' || order.status === 'CONFIRMED' || order.status === 'PARTIALLY_RECEIVED';
 
-  // --- Forms setup ---
-  // (Standard forms logic - same as before)
+  // --- Forms setup (Same as before) ---
   const shipmentSchema = z.object({ shipment_number: z.string().min(1, 'חובה'), container_number: z.string().optional(), driver_details: z.string().optional(), arrival_date: z.string().optional(), notes: z.string().optional() });
   const shipmentForm = useForm<z.infer<typeof shipmentSchema>>({ resolver: zodResolver(shipmentSchema), defaultValues: { shipment_number: '', container_number: '', driver_details: '', arrival_date: '', notes: '' } });
   const createShipmentMutation = useMutation({ mutationFn: (data: CreateShipmentRequest) => inboundService.createShipment(order.id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsShipmentSheetOpen(false); shipmentForm.reset(); toast.success(t('inbound.shipments.createSuccess')); }, onError: (err: any) => toast.error(err?.response?.data?.detail || 'Error') });
@@ -111,7 +140,6 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
     },
     onError: (error: any) => {
       const errorDetail = error?.response?.data?.detail || '';
-      // Check if error is about no items received and requires force flag
       if (error?.response?.status === 400 && errorDetail.includes('No items') && errorDetail.includes('force=True')) {
         setIsCloseAlertOpen(false);
         setIsForceCloseAlertOpen(true);
@@ -137,22 +165,65 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   ], [isOrderEditable, t]);
 
   const shipmentColumns = useMemo<ColumnDef<InboundShipment>[]>(() => [
+      {
+        id: 'expander',
+        header: () => null,
+        cell: ({ row }) => (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
+              className="h-8 w-8"
+            >
+              {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+        ),
+        size: 40,
+      },
       { accessorKey: 'shipment_number', header: t('inbound.shipments.shipmentNumber'), cell: ({row}) => <span className="font-bold">{row.original.shipment_number}</span> },
       { accessorKey: 'container_number', header: t('inbound.shipments.container'), cell: ({row}) => row.original.container_number || '-' },
       { accessorKey: 'driver_details', header: t('inbound.shipments.driver'), cell: ({row}) => row.original.driver_details || '-' },
       { accessorKey: 'arrival_date', header: t('inbound.shipments.arrived'), cell: ({row}) => formatDate(row.original.arrival_date) },
       { accessorKey: 'status', header: t('inbound.shipments.status'), cell: ({row}) => getShipmentStatusBadge(row.original.status) },
-      {
-          id: 'actions',
+      { 
+          id: 'actions', 
           header: () => isOrderEditable && <Button onClick={() => setIsShipmentSheetOpen(true)} variant="ghost" size="sm" className="h-6 px-2 text-primary hover:bg-primary/10 whitespace-nowrap"><Plus className="h-3.5 w-3.5 mr-1" /> {t('inbound.shipments.addShipment')}</Button>,
-          cell: ({row}) => row.original.status !== 'CLOSED' && <Button size="sm" variant={row.original.status === 'RECEIVING' ? "default" : "outline"} className="h-7 text-xs gap-1" onClick={() => { setSelectedShipment(row.original); setIsReceiveSheetOpen(true); }}><ArrowLeftRight className="h-3 w-3" /> {t('inbound.shipments.receive')}</Button>
+          cell: ({row}) => row.original.status !== 'CLOSED' && (
+              <Button 
+                size="sm" 
+                variant={row.original.status === 'RECEIVING' ? "default" : "outline"} 
+                className="h-7 text-xs gap-1" 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedShipment(row.original);
+                }}
+              >
+                  <ArrowLeftRight className="h-3 w-3" /> {t('inbound.shipments.receive')}
+              </Button>
+          )
       }
   ], [t, isOrderEditable]);
 
-  const linesTable = useReactTable({ data: order.lines || [], columns: lineColumns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), initialState: { pagination: { pageSize: 5 } } });
-  const shipmentsTable = useReactTable({ data: order.shipments || [], columns: shipmentColumns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), initialState: { pagination: { pageSize: 5 } } });
+  const linesTable = useReactTable({ 
+      data: order.lines || [], 
+      columns: lineColumns, 
+      getCoreRowModel: getCoreRowModel(), 
+      getPaginationRowModel: getPaginationRowModel(), 
+      initialState: { pagination: { pageSize: 5 } } 
+  });
 
-  // No specific width constraints here anymore - SmartTable handles it
+  const shipmentsTable = useReactTable({ 
+      data: order.shipments || [], 
+      columns: shipmentColumns, 
+      state: { expanded: shipmentsExpanded },
+      onExpandedChange: setShipmentsExpanded,
+      getCoreRowModel: getCoreRowModel(), 
+      getExpandedRowModel: getExpandedRowModel(), // Required for expansion
+      getPaginationRowModel: getPaginationRowModel(), 
+      initialState: { pagination: { pageSize: 5 } },
+      getRowCanExpand: () => true 
+  });
+
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/50 p-4 border-t border-b shadow-inner">
       <Tabs defaultValue="lines" className="w-full" dir="rtl">
@@ -190,10 +261,9 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
             </div>
         </div>
 
-        {/* --- Content Area - now relies on SmartTable's width protection --- */}
+        {/* --- Content Area --- */}
         <div className="bg-white border-x border-b rounded-b-md">
             <TabsContent value="lines" className="m-0 p-0 overflow-x-auto">
-                {/* min-w-[800px] ensures horizontal scroll triggers on small screens */}
                 <Table className="min-w-[800px] w-full">
                     <TableHeader className="bg-slate-50">
                         {linesTable.getHeaderGroups().map(headerGroup => (
@@ -240,13 +310,22 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
                     <TableBody>
                         {shipmentsTable.getRowModel().rows.length > 0 ? (
                             shipmentsTable.getRowModel().rows.map(row => (
-                                <TableRow key={row.id} className="h-9 hover:bg-slate-100/50">
-                                    {row.getVisibleCells().map(cell => (
-                                        <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
+                                <>
+                                    <TableRow key={row.id} className="h-9 hover:bg-slate-100/50 cursor-pointer" onClick={() => row.toggleExpanded()}>
+                                        {row.getVisibleCells().map(cell => (
+                                            <TableCell key={cell.id} className="py-1 text-xs whitespace-nowrap px-4 text-right">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                    {row.getIsExpanded() && (
+                                        <TableRow>
+                                            <TableCell colSpan={shipmentColumns.length} className="p-0 border-b bg-slate-50/50">
+                                                <ShipmentReceivedItems shipmentId={row.original.id} />
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </>
                             ))
                         ) : (
                             <TableRow><TableCell colSpan={shipmentColumns.length} className="h-12 text-center text-muted-foreground text-sm">{t('inbound.shipments.noShipments')}</TableCell></TableRow>
@@ -257,8 +336,19 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
         </div>
       </Tabs>
 
-      {/* Sheets & Alerts (Same as before) */}
-      {/* ... (Keeping existing Sheets for Add/Edit as they were correct) */}
+      {/* Sheets & Alerts */}
+      
+      <ReceiveShipmentSheet 
+        shipment={selectedShipment}
+        order={order}
+        open={!!selectedShipment}
+        onClose={() => {
+            setSelectedShipment(null);
+            // Invalidate queries to refresh order status and lines
+            queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
+        }}
+      />
+
        <Sheet open={isShipmentSheetOpen} onOpenChange={setIsShipmentSheetOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md p-0 flex flex-col h-full">
           <SheetHeader className="p-6 border-b"><SheetTitle>{t('inbound.shipments.addShipment')}</SheetTitle></SheetHeader>
@@ -323,16 +413,6 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
-
-      <ReceiveShipmentSheet
-        shipment={selectedShipment}
-        order={order}
-        open={isReceiveSheetOpen}
-        onClose={() => {
-          setIsReceiveSheetOpen(false);
-          setSelectedShipment(null);
-        }}
-      />
     </div>
   );
 }
