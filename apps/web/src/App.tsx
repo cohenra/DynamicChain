@@ -10,8 +10,11 @@ import Warehouses from './pages/Warehouses';
 import InventoryPage from './pages/Inventory';
 import InboundOrders from './pages/Inbound/InboundOrders';
 import OutboundOrders from './pages/OutboundOrders';
+// --- הוספת הדפים החדשים ---
+import OutboundWaves from './pages/Outbound/OutboundWaves';
+import AllocationStrategies from './pages/Outbound/AllocationStrategies';
+// -------------------------
 import { useAuthStore } from './store/authStore';
-
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,12 +45,21 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            
+            {/* ניהול מלאי ומוצרים */}
             <Route path="inventory" element={<InventoryPage />} />
-            <Route path="inbound" element={<InboundOrders />} />
-            <Route path="outbound" element={<OutboundOrders />} />
             <Route path="products" element={<Products />} />
             <Route path="depositors" element={<Depositors />} />
             <Route path="warehouses" element={<Warehouses />} />
+            
+            {/* כניסה */}
+            <Route path="inbound" element={<InboundOrders />} />
+            
+            {/* יציאה - הוספת המסכים החדשים */}
+            <Route path="outbound" element={<OutboundOrders />} />
+            <Route path="outbound/waves" element={<OutboundWaves />} />
+            <Route path="outbound/strategies" element={<AllocationStrategies />} />
+            
             <Route path="invoices" element={<div className="text-center p-8">חשבוניות - בפיתוח</div>} />
           </Route>
         </Routes>

@@ -1,5 +1,9 @@
 import { api } from './api';
 
+// ============================================================================
+// Types & Interfaces
+// ============================================================================
+
 export type OutboundOrderStatus =
   | 'DRAFT'
   | 'VERIFIED'
@@ -31,24 +35,10 @@ export type PickingType = 'DISCRETE' | 'WAVE' | 'CLUSTER';
 export interface AllocationStrategy {
   id: number;
   tenant_id: number;
+  depositor_id: number | null;
   name: string;
   picking_type: PickingType;
-  rules_config: {
-    inventory_source?: {
-      status_list?: string[];
-      zone_priority?: string[];
-    };
-    picking_policy?: string;
-    partial_policy?: string;
-    pallet_logic?: string;
-    warehouse_logic?: {
-      mode?: string;
-      priority_warehouses?: number[];
-      max_splits?: number;
-    };
-    batch_matching?: boolean;
-    expiry_days_threshold?: number;
-  };
+  rules_config: any;
   is_active: boolean;
   description: string | null;
   created_at: string;
@@ -96,8 +86,6 @@ export interface PickTask {
   assigned_to_user_id: number | null;
   created_at: string;
   updated_at: string;
-  assigned_at: string | null;
-  completed_at: string | null;
   from_location?: {
     id: number;
     name: string;
@@ -120,11 +108,8 @@ export interface OutboundOrder {
   order_type: string;
   priority: number;
   requested_delivery_date: string | null;
-  status_changed_at: string | null;
-  shipping_details: Record<string, any>;
   metrics: Record<string, any>;
   notes: string | null;
-  created_by: number | null;
   created_at: string;
   updated_at: string;
   customer?: {
@@ -159,13 +144,16 @@ export interface AllocateOrderRequest {
   strategy_id?: number;
 }
 
+export interface CreateWaveRequest {
+    order_ids: number[];
+}
+
 export interface OutboundWave {
   id: number;
   tenant_id: number;
   wave_number: string;
   status: OutboundWaveStatus;
   strategy_id: number | null;
-  created_by: number | null;
   created_at: string;
   updated_at: string;
   orders: OutboundOrder[];
@@ -176,25 +164,16 @@ export interface OutboundWave {
 // API Functions
 // ============================================================================
 
-/**
- * Get all allocation strategies
- */
 export const getStrategies = async (): Promise<AllocationStrategy[]> => {
-  const response = await api.get('/outbound/strategies');
+  const response = await api.get('/api/outbound/strategies');
   return response.data;
 };
 
-/**
- * Get a specific allocation strategy
- */
 export const getStrategy = async (id: number): Promise<AllocationStrategy> => {
-  const response = await api.get(`/outbound/strategies/${id}`);
+  const response = await api.get(`/api/outbound/strategies/${id}`);
   return response.data;
 };
 
-/**
- * List outbound orders with optional filtering
- */
 export const getOrders = async (params?: {
   skip?: number;
   limit?: number;
@@ -202,64 +181,57 @@ export const getOrders = async (params?: {
   customer_id?: number;
   order_type?: string;
 }): Promise<OutboundOrder[]> => {
-  const response = await api.get('/outbound/orders', { params });
+  const response = await api.get('/api/outbound/orders', { params });
   return response.data;
 };
 
-/**
- * Get a specific outbound order with details
- */
 export const getOrder = async (id: number): Promise<OutboundOrder> => {
-  const response = await api.get(`/outbound/orders/${id}`);
+  const response = await api.get(`/api/outbound/orders/${id}`);
   return response.data;
 };
 
-/**
- * Create a new outbound order
- */
 export const createOrder = async (data: OutboundOrderCreateRequest): Promise<OutboundOrder> => {
-  const response = await api.post('/outbound/orders', data);
+  const response = await api.post('/api/outbound/orders', data);
   return response.data;
 };
 
-/**
- * Allocate inventory for an order
- */
 export const allocateOrder = async (
   orderId: number,
   request?: AllocateOrderRequest
 ): Promise<OutboundOrder> => {
-  const response = await api.post(`/outbound/orders/${orderId}/allocate`, request || {});
+  const response = await api.post(`/api/outbound/orders/${orderId}/allocate`, request || {});
   return response.data;
 };
 
-/**
- * Release an order for picking
- */
 export const releaseOrder = async (orderId: number): Promise<OutboundOrder> => {
-  const response = await api.post(`/outbound/orders/${orderId}/release`);
+  const response = await api.post(`/api/outbound/orders/${orderId}/release`);
   return response.data;
 };
 
-/**
- * Cancel an outbound order
- */
 export const cancelOrder = async (orderId: number): Promise<OutboundOrder> => {
-  const response = await api.post(`/outbound/orders/${orderId}/cancel`);
+  const response = await api.post(`/api/outbound/orders/${orderId}/cancel`);
   return response.data;
 };
 
-/**
- * Accept shortages for an order and release it
- */
 export const acceptShortages = async (orderId: number): Promise<OutboundOrder> => {
-  const response = await api.post(`/outbound/orders/${orderId}/accept-shortages`);
+  const response = await api.post(`/api/outbound/orders/${orderId}/accept-shortages`);
   return response.data;
 };
 
-/**
- * Complete a pick task
- */
+// --- Wave Management Functions ---
+
+export const createWave = async (data: CreateWaveRequest): Promise<OutboundWave> => {
+    const response = await api.post('/api/outbound/waves', data);
+    return response.data;
+};
+
+export const getWaves = async (): Promise<OutboundWave[]> => {
+    const response = await api.get('/api/outbound/waves');
+    return response.data;
+};
+
+// --- Task Management Functions ---
+
 export const completePickTask = async (
   taskId: number,
   qtyPicked: number
@@ -270,7 +242,7 @@ export const completePickTask = async (
   inventory_allocated: number;
   inventory_available: number;
 }> => {
-  const response = await api.post(`/outbound/tasks/${taskId}/complete?qty_picked=${qtyPicked}`);
+  const response = await api.post(`/api/outbound/tasks/${taskId}/complete?qty_picked=${qtyPicked}`);
   return response.data;
 };
 
@@ -278,34 +250,28 @@ export const completePickTask = async (
 // Helper Functions
 // ============================================================================
 
-/**
- * Automatically find the correct strategy for an order
- * Logic: Match by customer_id and order_type, fallback to first active strategy
- */
 export const getStrategyForOrder = (
   order: OutboundOrder | { customer_id: number; order_type: string },
   strategies: AllocationStrategy[]
 ): AllocationStrategy | null => {
-  if (!strategies || strategies.length === 0) {
-    return null;
-  }
+  if (!strategies || strategies.length === 0) return null;
+  
+  // 1. Try to match by depositor
+  const depositorStrategy = strategies.find((s) => s.depositor_id === order.customer_id);
+  if (depositorStrategy) return depositorStrategy;
 
-  // Try to find exact match (future enhancement: add customer_id/order_type to strategy)
-  // For now, just return the first active strategy for the customer's typical use case
+  // 2. Fallback: Return first active
   const activeStrategies = strategies.filter(s => s.is_active);
-
-  if (activeStrategies.length === 0) {
-    return null;
-  }
-
-  // Return first active strategy (can be enhanced with more complex logic)
-  return activeStrategies[0];
+  return activeStrategies.length > 0 ? activeStrategies[0] : null;
 };
 
-/**
- * Calculate progress percentage for an order
- */
 export const calculateOrderProgress = (order: OutboundOrder): number => {
+  if (order.metrics?.progress_percent !== undefined) {
+      return order.metrics.progress_percent;
+  }
+  
+  if (!order.lines || order.lines.length === 0) return 0;
+
   const totalOrdered = order.lines.reduce((sum, line) => sum + Number(line.qty_ordered), 0);
   const totalAllocated = order.lines.reduce((sum, line) => sum + Number(line.qty_allocated), 0);
 
@@ -313,39 +279,32 @@ export const calculateOrderProgress = (order: OutboundOrder): number => {
   return Math.round((totalAllocated / totalOrdered) * 100);
 };
 
-/**
- * Check if an order has shortages
- */
 export const hasShortages = (order: OutboundOrder): boolean => {
+  if (!order.lines) return false;
   return order.lines.some(line =>
-    line.line_status === 'PARTIAL' || line.line_status === 'SHORT'
+    line.line_status === 'PARTIAL' || line.line_status === 'SHORT' || 
+    (line.qty_allocated < line.qty_ordered)
   );
 };
 
-/**
- * Get status badge color
- */
 export const getStatusColor = (status: OutboundOrderStatus): string => {
   const colors: Record<OutboundOrderStatus, string> = {
-    DRAFT: 'gray',
+    DRAFT: 'slate',
     VERIFIED: 'blue',
     PLANNED: 'cyan',
     RELEASED: 'purple',
-    PICKING: 'orange',
-    PICKED: 'lime',
-    PACKED: 'emerald',
+    PICKING: 'yellow',
+    PICKED: 'orange',
+    PACKED: 'pink',
     SHIPPED: 'green',
     CANCELLED: 'red',
   };
-  return colors[status] || 'gray';
+  return colors[status] || 'slate';
 };
 
-/**
- * Get priority label and color
- */
 export const getPriorityInfo = (priority: number): { label: string; color: string } => {
-  if (priority <= 2) return { label: 'Critical', color: 'red' };
-  if (priority <= 4) return { label: 'High', color: 'orange' };
-  if (priority <= 6) return { label: 'Medium', color: 'yellow' };
-  return { label: 'Low', color: 'gray' };
+  if (priority <= 1) return { label: 'CRITICAL', color: 'red' };
+  if (priority <= 2) return { label: 'HIGH', color: 'orange' };
+  if (priority <= 3) return { label: 'MEDIUM', color: 'blue' };
+  return { label: 'LOW', color: 'slate' };
 };

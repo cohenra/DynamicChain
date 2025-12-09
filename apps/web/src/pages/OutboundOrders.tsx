@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
 import {
   useReactTable,
@@ -12,18 +13,18 @@ import {
   ColumnDef,
   ExpandedState,
   SortingState,
+  RowSelectionState,
 } from '@tanstack/react-table';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { OutboundOrderRowDetail } from '@/components/outbound/OutboundOrderRowDetail';
-import { Plus, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, ChevronRight, ChevronDown, Package, XCircle, Loader2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
@@ -31,17 +32,24 @@ import type { OutboundOrder } from '@/services/outboundService';
 import {
   getOrders,
   createOrder,
+  allocateOrder,
+  cancelOrder,
+  createWave, // וודא שזה קיים ב-service
   calculateOrderProgress,
   getStatusColor,
   getPriorityInfo,
+  getStrategies,
+  getStrategyForOrder
 } from '@/services/outboundService';
 import { format } from 'date-fns';
 
 export default function OutboundOrders() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -55,25 +63,99 @@ export default function OutboundOrders() {
     queryFn: () => getOrders(),
   });
 
-  // Create order mutation
-  const createOrderMutation = useMutation({
-    mutationFn: createOrder,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
-      setIsSheetOpen(false);
-      toast.success('Order created successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.detail || 'Failed to create order');
-    },
+  // Fetch strategies for auto-allocation
+  const { data: strategies } = useQuery({
+    queryKey: ['allocation-strategies'],
+    queryFn: () => getStrategies(),
   });
 
-  const handleAddNew = () => {
-    setIsSheetOpen(true);
+  // --- Bulk Allocate Handler ---
+  const handleBulkAllocate = async () => {
+    const selectedIds = Object.keys(rowSelection).map(Number);
+    if (selectedIds.length === 0) return;
+
+    setBulkLoading(true);
+    let successCount = 0;
+    
+    for (const id of selectedIds) {
+        const order = orders?.find(o => o.id === id);
+        if (!order || (order.status !== 'DRAFT')) continue;
+
+        try {
+            const strategy = getStrategyForOrder(order, strategies || []);
+            if (strategy) {
+                await allocateOrder(id, { strategy_id: strategy.id });
+                successCount++;
+            }
+        } catch (error) {
+            console.error(`Failed to allocate order ${id}`, error);
+        }
+    }
+
+    setBulkLoading(false);
+    setRowSelection({});
+    queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
+    toast.success(`${t('outbound.actions.allocateSelected', { count: successCount })} בהצלחה`);
+  };
+
+  // --- Bulk Cancel Handler ---
+  const handleBulkCancel = async () => {
+      const selectedIds = Object.keys(rowSelection).map(Number);
+      if (selectedIds.length === 0 || !confirm('האם אתה בטוח שברצונך לבטל את ההזמנות שנבחרו?')) return;
+
+      setBulkLoading(true);
+      for (const id of selectedIds) {
+          try {
+              await cancelOrder(id);
+          } catch (e) { console.error(e); }
+      }
+      setBulkLoading(false);
+      setRowSelection({});
+      queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
+      toast.success(t('outbound.actions.cancelSelected', { count: selectedIds.length }));
+  };
+
+  // --- Create Wave Handler ---
+  const handleCreateWave = async () => {
+      const selectedIds = Object.keys(rowSelection).map(Number);
+      if (selectedIds.length === 0) return;
+      
+      setBulkLoading(true);
+      try {
+          await createWave({ order_ids: selectedIds }); 
+          toast.success("גל נוצר בהצלחה");
+          queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
+          setRowSelection({});
+      } catch (err: any) {
+          toast.error(err.response?.data?.detail || "שגיאה ביצירת גל");
+      } finally {
+          setBulkLoading(false);
+      }
   };
 
   const columns = useMemo<ColumnDef<OutboundOrder>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        size: 40,
+      },
       {
         id: 'expander',
         header: () => null,
@@ -94,15 +176,15 @@ export default function OutboundOrders() {
             )}
           </Button>
         ),
-        size: 50,
+        size: 40,
       },
       {
         accessorKey: 'order_number',
         id: 'order_number',
-        header: 'Order Number',
+        header: t('outbound.orderNumber'),
         cell: ({ row }) => (
           <div>
-            <div className="font-semibold">{row.original.order_number}</div>
+            <div className="font-bold text-primary">{row.original.order_number}</div>
             <div className="text-xs text-muted-foreground">
               {row.original.order_type}
             </div>
@@ -112,14 +194,11 @@ export default function OutboundOrders() {
       {
         accessorKey: 'customer',
         id: 'customer',
-        header: 'Customer',
+        header: t('outbound.customer'),
         cell: ({ row }) =>
           row.original.customer ? (
             <div>
               <div className="font-medium">{row.original.customer.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {row.original.customer.code}
-              </div>
             </div>
           ) : (
             <span className="text-muted-foreground">-</span>
@@ -128,13 +207,11 @@ export default function OutboundOrders() {
       {
         accessorKey: 'status',
         id: 'status',
-        header: 'Status',
+        header: t('outbound.status'),
         cell: ({ row }) => {
           const color = getStatusColor(row.original.status);
           return (
-            <Badge
-              className={`bg-${color}-100 text-${color}-800 border-${color}-200`}
-            >
+            <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-200 hover:bg-${color}-100`}>
               {row.original.status}
             </Badge>
           );
@@ -143,14 +220,11 @@ export default function OutboundOrders() {
       {
         accessorKey: 'priority',
         id: 'priority',
-        header: 'Priority',
+        header: t('outbound.priority'),
         cell: ({ row }) => {
           const { label, color } = getPriorityInfo(row.original.priority);
           return (
-            <Badge
-              variant="outline"
-              className={`border-${color}-200 text-${color}-700`}
-            >
+            <Badge variant="outline" className={`border-${color}-200 text-${color}-700`}>
               {label}
             </Badge>
           );
@@ -158,13 +232,13 @@ export default function OutboundOrders() {
       },
       {
         id: 'progress',
-        header: 'Progress',
+        header: t('outbound.progress'),
         cell: ({ row }) => {
           const progress = calculateOrderProgress(row.original);
           return (
-            <div className="flex items-center gap-2">
-              <Progress value={progress} className="w-24 h-2" />
-              <span className="text-xs text-muted-foreground w-10 text-right">
+            <div className="flex items-center gap-2 w-24">
+              <Progress value={progress} className="h-2" />
+              <span className="text-xs text-muted-foreground w-8">
                 {progress}%
               </span>
             </div>
@@ -174,11 +248,11 @@ export default function OutboundOrders() {
       {
         accessorKey: 'requested_delivery_date',
         id: 'requested_delivery_date',
-        header: 'Delivery Date',
+        header: t('outbound.deliveryDate'),
         cell: ({ row }) =>
           row.original.requested_delivery_date ? (
             <span className="text-sm">
-              {format(new Date(row.original.requested_delivery_date), 'MMM dd, yyyy')}
+              {format(new Date(row.original.requested_delivery_date), 'dd/MM/yyyy')}
             </span>
           ) : (
             <span className="text-muted-foreground">-</span>
@@ -186,89 +260,106 @@ export default function OutboundOrders() {
       },
       {
         id: 'metrics',
-        header: 'Metrics',
+        header: t('outbound.linesCount'),
         cell: ({ row }) => {
           const metrics = row.original.metrics;
+          const linesCount = metrics?.total_lines || row.original.lines?.length || 0;
           return (
-            <div className="text-xs text-muted-foreground">
-              {metrics?.total_lines || 0} lines / {metrics?.total_units || 0} units
+            <div className="text-xs text-muted-foreground font-mono">
+              {linesCount}
             </div>
           );
         },
       },
     ],
-    []
+    [t]
   );
 
   const table = useReactTable({
     data: orders || [],
     columns,
-    state: { expanded, sorting, globalFilter, pagination, columnVisibility },
+    getRowId: (row) => row.id.toString(),
+    state: { expanded, sorting, globalFilter, pagination, columnVisibility, rowSelection },
     onExpandedChange: setExpanded,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange,
     onColumnVisibilityChange,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getRowCanExpand: () => true,
+    enableRowSelection: true,
   });
 
+  const selectedCount = Object.keys(rowSelection).length;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Outbound Orders</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage outbound orders, allocations, and picking operations
-        </p>
+    <div className="flex flex-col h-[calc(100vh-6rem)]">
+      <div className="mb-4 shrink-0">
+        <h1 className="text-3xl font-bold tracking-tight">{t('outbound.title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('outbound.description')}</p>
       </div>
 
-      <SmartTable
-        table={table}
-        columnsLength={columns.length}
-        isLoading={isLoading}
-        searchValue={globalFilter}
-        onSearchChange={setGlobalFilter}
-        noDataMessage="No outbound orders found"
-        actions={
-          <Button onClick={handleAddNew}>
-            <Plus className="ml-2 h-4 w-4" />
-            Create Order
-          </Button>
-        }
-        renderSubComponent={({ row }) => (
-          <OutboundOrderRowDetail order={row.original} colSpan={columns.length} />
-        )}
-      />
+      {/* Bulk Actions Bar */}
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 p-2 rounded-md mb-4 animate-in fade-in slide-in-from-top-2">
+            <span className="text-sm font-medium text-blue-900 ml-2">
+                {t('common.selected', { count: selectedCount })}
+            </span>
+            
+            <Button size="sm" onClick={handleBulkAllocate} disabled={bulkLoading} className="bg-blue-600 hover:bg-blue-700">
+                {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Package className="h-4 w-4 mr-2" />}
+                {t('outbound.actions.allocateSelected', { count: selectedCount })}
+            </Button>
 
-      {/* Create Order Sheet */}
-      <Sheet
-        open={isSheetOpen}
-        onOpenChange={(open) => {
-          setIsSheetOpen(open);
-        }}
-      >
-        <SheetContent side="left" className="w-full sm:max-w-2xl overflow-y-auto">
+            <Button size="sm" variant="outline" onClick={handleCreateWave} disabled={bulkLoading} className="bg-white hover:bg-slate-50 text-blue-700 border-blue-200">
+                {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Layers className="h-4 w-4 mr-2" />}
+                צור גל ליקוט
+            </Button>
+
+            <Button size="sm" variant="destructive" onClick={handleBulkCancel} disabled={bulkLoading}>
+                <XCircle className="h-4 w-4 mr-2" />
+                {t('outbound.actions.cancelSelected', { count: selectedCount })}
+            </Button>
+
+            <Button variant="ghost" size="sm" onClick={() => setRowSelection({})}>
+                {t('common.clearSelection')}
+            </Button>
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0">
+        <SmartTable
+            table={table}
+            columnsLength={columns.length}
+            isLoading={isLoading}
+            searchValue={globalFilter}
+            onSearchChange={setGlobalFilter}
+            noDataMessage={t('common.noData')}
+            containerClassName="h-full"
+            actions={
+                <Button onClick={() => setIsSheetOpen(true)}>
+                    <Plus className="ml-2 h-4 w-4" />
+                    {t('outbound.createOrder')}
+                </Button>
+            }
+            renderSubComponent={({ row }) => (
+                <OutboundOrderRowDetail order={row.original} />
+            )}
+        />
+      </div>
+
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent side="left">
           <SheetHeader>
-            <SheetTitle>Create Outbound Order</SheetTitle>
-            <SheetDescription>
-              Create a new outbound order with customer details and line items
-            </SheetDescription>
+            <SheetTitle>{t('outbound.createOrder')}</SheetTitle>
           </SheetHeader>
-          <div className="mt-6">
-            <div className="bg-muted/50 p-4 rounded-lg text-sm text-muted-foreground">
-              Order creation form will be implemented here with:
-              <ul className="list-disc ml-6 mt-2 space-y-1">
-                <li>Customer selection</li>
-                <li>Order type and priority</li>
-                <li>Delivery date</li>
-                <li>Line items with product, UOM, and quantity</li>
-                <li>Shipping details (JSONB)</li>
-              </ul>
-            </div>
+          <div className="mt-4">
+              <p className="text-muted-foreground">טופס יצירת הזמנה (יש להוסיף כאן את הטופס)</p>
           </div>
         </SheetContent>
       </Sheet>

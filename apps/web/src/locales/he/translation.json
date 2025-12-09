@@ -489,5 +489,58 @@
     "contact_info_name": "איש קשר",
     "contact_info_phone": "טלפון",
     "actions": "פעולות"
+  },
+  "outbound": {
+    "title": "הזמנות יציאה",
+    "description": "מרכז בקרה לליקוט והוצאת סחורה",
+    "createOrder": "הזמנה חדשה",
+    "orderNumber": "מספר הזמנה",
+    "customer": "לקוח",
+    "status": "סטטוס",
+    "priority": "עדיפות",
+    "progress": "התקדמות",
+    "deliveryDate": "תאריך אספקה",
+    "linesCount": "שורות / יחידות",
+    "actions": {
+      "allocate": "הרץ הקצאה",
+      "allocateSelected": "הקצה נבחרים ({{count}})",
+      "release": "שחרר לליקוט",
+      "cancel": "בטל הזמנה",
+      "cancelSelected": "בטל נבחרים ({{count}})"
+    },
+    "tabs": {
+      "lines": "שורות הזמנה",
+      "tasks": "משימות ליקוט"
+    },
+    "table": {
+      "product": "מוצר",
+      "sku": "מק״ט",
+      "ordered": "הוזמן",
+      "allocated": "הוקצה",
+      "picked": "לוקט",
+      "status": "סטטוס שורה",
+      "task": "משימה #",
+      "fromLocation": "ממיקום",
+      "qtyToPick": "כמות לליקוט"
+    },
+    "statuses": {
+      "DRAFT": "טיוטה",
+      "VERIFIED": "בוקר",
+      "PLANNED": "הוקצה",
+      "RELEASED": "שוחרר לליקוט",
+      "PICKING": "בליקוט",
+      "PICKED": "לוקט",
+      "PACKED": "נארז",
+      "SHIPPED": "נשלח",
+      "CANCELLED": "בוטל",
+      "PARTIAL": "חלקי",
+      "SHORT": "חוסר מלאי"
+    },
+    "priorities": {
+        "CRITICAL": "קריטי",
+        "HIGH": "גבוה",
+        "MEDIUM": "רגיל",
+        "LOW": "נמוך"
+    }
   }
 }

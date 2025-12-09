@@ -1,7 +1,20 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, Warehouse, FileText, LayoutDashboard, Users, Building2, Boxes, TruckIcon, Send } from 'lucide-react';
+import { 
+  LogOut, 
+  Package, 
+  Warehouse, 
+  FileText, 
+  LayoutDashboard, 
+  Users, 
+  Building2, 
+  Boxes, 
+  TruckIcon, 
+  Send,
+  Layers, // <-- הוספנו את זה
+  Settings // <-- הוספנו את זה
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -19,7 +32,9 @@ export default function Layout() {
     { icon: LayoutDashboard, label: t('layout.dashboard'), path: '/' },
     { icon: Boxes, label: t('layout.inventory'), path: '/inventory' },
     { icon: TruckIcon, label: t('layout.inbound'), path: '/inbound' },
-    { icon: Send, label: t('layout.outbound'), path: '/outbound' },
+    { icon: Send, label: t('outbound.title') || 'הזמנות יציאה', path: '/outbound' }, // שימוש בתרגום או Fallback
+    { icon: Layers, label: 'גלי ליקוט', path: '/outbound/waves' },
+    { icon: Settings, label: 'אסטרטגיות', path: '/outbound/strategies' },
     { icon: Package, label: t('layout.products'), path: '/products' },
     { icon: Users, label: t('layout.depositors'), path: '/depositors' },
     { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },
