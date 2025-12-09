@@ -186,7 +186,7 @@ class OutboundOrderResponse(BaseModel):
 
 
 class OutboundOrderListResponse(BaseModel):
-    """Schema for outbound order list response (minimal)."""
+    """Schema for outbound order list response with lines for expanded view."""
     id: int
     order_number: str
     customer_id: int
@@ -198,6 +198,7 @@ class OutboundOrderListResponse(BaseModel):
 
     # Relationships
     customer: Optional[OutboundCustomerSummary] = None
+    lines: List[OutboundLineResponse] = []
 
     class Config:
         from_attributes = True
@@ -209,7 +210,7 @@ class OutboundOrderListResponse(BaseModel):
 
 class OutboundWaveCreate(BaseModel):
     """Schema for creating an outbound wave."""
-    wave_number: str = Field(..., max_length=50)
+    wave_number: Optional[str] = Field(None, max_length=50)
     strategy_id: Optional[int] = None
     order_ids: Optional[List[int]] = []
 

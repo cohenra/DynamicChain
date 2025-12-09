@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from models.location import Location
     from models.inventory import Inventory
     from models.user import User
-    from models.inbound_shipment import InboundShipment  # <--- הוספנו ל-Type Checking
+    from models.inbound_shipment import InboundShipment
 
 class TransactionType(str, Enum):
     """Inventory transaction type enumeration."""
@@ -27,6 +27,7 @@ class TransactionType(str, Enum):
     STATUS_CHANGE = "STATUS_CHANGE"
     PALLET_SPLIT = "PALLET_SPLIT"
     PALLET_MERGE = "PALLET_MERGE"
+    ALLOCATION = "ALLOCATION"  # Outbound allocation transaction
 
 
 class InventoryTransaction(Base):
@@ -48,7 +49,7 @@ class InventoryTransaction(Base):
         Index('ix_inventory_transactions_reference_doc', 'reference_doc'),
         Index('ix_inventory_transactions_tenant_timestamp', 'tenant_id', 'timestamp'),
         Index('ix_inventory_transactions_tenant_product', 'tenant_id', 'product_id'),
-        Index('ix_inventory_transactions_inbound_shipment_id', 'inbound_shipment_id'), # <--- אינדקס חדש
+        Index('ix_inventory_transactions_inbound_shipment_id', 'inbound_shipment_id'),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, index=True)
@@ -60,8 +61,8 @@ class InventoryTransaction(Base):
     to_location_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("locations.id", ondelete="RESTRICT"), nullable=True)
     inventory_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("inventory.id", ondelete="RESTRICT"), nullable=False)
     performed_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
-    
-    # --- השדה החדש שחסר ---
+
+    # Link to inbound shipment for traceability
     inbound_shipment_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("inbound_shipments.id", ondelete="SET NULL"), nullable=True)
 
     # Core Fields
@@ -89,8 +90,8 @@ class InventoryTransaction(Base):
     to_location: Mapped[Optional["Location"]] = relationship("Location", foreign_keys=[to_location_id], back_populates="transactions_to")
     inventory: Mapped["Inventory"] = relationship("Inventory", back_populates="transactions")
     performed_by_user: Mapped["User"] = relationship("User", back_populates="inventory_transactions")
-    
-    # --- הקשר החדש ---
+
+    # Relationship to inbound shipment
     inbound_shipment: Mapped[Optional["InboundShipment"]] = relationship("InboundShipment", back_populates="transactions")
 
     def __repr__(self) -> str:

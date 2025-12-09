@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status  # <--- התיקון: הוספת status
+from fastapi import HTTPException, status
 
 from models.inbound_order import InboundOrder, InboundOrderStatus
 from models.inbound_shipment import InboundShipment, InboundShipmentStatus
@@ -336,6 +336,21 @@ class InboundService:
                 detail=f"Line {receive_data.inbound_line_id} does not belong to this order"
             )
 
+        # 4.5. GLOBAL QUANTITY VALIDATION: Check that total received doesn't exceed expected
+        # This prevents over-receiving across all warehouses/locations
+        new_total_received = line.received_quantity + receive_data.quantity
+        if new_total_received > line.expected_quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Cannot receive {receive_data.quantity} units. "
+                    f"Expected: {line.expected_quantity}, "
+                    f"Already received: {line.received_quantity}, "
+                    f"Attempting to receive: {receive_data.quantity}. "
+                    f"This would result in over-receiving ({new_total_received} > {line.expected_quantity})."
+                )
+            )
+
         # 5. Create inventory via inventory service
         inventory_service = InventoryService(self.db)
         inventory_receive_request = InventoryReceiveRequest(
@@ -358,7 +373,7 @@ class InboundService:
         )
 
         # 6. Update line received_quantity
-        line.received_quantity += receive_data.quantity
+        line.received_quantity = new_total_received
         await self.line_repo.update(line)
 
         # 7. Update shipment status if needed

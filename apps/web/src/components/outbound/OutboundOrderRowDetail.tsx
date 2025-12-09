@@ -74,7 +74,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
       
       {/* Secondary Action Bar */}
       {(canRelease || canAcceptShortages) && (
-        <div className="mb-4 flex gap-2 items-center bg-white p-2 rounded border shadow-sm justify-start">
+        <div className="mb-4 flex gap-2 items-center bg-white p-2 rounded border shadow-sm justify-end">
             {canAcceptShortages && (
               <Button onClick={handleAcceptShortages} disabled={!!actionLoading} size="sm" variant="destructive">
                 {actionLoading === 'accept-shortages' ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <AlertCircle className="h-4 w-4 ml-2" />}
@@ -98,7 +98,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
       )}
 
       <Tabs defaultValue="lines" className="w-full">
-        <TabsList className="bg-white border w-full justify-start h-10 p-0">
+        <TabsList className="bg-white border w-full justify-end h-10 p-0">
           <TabsTrigger value="lines" className="px-6 h-full rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
             {t('outbound.tabs.lines')} ({lines.length})
           </TabsTrigger>

@@ -35,14 +35,15 @@ class InventoryService:
         inbound_shipment_id: Optional[int] = None
     ) -> Inventory:
         """
-        Receive new stock into the warehouse.
+        Receive new stock into the warehouse with inventory consolidation.
 
         This method:
-        1. Validates product and location exist
-        2. Validates depositor exists and belongs to tenant
-        3. Generates unique LPN if not provided
-        4. Creates inventory record with FIFO date set to now
-        5. Creates INBOUND_RECEIVE transaction for billing
+        1. Validates product, location, and depositor exist
+        2. Checks for existing inventory with same attributes (consolidation)
+        3. If exists: Updates existing inventory quantity
+        4. If not exists: Creates new inventory record or uses provided LPN
+        5. Creates INBOUND_RECEIVE transaction for audit trail and billing
+        6. Uses atomic transaction to ensure data consistency
 
         Args:
             receive_data: Stock receiving data
@@ -51,7 +52,7 @@ class InventoryService:
             inbound_shipment_id: Optional ID of the inbound shipment for traceability
 
         Returns:
-            Created Inventory instance
+            Created or Updated Inventory instance
 
         Raises:
             HTTPException: If validation fails or duplicate LPN
@@ -93,63 +94,95 @@ class InventoryService:
                 detail=f"Location with ID {receive_data.location_id} not found"
             )
 
-        # Generate LPN if not provided
-        lpn = receive_data.lpn
-        if not lpn:
-            lpn = self._generate_lpn()
-        else:
-            # Check if LPN already exists for this tenant
-            existing_inventory = await self.inventory_repo.get_by_lpn(
-                lpn=lpn,
-                tenant_id=tenant_id
-            )
+        # Atomic transaction: Wrap inventory creation/update and transaction in a nested transaction
+        async with self.db.begin_nested():
+            now = datetime.utcnow()
+
+            # INVENTORY CONSOLIDATION: Check for existing inventory with same attributes
+            # to prevent fragmentation
+            from sqlalchemy import select, and_
+            consolidation_query = select(Inventory).where(
+                and_(
+                    Inventory.tenant_id == tenant_id,
+                    Inventory.product_id == receive_data.product_id,
+                    Inventory.location_id == receive_data.location_id,
+                    Inventory.depositor_id == receive_data.depositor_id,
+                    Inventory.batch_number == receive_data.batch_number,
+                    Inventory.expiry_date == receive_data.expiry_date,
+                    Inventory.status == InventoryStatus.AVAILABLE
+                )
+            ).with_for_update()  # Lock for update to prevent race conditions
+
+            result = await self.db.execute(consolidation_query)
+            existing_inventory = result.scalar_one_or_none()
+
             if existing_inventory:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"LPN '{lpn}' already exists for this tenant"
+                # CONSOLIDATE: Update existing inventory quantity
+                existing_inventory.quantity += receive_data.quantity
+                existing_inventory.updated_at = now
+                await self.db.flush()
+                await self.db.refresh(existing_inventory)
+                created_inventory = existing_inventory
+                lpn = existing_inventory.lpn
+            else:
+                # Create NEW inventory record
+                # Generate LPN if not provided
+                lpn = receive_data.lpn
+                if not lpn:
+                    lpn = self._generate_lpn()
+                else:
+                    # Check if LPN already exists for this tenant
+                    existing_lpn_inventory = await self.inventory_repo.get_by_lpn(
+                        lpn=lpn,
+                        tenant_id=tenant_id
+                    )
+                    if existing_lpn_inventory:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"LPN '{lpn}' already exists for this tenant"
+                        )
+
+                inventory = Inventory(
+                    tenant_id=tenant_id,
+                    depositor_id=receive_data.depositor_id,
+                    product_id=receive_data.product_id,
+                    location_id=receive_data.location_id,
+                    lpn=lpn,
+                    quantity=receive_data.quantity,
+                    status=InventoryStatus.AVAILABLE,
+                    batch_number=receive_data.batch_number,
+                    expiry_date=receive_data.expiry_date,
+                    fifo_date=now,  # CRITICAL: Set FIFO date to now for billing
+                    created_at=now,
+                    updated_at=now
                 )
 
-        # Create inventory record
-        now = datetime.utcnow()
-        inventory = Inventory(
-            tenant_id=tenant_id,
-            depositor_id=receive_data.depositor_id,
-            product_id=receive_data.product_id,
-            location_id=receive_data.location_id,
-            lpn=lpn,
-            quantity=receive_data.quantity,
-            status=InventoryStatus.AVAILABLE,
-            batch_number=receive_data.batch_number,
-            expiry_date=receive_data.expiry_date,
-            fifo_date=now,  # CRITICAL: Set FIFO date to now for billing
-            created_at=now,
-            updated_at=now
-        )
+                created_inventory = await self.inventory_repo.create(inventory)
 
-        created_inventory = await self.inventory_repo.create(inventory)
+            # Create transaction record for audit trail and billing
+            # This preserves the receipt event even if inventory was consolidated
+            transaction = InventoryTransaction(
+                tenant_id=tenant_id,
+                transaction_type=TransactionType.INBOUND_RECEIVE,
+                product_id=receive_data.product_id,
+                from_location_id=None,  # No source location for receiving
+                to_location_id=receive_data.location_id,
+                inventory_id=created_inventory.id,
+                quantity=receive_data.quantity,
+                reference_doc=receive_data.reference_doc,
+                performed_by=user_id,
+                inbound_shipment_id=inbound_shipment_id,  # Critical: Link to shipment for traceability
+                timestamp=now,
+                billing_metadata={
+                    "operation": "receive",
+                    "lpn": lpn,
+                    "batch_number": receive_data.batch_number,
+                    "expiry_date": receive_data.expiry_date.isoformat() if receive_data.expiry_date else None,
+                    "consolidated": existing_inventory is not None
+                }
+            )
 
-        # Create transaction record for audit trail and billing
-        transaction = InventoryTransaction(
-            tenant_id=tenant_id,
-            transaction_type=TransactionType.INBOUND_RECEIVE,
-            product_id=receive_data.product_id,
-            from_location_id=None,  # No source location for receiving
-            to_location_id=receive_data.location_id,
-            inventory_id=created_inventory.id,
-            quantity=receive_data.quantity,
-            reference_doc=receive_data.reference_doc,
-            performed_by=user_id,
-            inbound_shipment_id=inbound_shipment_id,  # Critical: Link to shipment for traceability
-            timestamp=now,
-            billing_metadata={
-                "operation": "receive",
-                "lpn": lpn,
-                "batch_number": receive_data.batch_number,
-                "expiry_date": receive_data.expiry_date.isoformat() if receive_data.expiry_date else None
-            }
-        )
-
-        await self.transaction_repo.create(transaction)
+            await self.transaction_repo.create(transaction)
 
         return created_inventory
 

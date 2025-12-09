@@ -16,14 +16,14 @@ class OutboundOrderRepository:
         self.db.add(order)
         await self.db.flush()
         await self.db.refresh(order)
-        # מחזירים את האובייקט המלא עם הנתונים
+        # Return the full object with all relationships loaded
         return await self.get_by_id(order.id, order.tenant_id)
 
     async def get_by_id(self, order_id: int, tenant_id: int) -> Optional[OutboundOrder]:
         query = select(OutboundOrder).where(
             and_(OutboundOrder.id == order_id, OutboundOrder.tenant_id == tenant_id)
         ).options(
-            # טעינת נתונים מקושרים (חשוב מאוד!)
+            # Eager load all related data to prevent N+1 queries
             selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
             selectinload(OutboundOrder.lines).selectinload(OutboundLine.uom),
             selectinload(OutboundOrder.pick_tasks).selectinload(PickTask.from_location),
@@ -45,15 +45,14 @@ class OutboundOrderRepository:
     ) -> List[OutboundOrder]:
         query = select(OutboundOrder).where(OutboundOrder.tenant_id == tenant_id)
 
-        # --- התיקון: טעינת שורות ומשימות ברשימה ---
+        # Eager load all relationships to prevent N+1 queries
         query = query.options(
             selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
             selectinload(OutboundOrder.lines).selectinload(OutboundLine.uom),
-            selectinload(OutboundOrder.pick_tasks),
+            selectinload(OutboundOrder.pick_tasks).selectinload(PickTask.from_location),
             selectinload(OutboundOrder.customer),
             selectinload(OutboundOrder.wave)
         )
-        # ------------------------------------------
 
         if status:
             query = query.where(OutboundOrder.status == status)
@@ -68,7 +67,7 @@ class OutboundOrderRepository:
             query = query.where(
                 or_(
                     OutboundOrder.order_number.ilike(f"%{search}%"),
-                    # אפשר להוסיף חיפוש לפי שם לקוח אם עושים JOIN
+                    # Additional search filters can be added here
                 )
             )
 

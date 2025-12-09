@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React from "react";
 import { flexRender, Table as ReactTable, Row } from "@tanstack/react-table";
 import {
   Table,
@@ -42,23 +42,9 @@ export function SmartTable<TData>({
   containerClassName,
 }: SmartTableProps<TData>) {
   const { t } = useTranslation();
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const [tableWidth, setTableWidth] = useState<number>(0);
-
-  // חישוב רוחב דינמי כדי למנוע חריגה מהמסך
-  useEffect(() => {
-    if (!tableContainerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setTableWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(tableContainerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   return (
-    <div className="flex flex-col space-y-4" ref={tableContainerRef}>
+    <div className="flex flex-col space-y-4">
       <DataTableToolbar
         table={table}
         searchKey={searchKey}
@@ -69,8 +55,8 @@ export function SmartTable<TData>({
       />
 
       <div className={cn("rounded-md border bg-white shadow-sm overflow-x-auto", containerClassName)}>
-        <div className="relative">
-            <Table className="w-full">
+        <div className="relative overflow-x-auto">
+            <Table style={{ tableLayout: 'fixed', width: '100%' }} className="w-full">
             <TableHeader className="bg-white">
                 {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
@@ -107,16 +93,11 @@ export function SmartTable<TData>({
                         ))}
                     </TableRow>
                     
-                    {/* Detail Row Wrapper - The Magic Fix */}
+                    {/* Expanded Row Detail */}
                     {row.getIsExpanded() && renderSubComponent && (
                         <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100 bg-slate-50/30">
-                            {/* This div acts as a width constraint. 
-                                We set its width exactly to the table container width.
-                                This forces the inner content to scroll horizontally if it's too wide,
-                                INSTEAD of expanding the parent table.
-                            */}
-                            <div style={{ maxWidth: tableWidth ? `${tableWidth}px` : '90vw' }} className="w-full">
+                            <div className="w-full overflow-x-auto">
                                 {renderSubComponent({ row })}
                             </div>
                         </TableCell>

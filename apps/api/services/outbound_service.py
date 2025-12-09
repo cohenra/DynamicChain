@@ -161,22 +161,36 @@ class OutboundService:
         return order
 
     async def create_wave(self, wave_data: OutboundWaveCreate, tenant_id: int, user_id: int) -> OutboundWave:
+        """
+        Create a new wave with auto-generated wave number if not provided.
+        """
+        from datetime import datetime
+
+        # Auto-generate wave_number if not provided
+        if wave_data.wave_number:
+            wave_number = wave_data.wave_number
+        else:
+            # Generate wave number: WV-YYYYMMDD-XXX
+            timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+            wave_number = f"WV-{timestamp}"
+
         # Create wave
         wave = OutboundWave(
             tenant_id=tenant_id,
-            wave_number=f"WV-{wave_data.order_ids[0]}", # Simple logic for now
+            wave_number=wave_number,
             status=OutboundWaveStatus.PLANNING,
             created_by=user_id
         )
         created_wave = await self.wave_repo.create(wave)
 
         # Link orders to wave
-        for order_id in wave_data.order_ids:
-            order = await self.order_repo.get_by_id(order_id, tenant_id)
-            if order:
-                order.wave_id = created_wave.id
-                await self.order_repo.update(order)
-        
+        if wave_data.order_ids:
+            for order_id in wave_data.order_ids:
+                order = await self.order_repo.get_by_id(order_id, tenant_id)
+                if order:
+                    order.wave_id = created_wave.id
+                    await self.order_repo.update(order)
+
         return created_wave
 
     async def list_waves(self, tenant_id: int) -> List[OutboundWave]:
@@ -211,14 +225,27 @@ class OutboundService:
         task.assigned_to_user_id = user_id
         await self.task_repo.update(task)
 
-        # 3. Update Line
+        # 3. Update Line with database-level atomic update to prevent race conditions
+        from sqlalchemy import update
+        from decimal import Decimal
+
+        # Use atomic database-level update for qty_picked
+        stmt = (
+            update(OutboundLine)
+            .where(OutboundLine.id == task.line_id)
+            .values(qty_picked=OutboundLine.qty_picked + Decimal(str(qty_picked)))
+            .execution_options(synchronize_session="fetch")
+        )
+        await self.db.execute(stmt)
+        await self.db.flush()
+
+        # Now fetch the updated line to check status
         line = await self.line_repo.get_by_id(task.line_id)
-        line.qty_picked += qty_picked
-        
-        # Check if line is fully picked
-        if line.qty_picked >= line.qty_ordered:
+
+        # Check if line is fully picked and update status if needed
+        if line.qty_picked >= line.qty_ordered and line.line_status != "PICKED":
             line.line_status = "PICKED"
-        await self.line_repo.update(line)
+            await self.line_repo.update(line)
 
         # 4. Check Order Status
         # If all lines are picked, update order status to PICKED

@@ -46,10 +46,17 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
     },
   });
 
-  // Fetch locations
+  // TODO: Import useAuthStore and get warehouse_id when added to auth
+  // import { useAuthStore } from '@/store/authStore';
+  // const warehouseId = useAuthStore(state => state.warehouseId);
+
+  // Fetch locations filtered by user's warehouse
+  // NOTE: warehouse_id filtering requires authStore to be updated to include warehouse_id
   const { data: locations } = useQuery({
-    queryKey: ['locations'],
-    queryFn: () => locationService.getLocations(),
+    queryKey: ['locations', /* warehouseId */],
+    queryFn: () => locationService.getLocations({
+      // warehouse_id: warehouseId, // Uncomment when warehouse_id is available in authStore
+    }),
   });
 
   // Generate auto LPN placeholder
