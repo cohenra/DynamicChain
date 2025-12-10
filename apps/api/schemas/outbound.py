@@ -53,6 +53,16 @@ class LocationSummary(BaseModel):
         from_attributes = True
 
 
+class OutboundWaveSummary(BaseModel):
+    """Minimal Wave info for order list."""
+    id: int
+    wave_number: str
+    status: str
+
+    class Config:
+        from_attributes = True
+
+
 # ============================================================================
 # Allocation Strategy Schemas
 # ============================================================================
@@ -178,6 +188,7 @@ class OutboundOrderResponse(BaseModel):
 
     # Relationships
     customer: Optional[OutboundCustomerSummary] = None
+    wave: Optional[OutboundWaveSummary] = None
     lines: List[OutboundLineResponse] = []
     pick_tasks: List[PickTaskResponse] = []
 
@@ -198,6 +209,7 @@ class OutboundOrderListResponse(BaseModel):
 
     # Relationships
     customer: Optional[OutboundCustomerSummary] = None
+    wave: Optional[OutboundWaveSummary] = None  # <--- Added this field
     lines: List[OutboundLineResponse] = []
 
     class Config:

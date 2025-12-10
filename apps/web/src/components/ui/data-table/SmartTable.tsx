@@ -56,11 +56,13 @@ export function SmartTable<TData>({
 
       <div className={cn("rounded-md border bg-white shadow-sm", containerClassName)}>
         <div className="w-full overflow-x-auto">
+            {/* FIX: Removed fixed layout, added min-w-max to allow natural width */}
             <Table className="w-full min-w-max">
             <TableHeader className="bg-white">
                 {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
                     {headerGroup.headers.map((header) => (
+                    // FIX: Added text-start for proper RTL alignment of headers
                     <TableHead key={header.id} className="h-10 font-bold text-gray-700 whitespace-nowrap px-4 text-start">
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
@@ -97,6 +99,7 @@ export function SmartTable<TData>({
                     {row.getIsExpanded() && renderSubComponent && (
                         <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100 bg-slate-50/30">
+                            {/* Inner content wrapper */}
                             <div className="w-full">
                                 {renderSubComponent({ row })}
                             </div>

@@ -11,6 +11,7 @@ class DepositorBase(BaseModel):
         default_factory=dict,
         description="Contact information (email, phone, address, etc.)"
     )
+    allow_over_receiving: bool = Field(default=False, description="Allow receiving more than expected quantity")
 
 
 class DepositorCreate(DepositorBase):
@@ -23,6 +24,7 @@ class DepositorUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     code: Optional[str] = Field(None, min_length=1, max_length=100)
     contact_info: Optional[Dict[str, Any]] = None
+    allow_over_receiving: Optional[bool] = None
 
 
 class DepositorResponse(DepositorBase):

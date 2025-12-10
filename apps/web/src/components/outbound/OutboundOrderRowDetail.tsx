@@ -69,6 +69,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
   const tasks = order.pick_tasks || [];
 
   return (
+    // FIX: Enforcing RTL direction on the container
     <div className="bg-slate-50/50 p-4 w-full border-t shadow-inner" dir="rtl">
       
       {/* Secondary Action Bar */}
@@ -97,7 +98,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
       )}
 
       <Tabs defaultValue="lines" className="w-full">
-        {/* FIX: Changed justify-end to justify-start for RTL alignment */}
+        {/* FIX: justify-start combined with dir="rtl" aligns to the right */}
         <TabsList className="bg-white border w-full justify-start h-10 p-0">
           <TabsTrigger value="lines" className="px-6 h-full rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
             {t('outbound.tabs.lines')} ({lines.length})
@@ -109,10 +110,10 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
 
         <TabsContent value="lines" className="mt-4">
           <div className="bg-white rounded-md border overflow-hidden shadow-sm">
-            <Table>
+            <Table dir="rtl"> {/* Explicitly set RTL for the table */}
               <TableHeader className="bg-slate-50">
-                {/* FIX: Column order matches RTL reading (Right to Left in visual layout) */}
                 <TableRow>
+                   {/* FIX: Reordered columns to match Hebrew RTL reading order (Right to Left) */}
                   <TableHead className="text-right w-[30%]">{t('outbound.table.product')}</TableHead>
                   <TableHead className="text-center">{t('outbound.table.ordered')}</TableHead>
                   <TableHead className="text-center">{t('outbound.table.allocated')}</TableHead>
@@ -129,7 +130,6 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
                     const rowClass = isShort ? 'bg-amber-50/50 hover:bg-amber-100/50' : 'hover:bg-slate-50';
                     return (
                       <TableRow key={line.id} className={rowClass}>
-                        {/* FIX: Cells match Header Order */}
                         <TableCell>
                           <div className="font-medium">{line.product?.name}</div>
                           <div className="text-xs text-muted-foreground font-mono">{line.product?.sku}</div>
@@ -151,7 +151,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
 
         <TabsContent value="tasks" className="mt-4">
            <div className="bg-white rounded-md border overflow-hidden shadow-sm">
-             <Table>
+             <Table dir="rtl">
                <TableHeader className="bg-slate-50">
                  <TableRow>
                    <TableHead className="text-right">{t('outbound.table.task')}</TableHead>

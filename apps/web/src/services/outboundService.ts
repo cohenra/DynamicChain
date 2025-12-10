@@ -117,6 +117,11 @@ export interface OutboundOrder {
     name: string;
     code: string;
   };
+  wave?: {  // <-- Added
+      id: number;
+      wave_number: string;
+      status: string;
+  };
   lines: OutboundLine[];
   pick_tasks: PickTask[];
 }

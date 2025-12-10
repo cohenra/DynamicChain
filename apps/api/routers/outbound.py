@@ -99,21 +99,13 @@ async def create_outbound_order(
 ) -> OutboundOrderResponse:
     """
     Create a new outbound order.
-
-    Validates that all products exist before creating the order.
     """
     service = OutboundService(db)
+    # FIX: Pass order_data object directly, not exploded arguments
     order = await service.create_order(
-        order_number=order_data.order_number,
-        customer_id=order_data.customer_id,
-        order_type=order_data.order_type,
-        lines=[line.model_dump() for line in order_data.lines],
+        order_data=order_data,
         tenant_id=current_user.tenant_id,
-        priority=order_data.priority,
-        requested_delivery_date=order_data.requested_delivery_date,
-        shipping_details=order_data.shipping_details,
-        notes=order_data.notes,
-        created_by=current_user.id
+        user_id=current_user.id
     )
     return OutboundOrderResponse.model_validate(order)
 
@@ -142,8 +134,6 @@ async def allocate_order(
 ) -> OutboundOrderResponse:
     """
     Allocate inventory for an order.
-
-    Creates PickTask records and updates order status to PLANNED.
     """
     service = OutboundService(db)
     order = await service.allocate_order(
@@ -162,8 +152,6 @@ async def release_order(
 ) -> OutboundOrderResponse:
     """
     Release an order (change status to RELEASED).
-
-    Order must be in PLANNED status.
     """
     service = OutboundService(db)
     order = await service.release_order(
@@ -219,12 +207,11 @@ async def create_outbound_wave(
 ) -> OutboundWaveResponse:
     """Create a new outbound wave."""
     service = OutboundService(db)
+    # FIX: Pass wave_data object directly
     wave = await service.create_wave(
-        wave_number=wave_data.wave_number,
+        wave_data=wave_data,
         tenant_id=current_user.tenant_id,
-        strategy_id=wave_data.strategy_id,
-        order_ids=wave_data.order_ids,
-        created_by=current_user.id
+        user_id=current_user.id
     )
     return OutboundWaveResponse.model_validate(wave)
 
@@ -270,9 +257,6 @@ async def allocate_wave(
 ) -> OutboundWaveResponse:
     """
     Allocate inventory for all orders in a wave.
-
-    Uses the wave's strategy for allocation.
-    Creates PickTask records and updates wave status to ALLOCATED.
     """
     service = OutboundService(db)
     wave = await service.allocate_wave(
@@ -290,8 +274,6 @@ async def release_wave(
 ) -> OutboundWaveResponse:
     """
     Release a wave (change status to RELEASED).
-
-    Wave must be in ALLOCATED status.
     """
     service = OutboundService(db)
     wave = await service.release_wave(
@@ -313,11 +295,6 @@ async def accept_order_shortages(
 ) -> OutboundOrderResponse:
     """
     Accept shortages for an order and release it for picking.
-
-    This allows orders with PARTIAL or SHORT line statuses to proceed.
-    The remaining unallocated quantity stays as backorder (not cancelled).
-
-    Order must be in PLANNED or VERIFIED status.
     """
     service = OutboundService(db)
     order = await service.accept_shortages(
@@ -336,20 +313,12 @@ async def complete_pick_task(
 ) -> dict:
     """
     Complete a pick task and update inventory.
-
-    This endpoint:
-    - Validates the picked quantity
-    - Decreases both quantity and allocated_quantity from inventory
-    - Creates audit transaction
-    - Updates pick task status to COMPLETED
-    - Updates outbound line qty_picked
-
-    Returns inventory status after the pick.
     """
     service = OutboundService(db)
     result = await service.complete_pick_task(
         task_id=task_id,
         qty_picked=qty_picked,
-        tenant_id=current_user.tenant_id
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
     )
     return result

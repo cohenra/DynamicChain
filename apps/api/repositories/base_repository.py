@@ -86,6 +86,7 @@ class BaseRepository(Generic[ModelType]):
             else:
                 query = query.order_by(order_by)
         else:
+            # Default ordering by created_at if available
             if hasattr(self.model, 'created_at'):
                 query = query.order_by(self.model.created_at.desc())
 

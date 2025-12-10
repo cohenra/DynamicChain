@@ -9,6 +9,7 @@ from models.inbound_line import InboundLine
 from repositories.inbound_order_repository import InboundOrderRepository
 from repositories.inbound_shipment_repository import InboundShipmentRepository
 from repositories.inbound_line_repository import InboundLineRepository
+from repositories.depositor_repository import DepositorRepository
 from schemas.inbound import InboundOrderCreateRequest, InboundLineCreate, InboundLineUpdate
 
 class InboundService:
@@ -19,6 +20,7 @@ class InboundService:
         self.order_repo = InboundOrderRepository(db)
         self.shipment_repo = InboundShipmentRepository(db)
         self.line_repo = InboundLineRepository(db)
+        self.depositor_repo = DepositorRepository(db)
 
     async def list_orders(
         self,
@@ -280,26 +282,7 @@ class InboundService:
         user_id: int
     ) -> InboundShipment:
         """
-        Receive an item from a shipment, creating inventory and updating line quantities.
-
-        This method:
-        1. Validates shipment exists and is not CLOSED
-        2. Verifies inbound_line_id belongs to shipment's order
-        3. Creates inventory record via inventory_service
-        4. Updates InboundLine received_quantity
-        5. Changes shipment status from SCHEDULED to RECEIVING if needed
-
-        Args:
-            shipment_id: ID of the shipment
-            receive_data: Receiving data including line, location, quantity, etc.
-            tenant_id: ID of the tenant
-            user_id: ID of the user performing the operation
-
-        Returns:
-            Updated InboundShipment instance
-
-        Raises:
-            HTTPException: If validation fails
+        Receive an item from a shipment with over-receiving check logic.
         """
         from schemas.inbound import ReceiveShipmentItemRequest
         from services.inventory_service import InventoryService
@@ -336,20 +319,24 @@ class InboundService:
                 detail=f"Line {receive_data.inbound_line_id} does not belong to this order"
             )
 
-        # 4.5. GLOBAL QUANTITY VALIDATION: Check that total received doesn't exceed expected
-        # This prevents over-receiving across all warehouses/locations
+        # 4.5. GLOBAL QUANTITY VALIDATION with Flag Check
         new_total_received = line.received_quantity + receive_data.quantity
+        
         if new_total_received > line.expected_quantity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Cannot receive {receive_data.quantity} units. "
-                    f"Expected: {line.expected_quantity}, "
-                    f"Already received: {line.received_quantity}, "
-                    f"Attempting to receive: {receive_data.quantity}. "
-                    f"This would result in over-receiving ({new_total_received} > {line.expected_quantity})."
+            # Check if depositor allows over-receiving
+            depositor = await self.depositor_repo.get_by_id(order.customer_id, tenant_id)
+            allow_over = depositor.allow_over_receiving if depositor else False
+            
+            if not allow_over:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Cannot receive {receive_data.quantity} units. "
+                        f"Expected: {line.expected_quantity}, "
+                        f"Already received: {line.received_quantity}. "
+                        f"Over-receiving is disabled for this depositor."
+                    )
                 )
-            )
 
         # 5. Create inventory via inventory service
         inventory_service = InventoryService(self.db)
@@ -369,7 +356,7 @@ class InboundService:
             receive_data=inventory_receive_request,
             tenant_id=tenant_id,
             user_id=user_id,
-            inbound_shipment_id=shipment_id  # Critical: Link transaction to shipment
+            inbound_shipment_id=shipment_id
         )
 
         # 6. Update line received_quantity

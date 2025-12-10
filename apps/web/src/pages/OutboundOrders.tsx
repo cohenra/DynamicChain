@@ -31,7 +31,6 @@ import { useTableSettings } from '@/hooks/use-table-settings';
 import type { OutboundOrder } from '@/services/outboundService';
 import {
   getOrders,
-  createOrder,
   allocateOrder,
   cancelOrder,
   createWave,
@@ -95,13 +94,13 @@ export default function OutboundOrders() {
     setBulkLoading(false);
     setRowSelection({});
     queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
-    toast.success(`${t('outbound.actions.allocateSelected', { count: successCount })} בהצלחה`);
+    toast.success(t('outbound.actions.allocateSelected', { count: successCount }) + ' ' + t('common.success', 'בוצע בהצלחה'));
   };
 
   // --- Bulk Cancel Handler ---
   const handleBulkCancel = async () => {
       const selectedIds = Object.keys(rowSelection).map(Number);
-      if (selectedIds.length === 0 || !confirm('האם אתה בטוח שברצונך לבטל את ההזמנות שנבחרו?')) return;
+      if (selectedIds.length === 0 || !confirm(t('outbound.actions.cancelConfirm', 'האם אתה בטוח?'))) return;
 
       setBulkLoading(true);
       for (const id of selectedIds) {
@@ -123,11 +122,11 @@ export default function OutboundOrders() {
       setBulkLoading(true);
       try {
           await createWave({ order_ids: selectedIds }); 
-          toast.success("גל נוצר בהצלחה");
+          toast.success(t('outbound.actions.waveCreated', 'גל נוצר בהצלחה'));
           queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
           setRowSelection({});
       } catch (err: any) {
-          toast.error(err.response?.data?.detail || "שגיאה ביצירת גל");
+          toast.error(err.response?.data?.detail || t('common.error'));
       } finally {
           setBulkLoading(false);
       }
@@ -191,6 +190,15 @@ export default function OutboundOrders() {
           </div>
         ),
       },
+      // --- עמודת גל חדשה ---
+      {
+        accessorKey: 'wave.wave_number',
+        id: 'wave',
+        header: t('outbound.waveNumber', 'מספר גל'),
+        cell: ({ row }) => row.original.wave ? (
+            <Badge variant="outline">{row.original.wave.wave_number}</Badge>
+        ) : '-',
+      },
       {
         accessorKey: 'customer',
         id: 'customer',
@@ -212,7 +220,7 @@ export default function OutboundOrders() {
           const color = getStatusColor(row.original.status);
           return (
             <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-200 hover:bg-${color}-100`}>
-              {row.original.status}
+              {t(`outbound.statuses.${row.original.status}`)}
             </Badge>
           );
         },
@@ -225,7 +233,7 @@ export default function OutboundOrders() {
           const { label, color } = getPriorityInfo(row.original.priority);
           return (
             <Badge variant="outline" className={`border-${color}-200 text-${color}-700`}>
-              {label}
+              {t(`outbound.priorities.${label}`)}
             </Badge>
           );
         },
@@ -318,7 +326,7 @@ export default function OutboundOrders() {
 
             <Button size="sm" variant="outline" onClick={handleCreateWave} disabled={bulkLoading} className="bg-white hover:bg-slate-50 text-blue-700 border-blue-200">
                 {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Layers className="h-4 w-4 mr-2" />}
-                צור גל ליקוט
+                {t('outbound.actions.createWave', 'צור גל ליקוט')}
             </Button>
 
             <Button size="sm" variant="destructive" onClick={handleBulkCancel} disabled={bulkLoading}>
@@ -358,7 +366,7 @@ export default function OutboundOrders() {
             <SheetTitle>{t('outbound.createOrder')}</SheetTitle>
           </SheetHeader>
           <div className="mt-4">
-              <p className="text-muted-foreground">טופס יצירת הזמנה (יש להוסיף כאן את הטופס)</p>
+              <p className="text-muted-foreground">{t('common.comingSoon', 'בקרוב...')}</p>
           </div>
         </SheetContent>
       </Sheet>

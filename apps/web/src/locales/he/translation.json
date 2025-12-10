@@ -50,11 +50,29 @@
     "inventory": "ניהול מלאי",
     "inbound": "הזמנות קבלה",
     "outbound": "הזמנות יציאה",
+    "waves": "גלי ליקוט",
+    "strategies": "אסטרטגיות",
     "products": "מוצרים",
     "depositors": "מאחסנים",
     "warehouses": "מחסנים",
     "locations": "מיקומים",
     "invoices": "חשבוניות"
+  },
+  "dashboard": {
+    "title": "דשבורד",
+    "welcome": "ברוכים הבאים ל-LogiSnap",
+    "welcomeDescription": "מערכת ניהול מחסנים מתקדמת",
+    "phase1Complete": "שלב 1 הושלם בהצלחה - מערכת האימות והתשתית הבסיסית מוכנות לשימוש",
+    "systemStatus": "סטטוס מערכת",
+    "generalInfo": "מידע כללי",
+    "version": "גרסה:",
+    "status": "סטטוס:",
+    "active": "פעיל",
+    "nextSteps": "שלבים הבאים",
+    "whatNext": "מה בהמשך?",
+    "phase2": "• שלב 2: WMS Core",
+    "phase3": "• שלב 3: מנוע חיוב",
+    "phase4": "• שלב 4: שיפורים"
   },
   "inventory": {
     "title": "ניהול מלאי",
@@ -95,7 +113,8 @@
         "CORRECTION": "תיקון טעות",
         "STATUS_CHANGE": "שינוי סטטוס",
         "PALLET_SPLIT": "פיצול משטח",
-        "PALLET_MERGE": "איחוד משטח"
+        "PALLET_MERGE": "איחוד משטח",
+        "ALLOCATION": "הקצאת מלאי"
     },
     "correction": {
         "title": "תיקון טרנזקציה",
@@ -189,6 +208,72 @@
         "createSuccess": "משלוח נוצר בהצלחה"
     }
   },
+  "outbound": {
+    "title": "הזמנות יציאה",
+    "description": "מרכז בקרה לליקוט והוצאת סחורה",
+    "createOrder": "הזמנה חדשה",
+    "orderNumber": "מספר הזמנה",
+    "customer": "לקוח",
+    "status": "סטטוס",
+    "priority": "עדיפות",
+    "progress": "התקדמות",
+    "deliveryDate": "תאריך אספקה",
+    "linesCount": "שורות / יחידות",
+    "waveNumber": "מספר גל",
+    "ordersCount": "כמות הזמנות",
+    "createdDate": "נוצר בתאריך",
+    "strategy": "אסטרטגיה",
+    "pickingType": "סוג ליקוט",
+    "allocationPolicy": "מדיניות הקצאה",
+    "warehouseLogic": "פיצול מחסנים",
+    "actions": {
+      "allocate": "הרץ הקצאה",
+      "allocateSelected": "הקצה נבחרים ({{count}})",
+      "release": "שחרר לליקוט",
+      "cancel": "בטל הזמנה",
+      "cancelSelected": "בטל נבחרים ({{count}})",
+      "createWave": "צור גל ליקוט",
+      "acceptShortages": "אשר חוסרים"
+    },
+    "tabs": {
+      "lines": "שורות הזמנה",
+      "tasks": "משימות ליקוט"
+    },
+    "table": {
+      "product": "מוצר",
+      "sku": "מק״ט",
+      "ordered": "הוזמן",
+      "allocated": "הוקצה",
+      "picked": "לוקט",
+      "status": "סטטוס שורה",
+      "task": "משימה #",
+      "fromLocation": "ממיקום",
+      "qtyToPick": "כמות לליקוט"
+    },
+    "statuses": {
+      "DRAFT": "טיוטה",
+      "VERIFIED": "בוקר",
+      "PLANNED": "הוקצה",
+      "RELEASED": "שוחרר לליקוט",
+      "PICKING": "בליקוט",
+      "PICKED": "לוקט",
+      "PACKED": "נארז",
+      "SHIPPED": "נשלח",
+      "CANCELLED": "בוטל",
+      "PARTIAL": "חלקי",
+      "SHORT": "חוסר מלאי",
+      "PLANNING": "בתכנון",
+      "ALLOCATED": "הוקצה",
+      "IN_PROGRESS": "בביצוע",
+      "COMPLETED": "הושלם"
+    },
+    "priorities": {
+        "CRITICAL": "קריטי",
+        "HIGH": "גבוה",
+        "MEDIUM": "רגיל",
+        "LOW": "נמוך"
+    }
+  },
   "products": {
     "title": "מוצרים",
     "description": "נהל את מוצרי המלאי שלך",
@@ -269,6 +354,8 @@
       "deleteError": "שגיאה במחיקת אריזה",
       "confirmDelete": "האם למחוק אריזה זו?",
       "packagingType": "סוג אריזה",
+      "packagingTypeRequired": "סוג אריזה הוא שדה חובה",
+      "packagingTypeDescription": "בחר סוג אריזה מהרשימה",
       "contains": "מכיל (יח' בסיס)",
       "packagingBarcode": "ברקוד אריזה",
       "dimensionsShort": "מידות",
@@ -293,8 +380,6 @@
       "calculatedVolume": "נפח מחושב",
       "weightOptional": "משקל (אופציונלי)",
       "weightDescription": "משקל האריזה בק\"ג",
-      "packagingTypeRequired": "סוג אריזה הוא שדה חובה",
-      "packagingTypeDescription": "בחר סוג אריזה מהרשימה",
       "conversionFactorMustBeGreaterThanOne": "מקדם ההמרה חייב להיות גדול מ-1",
       "uomName": "שם יחידה",
       "volume": "נפח"
@@ -400,7 +485,7 @@
     "aisle": "מעבר",
     "bay": "מפרץ",
     "level": "רמה",
-    "slot": "תא",
+    "slot": "איתור",
     "type": "סוג",
     "usage": "שימוש",
     "pickSequence": "רצף איסוף",
@@ -489,58 +574,5 @@
     "contact_info_name": "איש קשר",
     "contact_info_phone": "טלפון",
     "actions": "פעולות"
-  },
-  "outbound": {
-    "title": "הזמנות יציאה",
-    "description": "מרכז בקרה לליקוט והוצאת סחורה",
-    "createOrder": "הזמנה חדשה",
-    "orderNumber": "מספר הזמנה",
-    "customer": "לקוח",
-    "status": "סטטוס",
-    "priority": "עדיפות",
-    "progress": "התקדמות",
-    "deliveryDate": "תאריך אספקה",
-    "linesCount": "שורות / יחידות",
-    "actions": {
-      "allocate": "הרץ הקצאה",
-      "allocateSelected": "הקצה נבחרים ({{count}})",
-      "release": "שחרר לליקוט",
-      "cancel": "בטל הזמנה",
-      "cancelSelected": "בטל נבחרים ({{count}})"
-    },
-    "tabs": {
-      "lines": "שורות הזמנה",
-      "tasks": "משימות ליקוט"
-    },
-    "table": {
-      "product": "מוצר",
-      "sku": "מק״ט",
-      "ordered": "הוזמן",
-      "allocated": "הוקצה",
-      "picked": "לוקט",
-      "status": "סטטוס שורה",
-      "task": "משימה #",
-      "fromLocation": "ממיקום",
-      "qtyToPick": "כמות לליקוט"
-    },
-    "statuses": {
-      "DRAFT": "טיוטה",
-      "VERIFIED": "בוקר",
-      "PLANNED": "הוקצה",
-      "RELEASED": "שוחרר לליקוט",
-      "PICKING": "בליקוט",
-      "PICKED": "לוקט",
-      "PACKED": "נארז",
-      "SHIPPED": "נשלח",
-      "CANCELLED": "בוטל",
-      "PARTIAL": "חלקי",
-      "SHORT": "חוסר מלאי"
-    },
-    "priorities": {
-        "CRITICAL": "קריטי",
-        "HIGH": "גבוה",
-        "MEDIUM": "רגיל",
-        "LOW": "נמוך"
-    }
   }
 }

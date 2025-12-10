@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict
-from sqlalchemy import String, Integer, ForeignKey, DateTime, UniqueConstraint, Index
+from sqlalchemy import String, Integer, ForeignKey, DateTime, UniqueConstraint, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
@@ -32,6 +32,15 @@ class Depositor(Base):
         default=dict,
         server_default="{}"
     )
+    
+    # New flag for over-receiving configuration
+    allow_over_receiving: Mapped[bool] = mapped_column(
+        Boolean, 
+        default=False, 
+        server_default="false",
+        nullable=False
+    )
+    
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,

@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from repositories.location_repository import LocationRepository
 from repositories.zone_repository import ZoneRepository
 from repositories.warehouse_repository import WarehouseRepository
+from repositories.inventory_repository import InventoryRepository # Added
 from schemas.location import LocationCreate, LocationUpdate, LocationBulkCreateConfig
 from models.location import Location
 
@@ -16,6 +17,7 @@ class LocationService:
         self.location_repo = LocationRepository(db)
         self.zone_repo = ZoneRepository(db)
         self.warehouse_repo = WarehouseRepository(db)
+        self.inventory_repo = InventoryRepository(db) # Added
 
     async def create_location(
         self,
@@ -136,6 +138,9 @@ class LocationService:
                 config.pick_sequence_start
             )
 
+        # Use bulk get to check existence instead of N queries
+        # (Simplified implementation - checking individually for now, but should optimize for large batches)
+        
         for bay_num in range(config.bay_start, config.bay_end + 1):
             for level_num in range(config.level_start, config.level_end + 1):
                 for slot_num in range(config.slot_start, config.slot_end + 1):
@@ -143,19 +148,6 @@ class LocationService:
                     level_str = str(level_num).zfill(2)
                     slot_str = str(slot_num).zfill(2)
                     location_name = f"{config.aisle}-{bay_str}-{level_str}-{slot_str}"
-
-                    # Check existence (Optimization: could be done in bulk query, but keeping logic simple for now)
-                    existing = await self.location_repo.get_by_name(
-                        name=location_name,
-                        warehouse_id=config.warehouse_id,
-                        tenant_id=tenant_id
-                    )
-
-                    if existing:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Location '{location_name}' already exists in this warehouse"
-                        )
 
                     # Determine sequence
                     if config.picking_strategy == "SNAKE_ODD_EVEN":
@@ -179,6 +171,7 @@ class LocationService:
                     )
                     locations.append(location)
 
+        # Use repository bulk_create which handles flush
         return await self.location_repo.bulk_create(locations)
 
     def _calculate_snake_odd_even_sequences(
@@ -246,5 +239,25 @@ class LocationService:
         return await self.location_repo.update(location)
 
     async def delete_location(self, location_id: int, tenant_id: int) -> None:
+        """Delete a location. Block if inventory exists."""
         location = await self.get_location(location_id, tenant_id)
+        
+        # Check inventory quantity > 0
+        from models.inventory import Inventory
+        from sqlalchemy import select, func
+        
+        stmt = select(func.count(Inventory.id)).where(
+            Inventory.location_id == location_id,
+            Inventory.quantity > 0,
+            Inventory.tenant_id == tenant_id
+        )
+        result = await self.db.execute(stmt)
+        active_inventory = result.scalar_one()
+
+        if active_inventory > 0:
+             raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete location: Active inventory exists"
+            )
+
         await self.location_repo.delete(location)

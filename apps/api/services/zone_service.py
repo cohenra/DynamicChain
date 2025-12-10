@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from repositories.zone_repository import ZoneRepository
 from repositories.warehouse_repository import WarehouseRepository
+from repositories.inventory_repository import InventoryRepository # Added
 from schemas.zone import ZoneCreate, ZoneUpdate
 from models.zone import Zone
 
@@ -14,25 +15,13 @@ class ZoneService:
         self.db = db
         self.zone_repo = ZoneRepository(db)
         self.warehouse_repo = WarehouseRepository(db)
+        self.inventory_repo = InventoryRepository(db) # Added
 
     async def create_zone(
         self,
         zone_data: ZoneCreate,
         tenant_id: int
     ) -> Zone:
-        """
-        Create a new zone with code uniqueness validation.
-
-        Args:
-            zone_data: Zone creation data
-            tenant_id: ID of the tenant creating the zone
-
-        Returns:
-            Created Zone instance
-
-        Raises:
-            HTTPException: If warehouse doesn't exist or code already exists
-        """
         # Verify warehouse exists and belongs to tenant
         warehouse = await self.warehouse_repo.get_by_id(
             warehouse_id=zone_data.warehouse_id,
@@ -72,19 +61,6 @@ class ZoneService:
         zone_id: int,
         tenant_id: int
     ) -> Zone:
-        """
-        Get a zone by ID with tenant isolation.
-
-        Args:
-            zone_id: ID of the zone
-            tenant_id: ID of the tenant
-
-        Returns:
-            Zone instance
-
-        Raises:
-            HTTPException: If zone not found
-        """
         zone = await self.zone_repo.get_by_id(
             zone_id=zone_id,
             tenant_id=tenant_id
@@ -105,18 +81,6 @@ class ZoneService:
         skip: int = 0,
         limit: int = 100
     ) -> List[Zone]:
-        """
-        List all zones for a tenant with optional warehouse filter and pagination.
-
-        Args:
-            tenant_id: ID of the tenant
-            warehouse_id: Optional warehouse ID to filter by
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-
-        Returns:
-            List of Zone instances
-        """
         return await self.zone_repo.list_zones(
             tenant_id=tenant_id,
             warehouse_id=warehouse_id,
@@ -130,20 +94,6 @@ class ZoneService:
         zone_data: ZoneUpdate,
         tenant_id: int
     ) -> Zone:
-        """
-        Update an existing zone.
-
-        Args:
-            zone_id: ID of the zone to update
-            zone_data: Zone update data
-            tenant_id: ID of the tenant
-
-        Returns:
-            Updated Zone instance
-
-        Raises:
-            HTTPException: If zone not found or code conflict
-        """
         # Get existing zone
         zone = await self.get_zone(zone_id, tenant_id)
 
@@ -174,13 +124,27 @@ class ZoneService:
     ) -> None:
         """
         Delete a zone.
-
-        Args:
-            zone_id: ID of the zone to delete
-            tenant_id: ID of the tenant
-
-        Raises:
-            HTTPException: If zone not found
+        Raises error if inventory exists in any location within the zone.
         """
         zone = await self.get_zone(zone_id, tenant_id)
+        
+        # Check if any inventory exists in this zone with quantity > 0
+        from models.inventory import Inventory
+        from models.location import Location
+        from sqlalchemy import select, func
+        
+        stmt = select(func.count(Inventory.id)).join(Location).where(
+            Location.zone_id == zone_id,
+            Inventory.quantity > 0,
+            Inventory.tenant_id == tenant_id
+        )
+        result = await self.db.execute(stmt)
+        count = result.scalar_one()
+        
+        if count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete zone: Active inventory exists in this zone"
+            )
+
         await self.zone_repo.delete(zone)

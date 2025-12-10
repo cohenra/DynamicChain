@@ -13,7 +13,7 @@ class OutboundOrderRepository(BaseRepository[OutboundOrder]):
         super().__init__(db, OutboundOrder)
 
     async def get_by_id(self, id: int, tenant_id: int) -> Optional[OutboundOrder]:
-        # שימוש ב-Base עם טעינת קשרים
+        # שימוש ב-Base עם טעינת קשרים מלאה ל-Detail View
         return await super().get_by_id(
             id=id,
             tenant_id=tenant_id,
@@ -44,12 +44,10 @@ class OutboundOrderRepository(BaseRepository[OutboundOrder]):
         if search:
             filters.append(or_(OutboundOrder.order_number.ilike(f"%{search}%")))
 
+        # OPTIMIZATION: Load minimal relations for list view
         options = [
-            selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
-            selectinload(OutboundOrder.lines).selectinload(OutboundLine.uom),
-            selectinload(OutboundOrder.pick_tasks),
             selectinload(OutboundOrder.customer),
-            selectinload(OutboundOrder.wave)
+            selectinload(OutboundOrder.wave)  # <--- Added to support Wave column
         ]
 
         return await super().list(

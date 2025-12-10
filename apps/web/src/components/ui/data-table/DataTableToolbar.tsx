@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 
 export interface FilterOption {
   key: string;
@@ -38,18 +39,39 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const { t } = useTranslation();
   const isFiltered = table.getState().columnFilters.length > 0 || !!searchValue;
+  
+  // Local state for immediate input feedback
+  const [localSearch, setLocalSearch] = useState(searchValue || "");
+
+  // Debounce logic
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        if (onSearchChange && localSearch !== searchValue) {
+            onSearchChange(localSearch);
+        }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [localSearch, onSearchChange, searchValue]);
+
+  // Sync local state if external prop changes (e.g. clear filters)
+  useEffect(() => {
+    if (searchValue !== undefined && searchValue !== localSearch) {
+        setLocalSearch(searchValue);
+    }
+  }, [searchValue]);
 
   return (
     <div className="flex flex-col sm:flex-row justify-between gap-3 items-center bg-background border rounded-lg p-2 shadow-sm mb-4">
-      {/* צד ימין - חיפוש ופילטרים */}
+      {/* Search & Filters */}
       <div className="flex flex-1 items-center gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
         {onSearchChange && (
           <div className="relative">
             <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={t('common.searchPlaceholder', 'חיפוש...')}
-              value={searchValue ?? ""}
-              onChange={(event) => onSearchChange(event.target.value)}
+              value={localSearch}
+              onChange={(event) => setLocalSearch(event.target.value)}
               className="pr-8 h-9 w-[200px] text-sm"
             />
           </div>
@@ -80,6 +102,7 @@ export function DataTableToolbar<TData>({
             variant="ghost"
             onClick={() => {
               table.resetColumnFilters();
+              setLocalSearch(""); // Clear local immediately
               if (onSearchChange) onSearchChange("");
               filters.forEach((f) => f.onChange(""));
             }}
@@ -91,7 +114,7 @@ export function DataTableToolbar<TData>({
         )}
       </div>
 
-      {/* צד שמאל - פעולות ותצוגה */}
+      {/* Actions & View Options */}
       <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
         <DataTableViewOptions table={table} />
         {actions}
