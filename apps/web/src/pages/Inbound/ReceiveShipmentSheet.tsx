@@ -48,7 +48,7 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
   });
 
   // Get warehouse context from auth store
-  const warehouseId = useAuthStore(state => state.warehouseId);
+  const warehouseId = useAuthStore((state) => state.warehouseId);
 
   // Fetch locations filtered by user's warehouse
   const { data: locations } = useQuery({

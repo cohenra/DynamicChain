@@ -1,30 +1,16 @@
-from typing import List, Optional
+from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.inbound_line import InboundLine
+from repositories.base_repository import BaseRepository
 
-
-class InboundLineRepository:
+class InboundLineRepository(BaseRepository[InboundLine]):
     """Repository for inbound line operations."""
 
     def __init__(self, db: AsyncSession):
-        self.db = db
+        super().__init__(db, InboundLine)
 
-    async def create(self, line: InboundLine) -> InboundLine:
-        """Create a new inbound line."""
-        self.db.add(line)
-        await self.db.flush()
-        await self.db.refresh(line)
-        return line
-
-    async def get_by_id(
-        self,
-        line_id: int
-    ) -> Optional[InboundLine]:
-        """Get inbound line by ID."""
-        stmt = select(InboundLine).where(InboundLine.id == line_id)
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+    # get_by_id, create, update, delete - נורשים מהבסיס
 
     async def list_by_order(
         self,
@@ -38,14 +24,3 @@ class InboundLineRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
-
-    async def update(self, line: InboundLine) -> InboundLine:
-        """Update an inbound line."""
-        await self.db.flush()
-        await self.db.refresh(line)
-        return line
-
-    async def delete(self, line: InboundLine) -> None:
-        """Delete an inbound line."""
-        await self.db.delete(line)
-        await self.db.flush()

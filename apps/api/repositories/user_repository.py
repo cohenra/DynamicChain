@@ -2,16 +2,17 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
+from repositories.base_repository import BaseRepository
 
-
-class UserRepository:
+class UserRepository(BaseRepository[User]):
     """Repository for User database operations."""
 
     def __init__(self, db: AsyncSession):
-        self.db = db
+        super().__init__(db, User)
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
-        """Get a user by ID."""
+        """Get a user by ID (Override to allow lookup without tenant_id context if needed)."""
+        # User lookup is often done by ID globally or during auth where tenant might not be known yet contextually
         result = await self.db.execute(
             select(User).where(User.id == user_id)
         )
@@ -23,21 +24,3 @@ class UserRepository:
             select(User).where(User.email == email)
         )
         return result.scalar_one_or_none()
-
-    async def create(self, user: User) -> User:
-        """Create a new user."""
-        self.db.add(user)
-        await self.db.flush()
-        await self.db.refresh(user)
-        return user
-
-    async def update(self, user: User) -> User:
-        """Update an existing user."""
-        await self.db.flush()
-        await self.db.refresh(user)
-        return user
-
-    async def delete(self, user: User) -> None:
-        """Delete a user."""
-        await self.db.delete(user)
-        await self.db.flush()

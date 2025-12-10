@@ -5,49 +5,30 @@ from sqlalchemy.orm import selectinload
 
 from models.inbound_order import InboundOrder, InboundOrderStatus
 from models.inbound_line import InboundLine
+from repositories.base_repository import BaseRepository
 
-
-class InboundOrderRepository:
+class InboundOrderRepository(BaseRepository[InboundOrder]):
     """Repository for inbound order operations with proper eager loading."""
 
     def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def create(self, order: InboundOrder) -> InboundOrder:
-        """Create a new inbound order."""
-        self.db.add(order)
-        await self.db.flush()
-        await self.db.refresh(order)
-        return order
+        super().__init__(db, InboundOrder)
 
     async def get_by_id(
         self,
-        order_id: int,
+        id: int,
         tenant_id: int,
     ) -> Optional[InboundOrder]:
-        """
-        Get inbound order by ID with ALL relationships eagerly loaded.
-        This ensures no N+1 queries.
-        """
-        stmt = (
-            select(InboundOrder)
-            .where(
-                InboundOrder.id == order_id,
-                InboundOrder.tenant_id == tenant_id
-            )
-            .options(
-                # Load lines with their products and UOMs
-                selectinload(InboundOrder.lines)
-                .selectinload(InboundLine.product),
-                selectinload(InboundOrder.lines)
-                .selectinload(InboundLine.uom),
-                # Load shipments
+        """Get inbound order by ID with ALL relationships eagerly loaded."""
+        # אנו משתמשים במימוש הבסיסי אך מעבירים לו options לטעינה
+        return await super().get_by_id(
+            id=id, 
+            tenant_id=tenant_id,
+            options=[
+                selectinload(InboundOrder.lines).selectinload(InboundLine.product),
+                selectinload(InboundOrder.lines).selectinload(InboundLine.uom),
                 selectinload(InboundOrder.shipments)
-            )
+            ]
         )
-
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
 
     async def list_orders(
         self,
@@ -56,37 +37,23 @@ class InboundOrderRepository:
         limit: int = 100,
         status: Optional[InboundOrderStatus] = None
     ) -> List[InboundOrder]:
-        """
-        List inbound orders with ALL relationships eagerly loaded.
-        This is critical to avoid N+1 queries in list views.
-        """
-        stmt = (
-            select(InboundOrder)
-            .where(InboundOrder.tenant_id == tenant_id)
-        )
-
+        """List inbound orders with ALL relationships eagerly loaded."""
+        filters = []
         if status:
-            stmt = stmt.where(InboundOrder.status == status)
+            filters.append(InboundOrder.status == status)
 
-        # CRITICAL: Eager load ALL relationships
-        stmt = stmt.options(
-            selectinload(InboundOrder.lines)
-            .selectinload(InboundLine.product),
-            selectinload(InboundOrder.lines)
-            .selectinload(InboundLine.uom),
-            selectinload(InboundOrder.shipments)
+        return await super().list(
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit,
+            filters=filters,
+            options=[
+                selectinload(InboundOrder.lines).selectinload(InboundLine.product),
+                selectinload(InboundOrder.lines).selectinload(InboundLine.uom),
+                selectinload(InboundOrder.shipments)
+            ],
+            order_by=InboundOrder.created_at.desc()
         )
-
-        stmt = stmt.offset(skip).limit(limit).order_by(InboundOrder.created_at.desc())
-
-        result = await self.db.execute(stmt)
-        return list(result.scalars().all())
-
-    async def update(self, order: InboundOrder) -> InboundOrder:
-        """Update an inbound order."""
-        await self.db.flush()
-        await self.db.refresh(order)
-        return order
 
     async def get_by_order_number(
         self,

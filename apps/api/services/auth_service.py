@@ -33,10 +33,10 @@ class AuthService:
                 detail="Invalid email or password"
             )
 
-        # Fetch the first available warehouse for the tenant (for location filtering context)
+        # Fetch the first available warehouse for the tenant
         from repositories.warehouse_repository import WarehouseRepository
         warehouse_repo = WarehouseRepository(self.db)
-        warehouses = await warehouse_repo.list(tenant_id=user.tenant_id, skip=0, limit=1)
+        warehouses = await warehouse_repo.list_warehouses(tenant_id=user.tenant_id, skip=0, limit=1)
         warehouse_id = warehouses[0].id if warehouses else None
 
         # Create access token
@@ -54,7 +54,7 @@ class AuthService:
             user_id=user.id,
             tenant_id=user.tenant_id,
             role=user.role.value,
-            warehouse_id=warehouse_id
+            warehouse_id=warehouse_id # <-- הוסף
         )
 
     async def create_user(self, user_data: UserCreate) -> User:

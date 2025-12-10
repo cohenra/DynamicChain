@@ -1,37 +1,30 @@
 from typing import List, Optional
-from sqlalchemy import select, or_, and_, func
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from models.outbound_order import OutboundOrder, OutboundOrderStatus
 from models.outbound_line import OutboundLine
 from models.pick_task import PickTask
-from models.outbound_wave import OutboundWave
+from repositories.base_repository import BaseRepository
 
-class OutboundOrderRepository:
+class OutboundOrderRepository(BaseRepository[OutboundOrder]):
     def __init__(self, db: AsyncSession):
-        self.db = db
+        super().__init__(db, OutboundOrder)
 
-    async def create(self, order: OutboundOrder) -> OutboundOrder:
-        self.db.add(order)
-        await self.db.flush()
-        await self.db.refresh(order)
-        # Return the full object with all relationships loaded
-        return await self.get_by_id(order.id, order.tenant_id)
-
-    async def get_by_id(self, order_id: int, tenant_id: int) -> Optional[OutboundOrder]:
-        query = select(OutboundOrder).where(
-            and_(OutboundOrder.id == order_id, OutboundOrder.tenant_id == tenant_id)
-        ).options(
-            # Eager load all related data to prevent N+1 queries
-            selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
-            selectinload(OutboundOrder.lines).selectinload(OutboundLine.uom),
-            selectinload(OutboundOrder.pick_tasks).selectinload(PickTask.from_location),
-            selectinload(OutboundOrder.customer),
-            selectinload(OutboundOrder.wave)
+    async def get_by_id(self, id: int, tenant_id: int) -> Optional[OutboundOrder]:
+        # שימוש ב-Base עם טעינת קשרים
+        return await super().get_by_id(
+            id=id,
+            tenant_id=tenant_id,
+            options=[
+                selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
+                selectinload(OutboundOrder.lines).selectinload(OutboundLine.uom),
+                selectinload(OutboundOrder.pick_tasks).selectinload(PickTask.from_location),
+                selectinload(OutboundOrder.customer),
+                selectinload(OutboundOrder.wave)
+            ]
         )
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
 
     async def list(
         self, 
@@ -43,41 +36,27 @@ class OutboundOrderRepository:
         order_type: Optional[str] = None,
         search: Optional[str] = None
     ) -> List[OutboundOrder]:
-        query = select(OutboundOrder).where(OutboundOrder.tenant_id == tenant_id)
+        
+        filters = []
+        if status: filters.append(OutboundOrder.status == status)
+        if customer_id: filters.append(OutboundOrder.customer_id == customer_id)
+        if order_type: filters.append(OutboundOrder.order_type == order_type)
+        if search:
+            filters.append(or_(OutboundOrder.order_number.ilike(f"%{search}%")))
 
-        # Eager load all relationships to prevent N+1 queries
-        query = query.options(
+        options = [
             selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
             selectinload(OutboundOrder.lines).selectinload(OutboundLine.uom),
-            selectinload(OutboundOrder.pick_tasks).selectinload(PickTask.from_location),
+            selectinload(OutboundOrder.pick_tasks),
             selectinload(OutboundOrder.customer),
             selectinload(OutboundOrder.wave)
+        ]
+
+        return await super().list(
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit,
+            filters=filters,
+            options=options,
+            order_by=OutboundOrder.priority.asc()
         )
-
-        if status:
-            query = query.where(OutboundOrder.status == status)
-        
-        if customer_id:
-            query = query.where(OutboundOrder.customer_id == customer_id)
-
-        if order_type:
-            query = query.where(OutboundOrder.order_type == order_type)
-
-        if search:
-            query = query.where(
-                or_(
-                    OutboundOrder.order_number.ilike(f"%{search}%"),
-                    # Additional search filters can be added here
-                )
-            )
-
-        query = query.order_by(OutboundOrder.priority.asc(), OutboundOrder.created_at.desc())
-        query = query.offset(skip).limit(limit)
-
-        result = await self.db.execute(query)
-        return result.scalars().all()
-
-    async def update(self, order: OutboundOrder) -> OutboundOrder:
-        await self.db.flush()
-        await self.db.refresh(order)
-        return order

@@ -34,7 +34,7 @@ import {
   createOrder,
   allocateOrder,
   cancelOrder,
-  createWave, // וודא שזה קיים ב-service
+  createWave,
   calculateOrderProgress,
   getStatusColor,
   getPriorityInfo,
@@ -298,7 +298,7 @@ export default function OutboundOrders() {
   const selectedCount = Object.keys(rowSelection).length;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]">
+    <div className="flex flex-col space-y-4 pb-8">
       <div className="mb-4 shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">{t('outbound.title')}</h1>
         <p className="text-muted-foreground mt-2">{t('outbound.description')}</p>
@@ -332,7 +332,7 @@ export default function OutboundOrders() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0">
+      <div>
         <SmartTable
             table={table}
             columnsLength={columns.length}
@@ -340,7 +340,6 @@ export default function OutboundOrders() {
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('common.noData')}
-            containerClassName="h-full"
             actions={
                 <Button onClick={() => setIsSheetOpen(true)}>
                     <Plus className="ml-2 h-4 w-4" />

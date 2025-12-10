@@ -54,14 +54,14 @@ export function SmartTable<TData>({
         actions={actions}
       />
 
-      <div className={cn("rounded-md border bg-white shadow-sm overflow-x-auto", containerClassName)}>
-        <div className="relative overflow-x-auto">
-            <Table style={{ tableLayout: 'fixed', width: '100%' }} className="w-full">
+      <div className={cn("rounded-md border bg-white shadow-sm", containerClassName)}>
+        <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-max">
             <TableHeader className="bg-white">
                 {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
                     {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-10 font-bold text-gray-700 whitespace-nowrap px-4">
+                    <TableHead key={header.id} className="h-10 font-bold text-gray-700 whitespace-nowrap px-4 text-start">
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                     ))}
@@ -97,7 +97,7 @@ export function SmartTable<TData>({
                     {row.getIsExpanded() && renderSubComponent && (
                         <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100 bg-slate-50/30">
-                            <div className="w-full overflow-x-auto">
+                            <div className="w-full">
                                 {renderSubComponent({ row })}
                             </div>
                         </TableCell>

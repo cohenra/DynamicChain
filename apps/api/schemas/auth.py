@@ -15,7 +15,7 @@ class LoginResponse(BaseModel):
     user_id: int
     tenant_id: int
     role: str
-    warehouse_id: Optional[int] = None
+    warehouse_id: Optional[int] = None # <-- הוסף
 
 
 class TokenData(BaseModel):

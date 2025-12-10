@@ -4,48 +4,17 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.inventory_transaction import InventoryTransaction, TransactionType
+from models.inventory import Inventory
+from repositories.base_repository import BaseRepository
 
-
-class InventoryTransactionRepository:
+class InventoryTransactionRepository(BaseRepository[InventoryTransaction]):
     """
     Repository for InventoryTransaction database operations.
-
-    IMPORTANT: This is an append-only ledger. NEVER delete transactions.
+    Inherits create/get from BaseRepository.
     """
 
     def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def create(self, transaction: InventoryTransaction) -> InventoryTransaction:
-        """
-        Create a new inventory transaction.
-
-        This is the only write operation for the ledger - transactions are immutable.
-        """
-        self.db.add(transaction)
-        await self.db.flush()
-        await self.db.refresh(transaction)
-        return await self.get_by_id(transaction.id, transaction.tenant_id)
-
-    async def get_by_id(self, transaction_id: int, tenant_id: int) -> Optional[InventoryTransaction]:
-        """Get a transaction by ID with tenant isolation."""
-        result = await self.db.execute(
-            select(InventoryTransaction)
-            .options(
-                selectinload(InventoryTransaction.product),
-                selectinload(InventoryTransaction.inventory),
-                selectinload(InventoryTransaction.from_location),
-                selectinload(InventoryTransaction.to_location),
-                selectinload(InventoryTransaction.performed_by_user)
-            )
-            .where(
-                and_(
-                    InventoryTransaction.id == transaction_id,
-                    InventoryTransaction.tenant_id == tenant_id
-                )
-            )
-        )
-        return result.scalar_one_or_none()
+        super().__init__(db, InventoryTransaction)
 
     async def list_transactions(
         self,
@@ -56,39 +25,37 @@ class InventoryTransactionRepository:
         product_id: Optional[int] = None,
         transaction_type: Optional[TransactionType] = None,
         reference_doc: Optional[str] = None,
-        inbound_shipment_id: Optional[int] = None,  # <--- NEW
+        inbound_shipment_id: Optional[int] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> List[InventoryTransaction]:
-        """List transactions with optional filters."""
-        query = select(InventoryTransaction).options(
+        """List transactions with optional filters using BaseRepository."""
+        
+        filters = []
+        if inventory_id: filters.append(InventoryTransaction.inventory_id == inventory_id)
+        if product_id: filters.append(InventoryTransaction.product_id == product_id)
+        if transaction_type: filters.append(InventoryTransaction.transaction_type == transaction_type)
+        if reference_doc: filters.append(InventoryTransaction.reference_doc.ilike(f"%{reference_doc}%"))
+        if inbound_shipment_id: filters.append(InventoryTransaction.inbound_shipment_id == inbound_shipment_id)
+        if start_date: filters.append(InventoryTransaction.timestamp >= start_date)
+        if end_date: filters.append(InventoryTransaction.timestamp <= end_date)
+
+        options = [
             selectinload(InventoryTransaction.product),
             selectinload(InventoryTransaction.inventory),
             selectinload(InventoryTransaction.from_location),
             selectinload(InventoryTransaction.to_location),
             selectinload(InventoryTransaction.performed_by_user)
-        ).where(InventoryTransaction.tenant_id == tenant_id)
+        ]
 
-        # Apply filters
-        if inventory_id is not None:
-            query = query.where(InventoryTransaction.inventory_id == inventory_id)
-        if product_id is not None:
-            query = query.where(InventoryTransaction.product_id == product_id)
-        if transaction_type is not None:
-            query = query.where(InventoryTransaction.transaction_type == transaction_type)
-        if reference_doc is not None:
-            query = query.where(InventoryTransaction.reference_doc.ilike(f"%{reference_doc}%"))
-        if inbound_shipment_id is not None:  # <--- NEW
-            query = query.where(InventoryTransaction.inbound_shipment_id == inbound_shipment_id)
-        if start_date is not None:
-            query = query.where(InventoryTransaction.timestamp >= start_date)
-        if end_date is not None:
-            query = query.where(InventoryTransaction.timestamp <= end_date)
-
-        query = query.offset(skip).limit(limit).order_by(InventoryTransaction.timestamp.desc())
-
-        result = await self.db.execute(query)
-        return list(result.scalars().all())
+        return await super().list(
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit,
+            filters=filters,
+            options=options,
+            order_by=InventoryTransaction.timestamp.desc()
+        )
 
     async def get_transactions_for_lpn(
         self,
@@ -97,9 +64,8 @@ class InventoryTransactionRepository:
         skip: int = 0,
         limit: int = 100
     ) -> List[InventoryTransaction]:
-        """Get all transactions for a specific LPN (by joining through inventory)."""
-        from models.inventory import Inventory
-
+        """Get all transactions for a specific LPN (Joined query)."""
+        # שאילתה זו מורכבת מדי ל-Base ולכן נשארת כאן
         result = await self.db.execute(
             select(InventoryTransaction)
             .options(
@@ -121,33 +87,6 @@ class InventoryTransactionRepository:
             .order_by(InventoryTransaction.timestamp.desc())
         )
         return list(result.scalars().all())
-
-    async def count(
-        self,
-        tenant_id: int,
-        inventory_id: Optional[int] = None,
-        product_id: Optional[int] = None,
-        transaction_type: Optional[TransactionType] = None,
-        inbound_shipment_id: Optional[int] = None  # <--- NEW
-    ) -> int:
-        """Count transactions with optional filters."""
-        from sqlalchemy import func
-
-        query = select(func.count(InventoryTransaction.id)).where(
-            InventoryTransaction.tenant_id == tenant_id
-        )
-
-        if inventory_id is not None:
-            query = query.where(InventoryTransaction.inventory_id == inventory_id)
-        if product_id is not None:
-            query = query.where(InventoryTransaction.product_id == product_id)
-        if transaction_type is not None:
-            query = query.where(InventoryTransaction.transaction_type == transaction_type)
-        if inbound_shipment_id is not None:  # <--- NEW
-            query = query.where(InventoryTransaction.inbound_shipment_id == inbound_shipment_id)
-
-        result = await self.db.execute(query)
-        return result.scalar_one()
 
     async def get_latest_for_inventory(self, inventory_id: int) -> Optional[InventoryTransaction]:
         """Get the most recent transaction for a specific inventory item."""

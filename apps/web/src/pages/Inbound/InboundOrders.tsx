@@ -289,7 +289,7 @@ export default function InboundOrders() {
   const selectedCount = Object.keys(rowSelection).length;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]">
+    <div className="flex flex-col space-y-4 pb-8">
       <div className="mb-4 shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">{t('inbound.title')}</h1>
         <p className="text-muted-foreground mt-2">{t('inbound.description')}</p>
@@ -330,7 +330,6 @@ export default function InboundOrders() {
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('inbound.noOrders')}
-            containerClassName="h-full"
             actions={
                 <Button onClick={() => setIsCreateOpen(true)}>
                     <Plus className="ml-2 h-4 w-4" />

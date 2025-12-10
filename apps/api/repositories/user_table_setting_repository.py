@@ -2,23 +2,17 @@ from typing import Optional, List
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user_table_setting import UserTableSetting
+from repositories.base_repository import BaseRepository
 
-
-class UserTableSettingRepository:
+class UserTableSettingRepository(BaseRepository[UserTableSetting]):
     """Repository for UserTableSetting database operations."""
 
     def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def create(self, setting: UserTableSetting) -> UserTableSetting:
-        """Create a new user table setting."""
-        self.db.add(setting)
-        await self.db.flush()
-        await self.db.refresh(setting)
-        return setting
+        super().__init__(db, UserTableSetting)
 
     async def get_by_id(self, setting_id: int, user_id: int) -> Optional[UserTableSetting]:
         """Get a user table setting by ID with user isolation."""
+        # Note: We override because validation is by user_id, not tenant_id
         result = await self.db.execute(
             select(UserTableSetting).where(
                 and_(
@@ -53,14 +47,3 @@ class UserTableSettingRepository:
 
         result = await self.db.execute(query)
         return list(result.scalars().all())
-
-    async def update(self, setting: UserTableSetting) -> UserTableSetting:
-        """Update an existing user table setting."""
-        await self.db.flush()
-        await self.db.refresh(setting)
-        return setting
-
-    async def delete(self, setting: UserTableSetting) -> None:
-        """Delete a user table setting."""
-        await self.db.delete(setting)
-        await self.db.flush()

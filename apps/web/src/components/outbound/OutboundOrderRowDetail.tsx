@@ -68,7 +68,6 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
   const lines = order.lines || [];
   const tasks = order.pick_tasks || [];
 
-  // --- FIX: Using DIV wrapper to prevent nesting errors ---
   return (
     <div className="bg-slate-50/50 p-4 w-full border-t shadow-inner" dir="rtl">
       
@@ -98,7 +97,8 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
       )}
 
       <Tabs defaultValue="lines" className="w-full">
-        <TabsList className="bg-white border w-full justify-end h-10 p-0">
+        {/* FIX: Changed justify-end to justify-start for RTL alignment */}
+        <TabsList className="bg-white border w-full justify-start h-10 p-0">
           <TabsTrigger value="lines" className="px-6 h-full rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
             {t('outbound.tabs.lines')} ({lines.length})
           </TabsTrigger>
@@ -111,6 +111,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
           <div className="bg-white rounded-md border overflow-hidden shadow-sm">
             <Table>
               <TableHeader className="bg-slate-50">
+                {/* FIX: Column order matches RTL reading (Right to Left in visual layout) */}
                 <TableRow>
                   <TableHead className="text-right w-[30%]">{t('outbound.table.product')}</TableHead>
                   <TableHead className="text-center">{t('outbound.table.ordered')}</TableHead>
@@ -128,6 +129,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
                     const rowClass = isShort ? 'bg-amber-50/50 hover:bg-amber-100/50' : 'hover:bg-slate-50';
                     return (
                       <TableRow key={line.id} className={rowClass}>
+                        {/* FIX: Cells match Header Order */}
                         <TableCell>
                           <div className="font-medium">{line.product?.name}</div>
                           <div className="text-xs text-muted-foreground font-mono">{line.product?.sku}</div>
