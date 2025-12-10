@@ -16,7 +16,7 @@ class AuthService:
         self.user_repo = UserRepository(db)
 
     async def login(self, login_data: LoginRequest) -> LoginResponse:
-        """Authenticate a user and return access token."""
+        """Authenticate a user and return access token with warehouse context."""
         # Get user by email
         user = await self.user_repo.get_by_email(login_data.email)
 
@@ -33,6 +33,12 @@ class AuthService:
                 detail="Invalid email or password"
             )
 
+        # Fetch the first available warehouse for the tenant (for location filtering context)
+        from repositories.warehouse_repository import WarehouseRepository
+        warehouse_repo = WarehouseRepository(self.db)
+        warehouses = await warehouse_repo.list(tenant_id=user.tenant_id, skip=0, limit=1)
+        warehouse_id = warehouses[0].id if warehouses else None
+
         # Create access token
         token_data = {
             "user_id": user.id,
@@ -47,7 +53,8 @@ class AuthService:
             token_type="bearer",
             user_id=user.id,
             tenant_id=user.tenant_id,
-            role=user.role.value
+            role=user.role.value,
+            warehouse_id=warehouse_id
         )
 
     async def create_user(self, user_data: UserCreate) -> User:

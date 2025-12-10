@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 
@@ -14,6 +15,7 @@ class LoginResponse(BaseModel):
     user_id: int
     tenant_id: int
     role: str
+    warehouse_id: Optional[int] = None
 
 
 class TokenData(BaseModel):

@@ -11,6 +11,7 @@ export interface LoginResponse {
   user_id: number;
   tenant_id: number;
   role: string;
+  warehouse_id: number | null;
 }
 
 export const authService = {

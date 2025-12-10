@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InboundShipment, InboundOrder, inboundService, ReceiveShipmentItemRequest } from '@/services/inboundService';
 import { locationService } from '@/services/locations';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -46,16 +47,14 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
     },
   });
 
-  // TODO: Import useAuthStore and get warehouse_id when added to auth
-  // import { useAuthStore } from '@/store/authStore';
-  // const warehouseId = useAuthStore(state => state.warehouseId);
+  // Get warehouse context from auth store
+  const warehouseId = useAuthStore(state => state.warehouseId);
 
   // Fetch locations filtered by user's warehouse
-  // NOTE: warehouse_id filtering requires authStore to be updated to include warehouse_id
   const { data: locations } = useQuery({
-    queryKey: ['locations', /* warehouseId */],
+    queryKey: ['locations', warehouseId],
     queryFn: () => locationService.getLocations({
-      // warehouse_id: warehouseId, // Uncomment when warehouse_id is available in authStore
+      warehouse_id: warehouseId || undefined,
     }),
   });
 

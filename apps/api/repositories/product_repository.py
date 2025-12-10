@@ -4,26 +4,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.product import Product
 from models.product_uom import ProductUOM
+from repositories.base_repository import BaseRepository
 
-class ProductRepository:
+
+class ProductRepository(BaseRepository[Product]):
     """Repository for Product database operations with tenant isolation."""
 
     def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def create(self, product: Product) -> Product:
-        """Create a new product."""
-        self.db.add(product)
-        await self.db.flush()
-        await self.db.refresh(product)
-        return await self.get_by_id(product.id, product.tenant_id)
+        super().__init__(db, Product)
 
     async def get_by_id(self, product_id: int, tenant_id: int) -> Optional[Product]:
-        """Get a product by ID with tenant isolation."""
+        """Get a product by ID with tenant isolation and all relationships loaded."""
         result = await self.db.execute(
             select(Product)
             .options(
-                selectinload(Product.uoms).selectinload(ProductUOM.uom), # טעינה מקוננת קריטית
+                selectinload(Product.uoms).selectinload(ProductUOM.uom),
                 selectinload(Product.base_uom),
                 selectinload(Product.depositor)
             )
@@ -56,36 +51,26 @@ class ProductRepository:
         limit: int = 100,
         depositor_id: Optional[int] = None
     ) -> List[Product]:
-        """List all products for a tenant."""
-        query = select(Product).options(
+        """List all products for a tenant with all relationships loaded."""
+        filters = []
+        if depositor_id is not None:
+            filters.append(Product.depositor_id == depositor_id)
+
+        options = [
             selectinload(Product.uoms).selectinload(ProductUOM.uom),
             selectinload(Product.base_uom),
             selectinload(Product.depositor)
-        ).where(Product.tenant_id == tenant_id)
+        ]
 
-        if depositor_id is not None:
-            query = query.where(Product.depositor_id == depositor_id)
-
-        query = query.offset(skip).limit(limit).order_by(Product.created_at.desc())
-
-        result = await self.db.execute(query)
-        return list(result.scalars().all())
-
-    async def count(self, tenant_id: int) -> int:
-        """Count total products for a tenant."""
-        from sqlalchemy import func
-        result = await self.db.execute(
-            select(func.count(Product.id)).where(Product.tenant_id == tenant_id)
+        return await self.list(
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit,
+            filters=filters if filters else None,
+            options=options
         )
-        return result.scalar_one()
 
     async def update(self, product: Product) -> Product:
-        """Update an existing product."""
+        """Update an existing product and return with all relationships loaded."""
         await self.db.flush()
-        # כאן היה הבאג - אנחנו שולפים מחדש כדי לקבל את כל הנתונים המקושרים
         return await self.get_by_id(product.id, product.tenant_id)
-
-    async def delete(self, product: Product) -> None:
-        """Delete a product."""
-        await self.db.delete(product)
-        await self.db.flush()

@@ -1,21 +1,16 @@
 from typing import Optional, List
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.zone import Zone
+from repositories.base_repository import BaseRepository
 
 
-class ZoneRepository:
+class ZoneRepository(BaseRepository[Zone]):
     """Repository for Zone database operations with tenant isolation."""
 
     def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def create(self, zone: Zone) -> Zone:
-        """Create a new zone."""
-        self.db.add(zone)
-        await self.db.flush()
-        return await self.get_by_id(zone.id, zone.tenant_id)
+        super().__init__(db, Zone)
 
     async def get_by_id(self, zone_id: int, tenant_id: int) -> Optional[Zone]:
         """Get a zone by ID with tenant isolation and relationships loaded."""
@@ -54,32 +49,32 @@ class ZoneRepository:
         limit: int = 100
     ) -> List[Zone]:
         """List all zones for a tenant with optional warehouse filter and pagination."""
-        query = select(Zone).options(selectinload(Zone.warehouse)).where(Zone.tenant_id == tenant_id)
-
+        filters = []
         if warehouse_id is not None:
-            query = query.where(Zone.warehouse_id == warehouse_id)
+            filters.append(Zone.warehouse_id == warehouse_id)
 
-        query = query.offset(skip).limit(limit).order_by(Zone.created_at.desc())
+        options = [selectinload(Zone.warehouse)]
 
-        result = await self.db.execute(query)
-        return list(result.scalars().all())
+        return await self.list(
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit,
+            filters=filters if filters else None,
+            options=options
+        )
 
     async def count(self, tenant_id: int, warehouse_id: Optional[int] = None) -> int:
         """Count total zones for a tenant with optional warehouse filter."""
-        query = select(func.count(Zone.id)).where(Zone.tenant_id == tenant_id)
-
+        filters = []
         if warehouse_id is not None:
-            query = query.where(Zone.warehouse_id == warehouse_id)
+            filters.append(Zone.warehouse_id == warehouse_id)
 
-        result = await self.db.execute(query)
-        return result.scalar_one()
+        return await super().count(
+            tenant_id=tenant_id,
+            filters=filters if filters else None
+        )
 
     async def update(self, zone: Zone) -> Zone:
-        """Update an existing zone."""
+        """Update an existing zone and return with relationships loaded."""
         await self.db.flush()
         return await self.get_by_id(zone.id, zone.tenant_id)
-
-    async def delete(self, zone: Zone) -> None:
-        """Delete a zone."""
-        await self.db.delete(zone)
-        await self.db.flush()
