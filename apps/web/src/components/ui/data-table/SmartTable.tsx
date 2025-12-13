@@ -44,7 +44,7 @@ export function SmartTable<TData>({
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col space-y-2">
       <DataTableToolbar
         table={table}
         searchKey={searchKey}
@@ -54,16 +54,23 @@ export function SmartTable<TData>({
         actions={actions}
       />
 
-      <div className={cn("rounded-md border bg-white shadow-sm", containerClassName)}>
+      <div className={cn("rounded-md border bg-white shadow-sm overflow-hidden", containerClassName)}>
         <div className="w-full overflow-x-auto">
-            {/* FIX: Removed fixed layout, added min-w-max to allow natural width */}
-            <Table className="w-full min-w-max">
-            <TableHeader className="bg-white">
+            {/* Using minWidth ensures columns don't squash each other */}
+            <Table 
+              className="table-fixed" 
+              dir="rtl"
+              style={{ minWidth: table.getTotalSize() }}
+            >
+            <TableHeader className="bg-slate-50">
                 {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="bg-muted/30 hover:bg-muted/30">
+                <TableRow key={headerGroup.id} className="h-9 hover:bg-transparent border-b border-slate-200">
                     {headerGroup.headers.map((header) => (
-                    // FIX: Added text-start for proper RTL alignment of headers
-                    <TableHead key={header.id} className="h-10 font-bold text-gray-700 whitespace-nowrap px-4 text-start">
+                    <TableHead 
+                        key={header.id} 
+                        className="h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-right text-xs border-l last:border-l-0 border-slate-100"
+                        style={{ width: header.getSize() }}
+                    >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                     ))}
@@ -85,11 +92,15 @@ export function SmartTable<TData>({
                     <React.Fragment key={row.id}>
                     <TableRow
                         data-state={row.getIsSelected() && "selected"}
-                        className={`h-9 hover:bg-blue-50/50 transition-colors ${row.getCanExpand() ? "cursor-pointer" : ""}`}
+                        className={`h-9 hover:bg-blue-50/50 transition-colors border-b border-slate-100 ${row.getCanExpand() ? "cursor-pointer" : ""}`}
                         onClick={() => row.getCanExpand() && row.toggleExpanded()}
                     >
                         {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-1 px-4 whitespace-nowrap">
+                        <TableCell 
+                          key={cell.id} 
+                          className="py-1 px-2 whitespace-nowrap text-xs text-right border-l last:border-l-0 border-slate-50"
+                          style={{ width: cell.column.getSize() }}
+                        >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                         ))}
@@ -97,9 +108,9 @@ export function SmartTable<TData>({
                     
                     {/* Expanded Row Detail */}
                     {row.getIsExpanded() && renderSubComponent && (
-                        <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={columnsLength} className="p-0 border-b-2 border-blue-100 bg-slate-50/30">
-                            {/* Inner content wrapper */}
+                        <TableRow className="hover:bg-transparent bg-slate-50/50">
+                        <TableCell colSpan={columnsLength} className="p-0 border-b">
+                            {/* FIX: Removed 'sticky' wrapper causing layout breakage */}
                             <div className="w-full">
                                 {renderSubComponent({ row })}
                             </div>

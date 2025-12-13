@@ -57,6 +57,26 @@ class InventoryTransactionRepository(BaseRepository[InventoryTransaction]):
             order_by=InventoryTransaction.timestamp.desc()
         )
 
+    async def count(
+        self,
+        tenant_id: int,
+        inventory_id: Optional[int] = None,
+        product_id: Optional[int] = None,
+        transaction_type: Optional[TransactionType] = None,
+        inbound_shipment_id: Optional[int] = None
+    ) -> int:
+        """
+        Count transactions with optional filters.
+        Overriding base method to support custom filters.
+        """
+        filters = []
+        if inventory_id: filters.append(InventoryTransaction.inventory_id == inventory_id)
+        if product_id: filters.append(InventoryTransaction.product_id == product_id)
+        if transaction_type: filters.append(InventoryTransaction.transaction_type == transaction_type)
+        if inbound_shipment_id: filters.append(InventoryTransaction.inbound_shipment_id == inbound_shipment_id)
+
+        return await super().count(tenant_id=tenant_id, filters=filters)
+
     async def get_transactions_for_lpn(
         self,
         lpn: str,
@@ -65,7 +85,6 @@ class InventoryTransactionRepository(BaseRepository[InventoryTransaction]):
         limit: int = 100
     ) -> List[InventoryTransaction]:
         """Get all transactions for a specific LPN (Joined query)."""
-        # שאילתה זו מורכבת מדי ל-Base ולכן נשארת כאן
         result = await self.db.execute(
             select(InventoryTransaction)
             .options(

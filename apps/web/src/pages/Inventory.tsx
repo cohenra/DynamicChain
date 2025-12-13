@@ -28,8 +28,6 @@ export default function InventoryPage() {
   
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  
-  // --- זה ה-State שהיה חסר לך ---
   const [isReceiveSheetOpen, setIsReceiveSheetOpen] = useState(false);
 
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
@@ -56,49 +54,60 @@ export default function InventoryPage() {
     {
       accessorKey: 'lpn',
       header: t('inventory.lpn'),
-      cell: ({ row }) => <span className="font-mono font-bold">{row.original.lpn}</span>
+      size: 160,
+      cell: ({ row }) => <span className="font-mono font-bold text-xs">{row.original.lpn}</span>
     },
     {
       accessorKey: 'product_name',
       header: t('products.name'),
+      size: 220,
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-medium">{row.original.product_name}</span>
-          <span className="text-xs text-muted-foreground">{row.original.product_sku}</span>
+          <span className="font-medium text-xs truncate max-w-[200px]" title={row.original.product_name}>{row.original.product_name}</span>
+          <span className="text-[10px] text-muted-foreground font-mono">{row.original.product_sku}</span>
         </div>
       )
     },
     {
       accessorKey: 'location_name',
       header: t('warehouses.location'),
-      cell: ({ row }) => <Badge variant="outline">{row.original.location_name}</Badge>
+      size: 120,
+      cell: ({ row }) => <Badge variant="outline" className="text-[10px] bg-white">{row.original.location_name}</Badge>
     },
     {
       accessorKey: 'quantity',
       header: t('inventory.quantity'),
-      cell: ({ row }) => <span className="font-bold text-lg">{row.original.quantity}</span>
+      size: 100,
+      cell: ({ row }) => <span className="font-bold text-sm">{row.original.quantity}</span>
     },
     {
       accessorKey: 'status',
       header: t('inventory.status'),
+      size: 100,
       cell: ({ row }) => {
         const status = row.original.status;
         const statusLabel = t(`inventory.statuses.${status}`, status); 
-
         let variant: "default" | "secondary" | "destructive" | "outline" = "default";
         
         if (status === 'AVAILABLE') variant = "default";
         if (status === 'QUARANTINE') variant = "destructive";
         if (status === 'RESERVED') variant = "secondary";
         
-        return <Badge variant={variant}>{statusLabel}</Badge>;
+        return <Badge variant={variant} className="text-[10px] h-5 px-1.5">{statusLabel}</Badge>;
       }
     },
     {
       accessorKey: 'batch_number',
       header: t('inventory.batch'),
-      cell: ({ row }) => row.original.batch_number || '-'
+      size: 120,
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.batch_number || '-'}</span>
     },
+    {
+      id: 'filler',
+      header: '',
+      size: undefined, // תופס את שאר המקום
+      cell: () => null
+    }
   ], [t]);
 
   const table = useReactTable({
@@ -116,19 +125,19 @@ export default function InventoryPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('inventory.title')}</h1>
-        <p className="text-muted-foreground mt-2">{t('inventory.subtitle')}</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('inventory.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('inventory.subtitle')}</p>
       </div>
 
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList>
-          <TabsTrigger value="inventory">{t('inventory.tabs.inventory', 'מלאי')}</TabsTrigger>
-          <TabsTrigger value="transactions">{t('inventory.tabs.transactions', 'טרנזקציות')}</TabsTrigger>
+        <TabsList className="bg-slate-100 h-9 p-1">
+          <TabsTrigger value="inventory" className="text-xs px-4">{t('inventory.tabs.inventory', 'מלאי')}</TabsTrigger>
+          <TabsTrigger value="transactions" className="text-xs px-4">{t('inventory.tabs.transactions', 'טרנזקציות')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory" className="space-y-4 pt-4">
+        <TabsContent value="inventory" className="space-y-2 pt-4">
           <SmartTable
             table={table}
             columnsLength={columns.length}
@@ -137,15 +146,15 @@ export default function InventoryPage() {
             onSearchChange={setGlobalFilter}
             noDataMessage={t('inventory.noInventory')}
             actions={
-              <Button onClick={() => setIsReceiveSheetOpen(true)}>
-                <PackagePlus className="ml-2 h-4 w-4" />
+              <Button onClick={() => setIsReceiveSheetOpen(true)} size="sm" className="h-8 text-xs">
+                <PackagePlus className="ml-2 h-3.5 w-3.5" />
                 {t('inventory.receiveStock')}
               </Button>
             }
           />
         </TabsContent>
 
-        <TabsContent value="transactions" className="space-y-4 pt-4">
+        <TabsContent value="transactions" className="space-y-2 pt-4">
           <TransactionsTable />
         </TabsContent>
       </Tabs>

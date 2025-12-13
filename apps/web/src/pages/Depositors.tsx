@@ -122,26 +122,33 @@ export default function Depositors() {
   };
 
   const columns = useMemo<ColumnDef<Depositor>[]>(() => [
-      { accessorKey: 'name', id: 'name', header: t('depositors.name') },
-      { accessorKey: 'code', id: 'code', header: t('depositors.code') },
-      { accessorKey: 'contact_info.name', id: 'contact_info_name', header: t('depositors.contactPerson'), cell: ({ row }) => row.original.contact_info?.name || '-' },
-      { accessorKey: 'contact_info.phone', id: 'contact_info_phone', header: t('depositors.phone'), cell: ({ row }) => row.original.contact_info?.phone || '-' },
+      { accessorKey: 'name', id: 'name', size: 200, header: t('depositors.name'), cell: ({row}) => <span className="font-bold text-xs">{row.original.name}</span> },
+      { accessorKey: 'code', id: 'code', size: 100, header: t('depositors.code'), cell: ({row}) => <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">{row.original.code}</span> },
+      { accessorKey: 'contact_info.name', id: 'contact_info_name', size: 150, header: t('depositors.contactPerson'), cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.contact_info?.name || '-'}</span> },
+      { accessorKey: 'contact_info.phone', id: 'contact_info_phone', size: 130, header: t('depositors.phone'), cell: ({ row }) => <span className="text-xs font-mono">{row.original.contact_info?.phone || '-'}</span> },
       {
         id: 'actions',
+        size: 80,
         header: t('common.actions'),
         cell: ({ row }) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="icon" onClick={() => handleEdit(row.original)}>
-              <Pencil className="h-4 w-4" />
+          <div className="flex justify-end gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(row.original)}>
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
                 if(confirm(t('common.delete') + '?')) deleteDepositorMutation.mutate(row.original.id);
             }}>
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         ),
       },
+      {
+          id: 'filler',
+          header: '',
+          size: undefined,
+          cell: () => null
+      }
     ], [t]);
 
   const table = useReactTable({
@@ -161,10 +168,10 @@ export default function Depositors() {
   const isSubmitting = createDepositorMutation.isPending || updateDepositorMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('depositors.title')}</h1>
-        <p className="text-muted-foreground mt-2">{t('depositors.description')}</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('depositors.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('depositors.description')}</p>
       </div>
 
       <SmartTable
@@ -175,8 +182,8 @@ export default function Depositors() {
         onSearchChange={setGlobalFilter}
         noDataMessage={t('depositors.noDepositors')}
         actions={
-          <Button onClick={handleAddNew}>
-            <Plus className="ml-2 h-4 w-4" />
+          <Button onClick={handleAddNew} size="sm" className="h-8 text-xs">
+            <Plus className="ml-2 h-3.5 w-3.5" />
             {t('depositors.addDepositor')}
           </Button>
         }

@@ -37,7 +37,7 @@ import { UomDefinitionsTable } from '@/components/products/UomDefinitionsTable';
 import { ProductRowDetail } from '@/components/products/ProductRowDetail';
 import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { SmartTable } from '@/components/ui/data-table/SmartTable'; // <--- השימוש ברכיב החדש
+import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
 
 export default function Products() {
@@ -55,13 +55,11 @@ export default function Products() {
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
     useTableSettings({ tableName: 'products_table' });
 
-  // Fetch
-  const { data: products, isLoading, isError, error } = useQuery({
+  const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: productService.getProducts,
   });
 
-  // Mutations
   const createProductMutation = useMutation({
     mutationFn: productService.createProduct,
     onSuccess: () => {
@@ -113,48 +111,56 @@ export default function Products() {
   const columns = useMemo<ColumnDef<Product>[]>(() => [
     {
       id: 'expander',
+      size: 40,
       header: () => null,
       cell: ({ row }) => (
         <Button
           variant="ghost"
           size="icon"
           onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
-          className="h-8 w-8"
+          className="h-6 w-6"
         >
           {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
       ),
-      size: 50,
     },
-    { accessorKey: 'sku', id: 'sku', header: t('products.sku') },
-    { accessorKey: 'name', id: 'name', header: t('products.name') },
-    { accessorKey: 'depositor_name', id: 'depositor_name', header: t('products.depositor') },
-    { accessorKey: 'base_uom_name', id: 'base_uom_name', header: t('products.baseUnit') },
+    { accessorKey: 'sku', id: 'sku', size: 140, header: t('products.sku'), cell: ({row}) => <span className="font-mono text-xs font-semibold">{row.original.sku}</span> },
+    { accessorKey: 'name', id: 'name', size: 240, header: t('products.name'), cell: ({row}) => <span className="font-medium text-xs truncate block" title={row.original.name}>{row.original.name}</span> },
+    { accessorKey: 'depositor_name', id: 'depositor_name', size: 140, header: t('products.depositor'), cell: ({row}) => <span className="text-xs text-muted-foreground truncate block">{row.original.depositor_name}</span> },
+    { accessorKey: 'base_uom_name', id: 'base_uom_name', size: 100, header: t('products.baseUnit'), cell: ({row}) => <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">{row.original.base_uom_name}</span> },
     {
       id: 'actions',
+      size: 80,
       header: t('common.actions'),
       cell: ({ row }) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1">
           <Button 
             variant="ghost" 
             size="icon" 
+            className="h-7 w-7"
             onClick={(e) => { e.stopPropagation(); handleEditProduct(row.original); }}
             title={t('common.edit')}
           >
-            <Edit className="h-4 w-4" />
+            <Edit className="h-3.5 w-3.5" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-destructive hover:bg-destructive/10" 
+            className="h-7 w-7 text-destructive hover:bg-destructive/10" 
             onClick={(e) => { e.stopPropagation(); setDeletingProduct(row.original); }}
             title={t('common.delete')}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       ),
     },
+    {
+      id: 'filler',
+      header: '',
+      size: undefined,
+      cell: () => null
+    }
   ], [t]);
 
   const table = useReactTable({
@@ -175,19 +181,19 @@ export default function Products() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
-        <p className="text-muted-foreground mt-2">{t('products.description')}</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('products.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('products.description')}</p>
       </div>
 
       <Tabs defaultValue="catalog" className="w-full">
-        <TabsList>
-          <TabsTrigger value="catalog">{t('products.tabs.catalog')}</TabsTrigger>
-          <TabsTrigger value="uoms">{t('products.tabs.uoms')}</TabsTrigger>
+        <TabsList className="bg-slate-100 h-9 p-1">
+          <TabsTrigger value="catalog" className="text-xs px-4">{t('products.tabs.catalog')}</TabsTrigger>
+          <TabsTrigger value="uoms" className="text-xs px-4">{t('products.tabs.uoms')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="catalog" className="space-y-4 pt-4">
+        <TabsContent value="catalog" className="space-y-2 pt-4">
           <SmartTable
             table={table}
             columnsLength={columns.length}
@@ -195,14 +201,12 @@ export default function Products() {
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('products.noProducts')}
-            // כאן הכפתורים - בתוך SmartTable
             actions={
-              <Button onClick={handleAddNew}>
-                <Plus className="ml-2 h-4 w-4" />
+              <Button onClick={handleAddNew} size="sm" className="h-8 text-xs">
+                <Plus className="ml-2 h-3.5 w-3.5" />
                 {t('products.addProduct')}
               </Button>
             }
-            // וכאן ההרחבה - בתוך SmartTable
             renderSubComponent={({ row }) => (
               <ProductRowDetail product={row.original} colSpan={columns.length} />
             )}

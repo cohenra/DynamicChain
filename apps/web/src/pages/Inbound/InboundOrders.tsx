@@ -36,20 +36,13 @@ const formatDate = (dateStr: string | null) => {
 
 const getStatusBadgeColor = (status: string): string => {
   switch (status) {
-    case 'DRAFT':
-      return 'bg-slate-100 text-slate-800 border-slate-200';
-    case 'CONFIRMED':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'PARTIALLY_RECEIVED':
-      return 'bg-amber-100 text-amber-800 border-amber-200';
-    case 'COMPLETED':
-      return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    case 'SHORT_CLOSED':
-      return 'bg-orange-100 text-orange-800 border-orange-200';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800 border-red-200';
-    default:
-      return 'bg-slate-100 text-slate-800';
+    case 'DRAFT': return 'bg-slate-100 text-slate-800 border-slate-200';
+    case 'CONFIRMED': return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'PARTIALLY_RECEIVED': return 'bg-amber-100 text-amber-800 border-amber-200';
+    case 'COMPLETED': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    case 'SHORT_CLOSED': return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'CANCELLED': return 'bg-red-100 text-red-800 border-red-200';
+    default: return 'bg-slate-100 text-slate-800';
   }
 };
 
@@ -101,11 +94,8 @@ export default function InboundOrders() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
       setRowSelection({});
-      
       if (result.failed_count > 0) {
         toast.warning(`${result.success_count} נסגרו בהצלחה, ${result.failed_count} נכשלו`);
-        // הצגת שגיאות מפורטות בקונסול למפתח
-        console.error("Bulk close errors:", result.errors);
       } else {
         toast.success(`${result.success_count} הזמנות נסגרו בהצלחה`);
       }
@@ -116,16 +106,12 @@ export default function InboundOrders() {
     }
   });
 
-  // --- התיקון המרכזי: שימוש ב-IDs ישירים ---
   const handleBulkClose = () => {
-    // בגלל השימוש ב-getRowId למטה, המפתחות ב-rowSelection הם ה-IDs עצמם
     const selectedIds = Object.keys(rowSelection).map(Number);
-
     if (selectedIds.length === 0) {
       toast.error(t('inbound.bulk.noSelection', 'נא לבחור הזמנות'));
       return;
     }
-
     if (confirm(`האם לסגור ${selectedIds.length} הזמנות שנבחרו?`)) {
         bulkCloseMutation.mutate(selectedIds);
     }
@@ -134,6 +120,7 @@ export default function InboundOrders() {
   const columns = useMemo<ColumnDef<InboundOrder>[]>(() => [
     {
       id: 'select',
+      size: 40,
       header: ({ table }) => (
         <Checkbox
           checked={table.getIsAllPageRowsSelected()}
@@ -150,56 +137,59 @@ export default function InboundOrders() {
         />
       ),
       enableHiding: false,
-      size: 40,
     },
     {
       id: 'expander',
+      size: 40,
       header: () => null,
       cell: ({ row }) => (
         <Button
           variant="ghost"
           size="icon"
           onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
-          className="h-8 w-8"
+          className="h-6 w-6"
         >
           {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
       ),
       enableHiding: false,
-      size: 50,
     },
     {
       accessorKey: 'order_number',
       id: 'order_number',
+      size: 140,
       header: t('inbound.orderNumber'),
-      cell: ({ row }) => <span className="font-bold text-primary">{row.original.order_number}</span>
+      cell: ({ row }) => <span className="font-bold text-primary text-xs">{row.original.order_number}</span>
     },
     {
         accessorKey: 'customer.name',
         id: 'customer',
+        size: 150,
         header: t('depositors.name'),
-        cell: ({ row }) => row.original.customer?.name || '-'
+        cell: ({ row }) => <div className="truncate max-w-[140px]" title={row.original.customer?.name}>{row.original.customer?.name || '-'}</div>
     },
     {
       accessorKey: 'order_type',
       id: 'order_type',
+      size: 120,
       header: t('inbound.orderType'),
       cell: ({ row }) => {
         const type = row.original.order_type;
         const label = type === 'SUPPLIER_DELIVERY' ? t('inbound.orderTypes.PO') : 
                       type === 'CUSTOMER_RETURN' ? t('inbound.orderTypes.RETURN') : 
                       t('inbound.orderTypes.TRANSFER');
-        return <span>{label}</span>;
+        return <span className="text-xs text-muted-foreground">{label}</span>;
       }
     },
     {
       accessorKey: 'status',
       id: 'status',
+      size: 110,
       header: t('inbound.status'),
       cell: ({ row }) => {
         const status = row.original.status;
         return (
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeColor(status)}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadgeColor(status)}`}>
             {status.replace(/_/g, ' ')}
           </span>
         );
@@ -207,13 +197,14 @@ export default function InboundOrders() {
     },
     {
       id: 'progress',
+      size: 100,
       header: t('inbound.progress', 'התקדמות'),
       cell: ({ row }) => {
           const progress = calculateProgress(row.original);
           return (
-              <div className="w-[100px] flex items-center gap-2">
-                  <Progress value={progress} className="h-2" />
-                  <span className="text-xs text-muted-foreground">{progress}%</span>
+              <div className="flex items-center gap-2">
+                  <Progress value={progress} className="h-1.5 w-16" />
+                  <span className="text-[10px] text-muted-foreground">{progress}%</span>
               </div>
           );
       }
@@ -221,54 +212,34 @@ export default function InboundOrders() {
     {
       accessorKey: 'supplier_name',
       id: 'supplier_name',
+      size: 150,
       header: t('inbound.supplier'),
-      cell: ({ row }) => row.original.supplier_name || '-'
+      cell: ({ row }) => <div className="truncate max-w-[140px]" title={row.original.supplier_name || ''}>{row.original.supplier_name || '-'}</div>
     },
     {
       accessorKey: 'expected_delivery_date',
       id: 'expected_delivery_date',
+      size: 100,
       header: t('inbound.expectedDate'),
-      cell: ({ row }) => formatDate(row.original.expected_delivery_date)
+      cell: ({ row }) => <span className="text-xs">{formatDate(row.original.expected_delivery_date)}</span>
     },
     {
       id: 'total_items',
-      header: t('inbound.totalItems', 'סה״כ פריטים'),
-      cell: ({ row }) => <span className="font-medium">{calculateTotalItems(row.original)}</span>
+      size: 80,
+      header: t('inbound.totalItems', 'פריטים'),
+      cell: ({ row }) => <span className="font-medium text-xs">{calculateTotalItems(row.original)}</span>
     },
     {
-      id: 'lines_count',
-      header: t('inbound.lines.title'),
-      cell: ({ row }) => <span className="font-mono text-muted-foreground">{row.original.lines?.length || 0}</span>
-    },
-    {
-      id: 'shipments_count',
-      header: t('inbound.shipments.title'),
-      cell: ({ row }) => <span className="font-mono text-muted-foreground">{row.original.shipments?.length || 0}</span>
-    },
-    {
-        accessorKey: 'created_at',
-        id: 'created_at',
-        header: t('products.createdAt'),
-        cell: ({ row }) => formatDate(row.original.created_at)
-    },
-    {
-        accessorKey: 'updated_at',
-        id: 'updated_at',
-        header: t('products.updatedAt'),
-        cell: ({ row }) => formatDate(row.original.updated_at)
-    },
-    {
-        accessorKey: 'notes',
-        id: 'notes',
-        header: t('inbound.fields.notes', 'הערות'),
-        cell: ({ row }) => <span className="max-w-[150px] truncate block" title={row.original.notes || ''}>{row.original.notes || '-'}</span>
+        id: 'filler',
+        header: '',
+        size: undefined,
+        cell: () => null
     }
   ], [t]);
 
   const table = useReactTable({
     data: orders || [],
     columns,
-    // --- תיקון חשוב: הגדרת מזהה שורה ייחודי ---
     getRowId: (row) => row.id.toString(), 
     state: { expanded, sorting, globalFilter, pagination, columnVisibility, rowSelection },
     onExpandedChange: setExpanded,
@@ -290,35 +261,35 @@ export default function InboundOrders() {
 
   return (
     <div className="flex flex-col space-y-4 pb-8">
-      <div className="mb-4 shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight">{t('inbound.title')}</h1>
-        <p className="text-muted-foreground mt-2">{t('inbound.description')}</p>
+      <div className="mb-2 shrink-0">
+        <h1 className="text-2xl font-bold tracking-tight">{t('inbound.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('inbound.description')}</p>
       </div>
 
-      {/* Bulk Actions Bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 shrink-0 mb-4">
-          <span className="text-sm font-medium text-blue-900">
+        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 p-2 rounded-md mb-2 animate-in fade-in slide-in-from-top-2">
+          <span className="text-sm font-medium text-blue-900 ml-2">
             {selectedCount} {t('inbound.bulk.selected', 'נבחרו')}
           </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setRowSelection({})}
-            >
-              {t('common.clearSelection', 'נקה בחירה')}
-            </Button>
+          
             <Button
               size="sm"
               onClick={handleBulkClose}
               disabled={bulkCloseMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 h-8"
             >
-              <CheckCircle2 className="ml-2 h-4 w-4" />
-              {t('inbound.bulk.close', 'סגור נבחרים')} ({selectedCount})
+              <CheckCircle2 className="ml-2 h-3 w-3" />
+              {t('inbound.bulk.close', 'סגור נבחרים')}
             </Button>
-          </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRowSelection({})}
+              className="h-8"
+            >
+              {t('common.clearSelection', 'נקה בחירה')}
+            </Button>
         </div>
       )}
 
@@ -331,8 +302,8 @@ export default function InboundOrders() {
             onSearchChange={setGlobalFilter}
             noDataMessage={t('inbound.noOrders')}
             actions={
-                <Button onClick={() => setIsCreateOpen(true)}>
-                    <Plus className="ml-2 h-4 w-4" />
+                <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">
+                    <Plus className="ml-2 h-3 w-3" />
                     {t('inbound.createOrder')}
                 </Button>
             }

@@ -69,110 +69,134 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
   const tasks = order.pick_tasks || [];
 
   return (
-    // FIX: Enforcing RTL direction on the container
-    <div className="bg-slate-50/50 p-4 w-full border-t shadow-inner" dir="rtl">
+    <div className="bg-slate-50/80 p-0 w-full border-t shadow-inner text-xs overflow-hidden" dir="rtl" style={{ direction: 'rtl' }}>
       
-      {/* Secondary Action Bar */}
-      {(canRelease || canAcceptShortages) && (
-        <div className="mb-4 flex gap-2 items-center bg-white p-2 rounded border shadow-sm justify-end">
-            {canAcceptShortages && (
-              <Button onClick={handleAcceptShortages} disabled={!!actionLoading} size="sm" variant="destructive">
-                {actionLoading === 'accept-shortages' ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <AlertCircle className="h-4 w-4 ml-2" />}
-                {t('outbound.actions.acceptShortages')}
-              </Button>
-            )}
-            {canRelease && (
-              <Button onClick={handleRelease} disabled={!!actionLoading} size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                {actionLoading === 'release' ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <ListChecks className="h-4 w-4 ml-2" />}
-                {t('outbound.actions.release')}
-              </Button>
-            )}
-        </div>
-      )}
-
       {error && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert variant="destructive" className="m-2 w-auto">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <Tabs defaultValue="lines" className="w-full">
-        {/* FIX: justify-start combined with dir="rtl" aligns to the right */}
-        <TabsList className="bg-white border w-full justify-start h-10 p-0">
-          <TabsTrigger value="lines" className="px-6 h-full rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-            {t('outbound.tabs.lines')} ({lines.length})
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="px-6 h-full rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-            {t('outbound.tabs.tasks')} ({tasks.length})
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="lines" className="w-full" dir="rtl">
+        {/* FIX: Header Layout Logic
+            - 'flex' with 'items-center' keeps everything in one row.
+            - 'justify-start' keeps content starting from the Right (in RTL).
+            - 'gap-6' adds spacing between the Tabs group and the Buttons group.
+            - Result: [Tabs] space [Buttons] ........ [Empty Space]
+        */}
+        <div className="flex items-center justify-start gap-6 bg-white border-b px-2 h-9">
+            
+            {/* Group 1: Tabs */}
+            <TabsList className="bg-transparent border-0 h-full p-0 gap-4">
+                <TabsTrigger 
+                    value="lines" 
+                    className="h-full px-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-medium text-muted-foreground data-[state=active]:text-primary"
+                >
+                    {t('outbound.tabs.lines')} <span className="mr-1.5 bg-slate-100 text-slate-600 px-1.5 rounded-full text-[10px]">{lines.length}</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                    value="tasks" 
+                    className="h-full px-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-medium text-muted-foreground data-[state=active]:text-primary"
+                >
+                    {t('outbound.tabs.tasks')} <span className="mr-1.5 bg-slate-100 text-slate-600 px-1.5 rounded-full text-[10px]">{tasks.length}</span>
+                </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="lines" className="mt-4">
-          <div className="bg-white rounded-md border overflow-hidden shadow-sm">
-            <Table dir="rtl"> {/* Explicitly set RTL for the table */}
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                   {/* FIX: Reordered columns to match Hebrew RTL reading order (Right to Left) */}
-                  <TableHead className="text-right w-[30%]">{t('outbound.table.product')}</TableHead>
-                  <TableHead className="text-center">{t('outbound.table.ordered')}</TableHead>
-                  <TableHead className="text-center">{t('outbound.table.allocated')}</TableHead>
-                  <TableHead className="text-center">{t('outbound.table.picked')}</TableHead>
-                  <TableHead className="text-center">{t('outbound.table.status')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lines.length === 0 ? (
-                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t('common.noData') || 'אין נתונים'}</TableCell></TableRow>
-                ) : (
-                  lines.map((line) => {
-                    const isShort = line.qty_allocated < line.qty_ordered;
-                    const rowClass = isShort ? 'bg-amber-50/50 hover:bg-amber-100/50' : 'hover:bg-slate-50';
-                    return (
-                      <TableRow key={line.id} className={rowClass}>
-                        <TableCell>
-                          <div className="font-medium">{line.product?.name}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{line.product?.sku}</div>
-                        </TableCell>
-                        <TableCell className="text-center font-medium">{line.qty_ordered}</TableCell>
-                        <TableCell className={`text-center font-bold ${isShort ? 'text-red-600' : 'text-green-600'}`}>{line.qty_allocated}</TableCell>
-                        <TableCell className="text-center">{line.qty_picked}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={isShort ? 'destructive' : 'outline'}>{line.line_status || 'PENDING'}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+            {/* Group 2: Actions (Sits right next to tabs) */}
+            <div className="flex items-center gap-2">
+                {(canRelease || canAcceptShortages) && (
+                    <>
+                        {canAcceptShortages && (
+                        <Button onClick={handleAcceptShortages} disabled={!!actionLoading} size="sm" variant="destructive" className="h-6 text-[10px] px-2.5 rounded-full">
+                            {actionLoading === 'accept-shortages' ? <Loader2 className="h-3 w-3 animate-spin ml-1.5" /> : <AlertCircle className="h-3 w-3 ml-1.5" />}
+                            {t('outbound.actions.acceptShortages')}
+                        </Button>
+                        )}
+                        {canRelease && (
+                        <Button onClick={handleRelease} disabled={!!actionLoading} size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-6 text-[10px] px-2.5 rounded-full">
+                            {actionLoading === 'release' ? <Loader2 className="h-3 w-3 animate-spin ml-1.5" /> : <ListChecks className="h-3 w-3 ml-1.5" />}
+                            {t('outbound.actions.release')}
+                        </Button>
+                        )}
+                    </>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+            </div>
+        </div>
 
-        <TabsContent value="tasks" className="mt-4">
-           <div className="bg-white rounded-md border overflow-hidden shadow-sm">
-             <Table dir="rtl">
-               <TableHeader className="bg-slate-50">
-                 <TableRow>
-                   <TableHead className="text-right">{t('outbound.table.task')}</TableHead>
-                   <TableHead className="text-right">{t('outbound.table.fromLocation')}</TableHead>
-                   <TableHead className="text-center">{t('outbound.table.qtyToPick')}</TableHead>
-                   <TableHead className="text-center">{t('outbound.table.status')}</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                 {tasks.map((task) => (
-                   <TableRow key={task.id}>
-                     <TableCell className="font-mono">#{task.id}</TableCell>
-                     <TableCell><Badge variant="outline">{task.from_location?.name}</Badge></TableCell>
-                     <TableCell className="text-center font-bold">{task.qty_to_pick}</TableCell>
-                     <TableCell className="text-center"><Badge>{task.status}</Badge></TableCell>
-                   </TableRow>
-                 ))}
-               </TableBody>
-             </Table>
-           </div>
-        </TabsContent>
+        {/* Content Area */}
+        <div className="p-2">
+            <TabsContent value="lines" className="m-0 p-0 border rounded-sm bg-white">
+            <Table className="table-fixed w-full" dir="rtl">
+                <TableHeader className="bg-slate-50 h-8">
+                    <TableRow className="h-8 hover:bg-transparent border-b border-slate-200">
+                    <TableHead className="text-right h-8 px-2 py-0 font-semibold text-[11px] w-[25%]">{t('outbound.table.product')}</TableHead>
+                    <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[10%]">{t('outbound.table.ordered')}</TableHead>
+                    <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[10%]">{t('outbound.table.allocated')}</TableHead>
+                    <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[10%]">{t('outbound.table.picked')}</TableHead>
+                    <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.status')}</TableHead>
+                    <TableHead className="w-auto"></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {lines.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-4 text-muted-foreground text-xs">{t('common.noData')}</TableCell></TableRow>
+                    ) : (
+                    lines.map((line) => {
+                        const isShort = line.qty_allocated < line.qty_ordered;
+                        const rowClass = isShort ? 'bg-amber-50/30 hover:bg-amber-100/40' : 'hover:bg-slate-50';
+                        return (
+                        <TableRow key={line.id} className={`${rowClass} h-8 border-b border-slate-50 last:border-0`}>
+                            <TableCell className="px-2 py-0 align-middle">
+                            <div className="flex flex-col justify-center h-full">
+                                <span className="font-medium text-[11px] truncate leading-tight" title={line.product?.name}>{line.product?.name}</span>
+                                <span className="text-[10px] text-muted-foreground font-mono leading-tight">{line.product?.sku}</span>
+                            </div>
+                            </TableCell>
+                            <TableCell className="text-center px-2 py-0 text-[11px]">{Number(line.qty_ordered).toLocaleString()}</TableCell>
+                            <TableCell className={`text-center px-2 py-0 font-bold text-[11px] ${isShort ? 'text-red-600' : 'text-green-600'}`}>{Number(line.qty_allocated).toLocaleString()}</TableCell>
+                            <TableCell className="text-center px-2 py-0 text-[11px]">{Number(line.qty_picked).toLocaleString()}</TableCell>
+                            <TableCell className="text-center px-2 py-0">
+                            <Badge variant={isShort ? 'destructive' : 'outline'} className="text-[9px] h-4 px-1.5 py-0 font-normal border-slate-200">{line.line_status || 'PENDING'}</Badge>
+                            </TableCell>
+                            <TableCell></TableCell>
+                        </TableRow>
+                        );
+                    })
+                    )}
+                </TableBody>
+            </Table>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="m-0 p-0 border rounded-sm bg-white">
+                <Table className="table-fixed w-full" dir="rtl">
+                <TableHeader className="bg-slate-50 h-8">
+                    <TableRow className="h-8 hover:bg-transparent border-b border-slate-200">
+                    <TableHead className="text-right h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.task')}</TableHead>
+                    <TableHead className="text-right h-8 px-2 py-0 font-semibold text-[11px] w-[20%]">{t('outbound.table.fromLocation')}</TableHead>
+                    <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.qtyToPick')}</TableHead>
+                    <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.status')}</TableHead>
+                    <TableHead className="w-auto"></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {tasks.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground text-xs">{t('common.noData')}</TableCell></TableRow>
+                    ) : (
+                    tasks.map((task) => (
+                        <TableRow key={task.id} className="h-8 hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                        <TableCell className="px-2 py-0 font-mono text-[10px]">#{task.id}</TableCell>
+                        <TableCell className="px-2 py-0"><Badge variant="outline" className="text-[10px] h-4 px-1.5 font-normal bg-white text-slate-700">{task.from_location?.name}</Badge></TableCell>
+                        <TableCell className="text-center px-2 py-0 font-bold text-[11px]">{Number(task.qty_to_pick).toLocaleString()}</TableCell>
+                        <TableCell className="text-center px-2 py-0"><Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-slate-100 text-slate-700 hover:bg-slate-200">{task.status}</Badge></TableCell>
+                        <TableCell></TableCell>
+                        </TableRow>
+                    ))
+                    )}
+                </TableBody>
+                </Table>
+            </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

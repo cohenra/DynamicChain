@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, WarehouseCreate, Warehouse } from '@/services/warehouses';
 import { Button } from '@/components/ui/button';
@@ -139,36 +139,43 @@ export default function Warehouses() {
   const columns = useMemo<ColumnDef<Warehouse>[]>(() => [
     {
       id: 'expander',
+      size: 40,
       header: () => null,
       cell: ({ row }) => (
           <Button
             variant="ghost"
             size="icon"
             onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
-            className="h-8 w-8"
+            className="h-6 w-6"
           >
             {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
       ),
-      size: 50,
     },
-    { accessorKey: 'name', id: 'name', header: t('warehouses.name'), cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
-    { accessorKey: 'code', id: 'code', header: t('warehouses.code') },
-    { accessorKey: 'address', id: 'address', header: t('warehouses.address'), cell: ({ row }) => <span className="max-w-md truncate">{row.original.address}</span> },
+    { accessorKey: 'name', id: 'name', size: 200, header: t('warehouses.name'), cell: ({ row }) => <span className="font-medium text-xs">{row.original.name}</span> },
+    { accessorKey: 'code', id: 'code', size: 100, header: t('warehouses.code'), cell: ({ row }) => <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">{row.original.code}</span> },
+    { accessorKey: 'address', id: 'address', size: 300, header: t('warehouses.address'), cell: ({ row }) => <span className="truncate max-w-[280px] block text-xs text-muted-foreground" title={row.original.address}>{row.original.address}</span> },
     {
       id: 'actions',
+      size: 80,
       header: t('common.actions'),
       cell: ({ row }) => (
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="icon" onClick={() => handleEdit(row.original)}>
-            <Pencil className="h-4 w-4" />
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(row.original)}>
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleDelete(row.original.id)}>
-            <Trash2 className="h-4 w-4 text-destructive" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(row.original.id)}>
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </Button>
         </div>
       ),
     },
+    {
+        id: 'filler',
+        header: '',
+        size: undefined,
+        cell: () => null
+    }
   ], [t]);
 
   const table = useReactTable({
@@ -191,10 +198,10 @@ export default function Warehouses() {
   const isSubmitting = createWarehouseMutation.isPending || updateWarehouseMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('warehouses.title')}</h1>
-        <p className="text-muted-foreground mt-2">{t('warehouses.description')}</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('warehouses.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('warehouses.description')}</p>
       </div>
 
       <SmartTable
@@ -205,22 +212,22 @@ export default function Warehouses() {
         onSearchChange={setGlobalFilter}
         noDataMessage={t('warehouses.noWarehouses')}
         actions={
-          <Button onClick={handleAddNew}>
-            <Plus className="ml-2 h-4 w-4" />
+          <Button onClick={handleAddNew} size="sm" className="h-8 text-xs">
+            <Plus className="ml-2 h-3.5 w-3.5" />
             {t('warehouses.addWarehouse')}
           </Button>
         }
         renderSubComponent={({ row }) => (
-          <div className="bg-gray-50 dark:bg-gray-900 p-6">
-            <Tabs defaultValue="zones" className="w-full">
-              <TabsList>
-                <TabsTrigger value="zones">{t('zones.title')}</TabsTrigger>
-                <TabsTrigger value="locations">{t('locations.title')}</TabsTrigger>
+          <div className="bg-gray-50 dark:bg-gray-900 p-2 border-b">
+            <Tabs defaultValue="zones" className="w-full" dir="rtl">
+              <TabsList className="bg-white border w-full justify-start h-8 p-0">
+                <TabsTrigger value="zones" className="px-4 h-full text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-slate-50">{t('zones.title')}</TabsTrigger>
+                <TabsTrigger value="locations" className="px-4 h-full text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-slate-50">{t('locations.title')}</TabsTrigger>
               </TabsList>
-              <TabsContent value="zones" className="mt-6">
+              <TabsContent value="zones" className="mt-2">
                 <ZonesTab warehouseId={row.original.id} />
               </TabsContent>
-              <TabsContent value="locations" className="mt-6">
+              <TabsContent value="locations" className="mt-2">
                 <LocationsTab warehouseId={row.original.id} />
               </TabsContent>
             </Tabs>

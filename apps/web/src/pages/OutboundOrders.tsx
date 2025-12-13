@@ -132,10 +132,12 @@ export default function OutboundOrders() {
       }
   };
 
+  // --- Columns Definitions with FIXED WIDTHS ---
   const columns = useMemo<ColumnDef<OutboundOrder>[]>(
     () => [
       {
         id: 'select',
+        size: 40, // Fixed small width
         header: ({ table }) => (
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
@@ -153,10 +155,10 @@ export default function OutboundOrders() {
         ),
         enableSorting: false,
         enableHiding: false,
-        size: 40,
       },
       {
         id: 'expander',
+        size: 40, // Fixed small width
         header: () => null,
         cell: ({ row }) => (
           <Button
@@ -166,7 +168,7 @@ export default function OutboundOrders() {
               e.stopPropagation();
               row.toggleExpanded();
             }}
-            className="h-8 w-8"
+            className="h-6 w-6"
           >
             {row.getIsExpanded() ? (
               <ChevronDown className="h-4 w-4" />
@@ -175,38 +177,39 @@ export default function OutboundOrders() {
             )}
           </Button>
         ),
-        size: 40,
       },
       {
         accessorKey: 'order_number',
         id: 'order_number',
+        size: 140, // Fixed width
         header: t('outbound.orderNumber'),
         cell: ({ row }) => (
           <div>
-            <div className="font-bold text-primary">{row.original.order_number}</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="font-bold text-primary text-xs">{row.original.order_number}</div>
+            <div className="text-[10px] text-muted-foreground">
               {row.original.order_type}
             </div>
           </div>
         ),
       },
-      // --- עמודת גל חדשה ---
       {
         accessorKey: 'wave.wave_number',
         id: 'wave',
+        size: 110, // Fixed width
         header: t('outbound.waveNumber', 'מספר גל'),
         cell: ({ row }) => row.original.wave ? (
-            <Badge variant="outline">{row.original.wave.wave_number}</Badge>
+            <Badge variant="outline" className="text-[10px] h-5 px-1">{row.original.wave.wave_number}</Badge>
         ) : '-',
       },
       {
         accessorKey: 'customer',
         id: 'customer',
+        size: 180, // Fixed width, will truncate
         header: t('outbound.customer'),
         cell: ({ row }) =>
           row.original.customer ? (
-            <div>
-              <div className="font-medium">{row.original.customer.name}</div>
+            <div className="font-medium text-xs truncate max-w-[170px]" title={row.original.customer.name}>
+              {row.original.customer.name}
             </div>
           ) : (
             <span className="text-muted-foreground">-</span>
@@ -215,11 +218,12 @@ export default function OutboundOrders() {
       {
         accessorKey: 'status',
         id: 'status',
+        size: 100, // Fixed width
         header: t('outbound.status'),
         cell: ({ row }) => {
           const color = getStatusColor(row.original.status);
           return (
-            <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-200 hover:bg-${color}-100`}>
+            <Badge className={`bg-${color}-100 text-${color}-800 border-${color}-200 hover:bg-${color}-100 text-[10px] h-5 px-1`}>
               {t(`outbound.statuses.${row.original.status}`)}
             </Badge>
           );
@@ -228,11 +232,12 @@ export default function OutboundOrders() {
       {
         accessorKey: 'priority',
         id: 'priority',
+        size: 90, // Fixed width
         header: t('outbound.priority'),
         cell: ({ row }) => {
           const { label, color } = getPriorityInfo(row.original.priority);
           return (
-            <Badge variant="outline" className={`border-${color}-200 text-${color}-700`}>
+            <Badge variant="outline" className={`border-${color}-200 text-${color}-700 text-[10px] h-5 px-1`}>
               {t(`outbound.priorities.${label}`)}
             </Badge>
           );
@@ -241,12 +246,13 @@ export default function OutboundOrders() {
       {
         id: 'progress',
         header: t('outbound.progress'),
+        size: 120, // Fixed width
         cell: ({ row }) => {
           const progress = calculateOrderProgress(row.original);
           return (
-            <div className="flex items-center gap-2 w-24">
-              <Progress value={progress} className="h-2" />
-              <span className="text-xs text-muted-foreground w-8">
+            <div className="flex items-center gap-2 w-full">
+              <Progress value={progress} className="h-1.5 flex-1" />
+              <span className="text-[10px] text-muted-foreground w-6 text-left">
                 {progress}%
               </span>
             </div>
@@ -256,10 +262,11 @@ export default function OutboundOrders() {
       {
         accessorKey: 'requested_delivery_date',
         id: 'requested_delivery_date',
+        size: 100, // Fixed width
         header: t('outbound.deliveryDate'),
         cell: ({ row }) =>
           row.original.requested_delivery_date ? (
-            <span className="text-sm">
+            <span className="text-xs">
               {format(new Date(row.original.requested_delivery_date), 'dd/MM/yyyy')}
             </span>
           ) : (
@@ -268,6 +275,7 @@ export default function OutboundOrders() {
       },
       {
         id: 'metrics',
+        size: 80, // Fixed width
         header: t('outbound.linesCount'),
         cell: ({ row }) => {
           const metrics = row.original.metrics;
@@ -279,6 +287,13 @@ export default function OutboundOrders() {
           );
         },
       },
+      // Filler column to take up remaining space
+      {
+          id: 'filler',
+          header: '',
+          size: undefined, // Let it shrink
+          cell: () => null,
+      }
     ],
     [t]
   );
@@ -307,34 +322,34 @@ export default function OutboundOrders() {
 
   return (
     <div className="flex flex-col space-y-4 pb-8">
-      <div className="mb-4 shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight">{t('outbound.title')}</h1>
-        <p className="text-muted-foreground mt-2">{t('outbound.description')}</p>
+      <div className="mb-2 shrink-0">
+        <h1 className="text-2xl font-bold tracking-tight">{t('outbound.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('outbound.description')}</p>
       </div>
 
       {/* Bulk Actions Bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 p-2 rounded-md mb-4 animate-in fade-in slide-in-from-top-2">
+        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 p-2 rounded-md mb-2 animate-in fade-in slide-in-from-top-2">
             <span className="text-sm font-medium text-blue-900 ml-2">
                 {t('common.selected', { count: selectedCount })}
             </span>
             
-            <Button size="sm" onClick={handleBulkAllocate} disabled={bulkLoading} className="bg-blue-600 hover:bg-blue-700">
-                {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Package className="h-4 w-4 mr-2" />}
+            <Button size="sm" onClick={handleBulkAllocate} disabled={bulkLoading} className="bg-blue-600 hover:bg-blue-700 h-8">
+                {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Package className="h-3 w-3 mr-2" />}
                 {t('outbound.actions.allocateSelected', { count: selectedCount })}
             </Button>
 
-            <Button size="sm" variant="outline" onClick={handleCreateWave} disabled={bulkLoading} className="bg-white hover:bg-slate-50 text-blue-700 border-blue-200">
-                {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Layers className="h-4 w-4 mr-2" />}
+            <Button size="sm" variant="outline" onClick={handleCreateWave} disabled={bulkLoading} className="bg-white hover:bg-slate-50 text-blue-700 border-blue-200 h-8">
+                {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Layers className="h-3 w-3 mr-2" />}
                 {t('outbound.actions.createWave', 'צור גל ליקוט')}
             </Button>
 
-            <Button size="sm" variant="destructive" onClick={handleBulkCancel} disabled={bulkLoading}>
-                <XCircle className="h-4 w-4 mr-2" />
+            <Button size="sm" variant="destructive" onClick={handleBulkCancel} disabled={bulkLoading} className="h-8">
+                <XCircle className="h-3 w-3 mr-2" />
                 {t('outbound.actions.cancelSelected', { count: selectedCount })}
             </Button>
 
-            <Button variant="ghost" size="sm" onClick={() => setRowSelection({})}>
+            <Button variant="ghost" size="sm" onClick={() => setRowSelection({})} className="h-8">
                 {t('common.clearSelection')}
             </Button>
         </div>
@@ -349,8 +364,8 @@ export default function OutboundOrders() {
             onSearchChange={setGlobalFilter}
             noDataMessage={t('common.noData')}
             actions={
-                <Button onClick={() => setIsSheetOpen(true)}>
-                    <Plus className="ml-2 h-4 w-4" />
+                <Button onClick={() => setIsSheetOpen(true)} size="sm" className="h-8">
+                    <Plus className="ml-2 h-3 w-3" />
                     {t('outbound.createOrder')}
                 </Button>
             }
