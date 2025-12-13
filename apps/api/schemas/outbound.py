@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from models.outbound_order import OutboundOrderStatus
 from models.outbound_wave import OutboundWaveStatus
 from models.pick_task import PickTaskStatus
-from models.allocation_strategy import PickingType
+from models.allocation_strategy import PickingType, WaveType
 
 
 # ============================================================================
@@ -73,6 +73,7 @@ class AllocationStrategyResponse(BaseModel):
     tenant_id: int
     name: str
     picking_type: PickingType
+    wave_type: Optional[WaveType] = None
     rules_config: Dict[str, Any]
     is_active: bool
     description: Optional[str] = None
@@ -275,3 +276,62 @@ class AllocateWaveRequest(BaseModel):
 class AddOrdersToWaveRequest(BaseModel):
     """Request to add orders to a wave."""
     order_ids: List[int]
+
+
+# ============================================================================
+# Wave Wizard Schemas
+# ============================================================================
+
+class WaveSimulationCriteria(BaseModel):
+    """Criteria for filtering orders in wave simulation."""
+    delivery_date_from: Optional[date] = None
+    delivery_date_to: Optional[date] = None
+    customer_id: Optional[int] = None
+    order_type: Optional[str] = None
+    priority: Optional[int] = Field(None, ge=1, le=10)
+
+
+class WaveSimulationRequest(BaseModel):
+    """Request for wave simulation."""
+    wave_type: WaveType
+    criteria: WaveSimulationCriteria
+
+
+class OrderSimulationSummary(BaseModel):
+    """Summary of an order for simulation preview."""
+    id: int
+    order_number: str
+    customer_name: str
+    order_type: str
+    priority: int
+    requested_delivery_date: Optional[date] = None
+    lines_count: int
+    total_qty: Decimal
+
+
+class WaveSimulationResponse(BaseModel):
+    """Response from wave simulation."""
+    matched_orders_count: int
+    total_lines: int
+    total_qty: Decimal
+    orders: List[OrderSimulationSummary]
+    resolved_strategy_id: int
+    resolved_strategy_name: str
+    wave_type: WaveType
+
+
+class CreateWaveWithCriteriaRequest(BaseModel):
+    """Request for creating a wave with auto-strategy mapping."""
+    wave_name: Optional[str] = Field(None, max_length=50)
+    wave_type: WaveType
+    criteria: WaveSimulationCriteria
+    order_ids: List[int]  # The confirmed order IDs from simulation
+
+
+class WaveTypeOption(BaseModel):
+    """A wave type option with its associated strategy."""
+    wave_type: WaveType
+    strategy_id: int
+    strategy_name: str
+    description: Optional[str] = None
+    picking_policy: Optional[str] = None

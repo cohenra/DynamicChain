@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from sqlalchemy import Column, BigInteger, Integer, String, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -35,6 +36,9 @@ class OutboundWave(Base):
 
     # Strategy for allocation (nullable - can be set per wave)
     strategy_id = Column(BigInteger, ForeignKey("allocation_strategies.id"), nullable=True, index=True)
+
+    # Metrics and metadata - stores wave type, criteria, and operational metrics
+    metrics = Column(JSONB, nullable=True, default={})
 
     # Audit fields
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)

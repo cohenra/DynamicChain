@@ -32,17 +32,77 @@ export type PickTaskStatus =
 
 export type PickingType = 'DISCRETE' | 'WAVE' | 'CLUSTER';
 
+export type WaveType =
+  | 'ECOMMERCE_DAILY'
+  | 'ECOMMERCE_EXPRESS'
+  | 'B2B_STANDARD'
+  | 'B2B_URGENT'
+  | 'WHOLESALE'
+  | 'RETAIL_REPLENISHMENT'
+  | 'PERISHABLE'
+  | 'CUSTOM';
+
 export interface AllocationStrategy {
   id: number;
   tenant_id: number;
   depositor_id: number | null;
   name: string;
   picking_type: PickingType;
+  wave_type: WaveType | null;
   rules_config: any;
   is_active: boolean;
   description: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface WaveTypeOption {
+  wave_type: WaveType;
+  strategy_id: number;
+  strategy_name: string;
+  description: string | null;
+  picking_policy: string | null;
+}
+
+export interface WaveSimulationCriteria {
+  delivery_date_from?: string | null;
+  delivery_date_to?: string | null;
+  customer_id?: number | null;
+  order_type?: string | null;
+  priority?: number | null;
+}
+
+export interface WaveSimulationRequest {
+  wave_type: WaveType;
+  criteria: WaveSimulationCriteria;
+}
+
+export interface OrderSimulationSummary {
+  id: number;
+  order_number: string;
+  customer_name: string;
+  order_type: string;
+  priority: number;
+  requested_delivery_date: string | null;
+  lines_count: number;
+  total_qty: number;
+}
+
+export interface WaveSimulationResponse {
+  matched_orders_count: number;
+  total_lines: number;
+  total_qty: number;
+  orders: OrderSimulationSummary[];
+  resolved_strategy_id: number;
+  resolved_strategy_name: string;
+  wave_type: WaveType;
+}
+
+export interface CreateWaveWithCriteriaRequest {
+  wave_name?: string | null;
+  wave_type: WaveType;
+  criteria: WaveSimulationCriteria;
+  order_ids: number[];
 }
 
 export interface OutboundLine {
@@ -232,6 +292,27 @@ export const createWave = async (data: CreateWaveRequest): Promise<OutboundWave>
 
 export const getWaves = async (): Promise<OutboundWave[]> => {
     const response = await api.get('/api/outbound/waves');
+    return response.data;
+};
+
+// --- Wave Wizard Functions ---
+
+export const getWaveTypes = async (): Promise<WaveTypeOption[]> => {
+    const response = await api.get('/api/outbound/wave-types');
+    return response.data;
+};
+
+export const simulateWave = async (
+    request: WaveSimulationRequest
+): Promise<WaveSimulationResponse> => {
+    const response = await api.post('/api/outbound/waves/simulate', request);
+    return response.data;
+};
+
+export const createWaveWithWizard = async (
+    request: CreateWaveWithCriteriaRequest
+): Promise<OutboundWave> => {
+    const response = await api.post('/api/outbound/waves/wizard', request);
     return response.data;
 };
 

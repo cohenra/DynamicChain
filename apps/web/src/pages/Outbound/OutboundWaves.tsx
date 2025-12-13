@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ColumnDef } from '@tanstack/react-table';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { api } from '@/services/api';
 import { OutboundWave } from '@/services/outboundService';
+import { CreateWaveWizard } from '@/components/outbound/CreateWaveWizard';
 import { format } from 'date-fns';
+import { Plus, Wand2 } from 'lucide-react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,15 +20,21 @@ import {
 
 export default function OutboundWaves() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [globalFilter, setGlobalFilter] = useState('');
+  const [wizardOpen, setWizardOpen] = useState(false);
 
-  const { data: waves, isLoading } = useQuery({
+  const { data: waves, isLoading, refetch } = useQuery({
     queryKey: ['outbound-waves'],
     queryFn: async () => {
         const res = await api.get<OutboundWave[]>('/api/outbound/waves');
         return res.data;
     }
   });
+
+  const handleWizardSuccess = () => {
+    refetch();
+  };
 
   const columns = useMemo<ColumnDef<OutboundWave>[]>(() => [
       {
@@ -62,14 +71,27 @@ export default function OutboundWaves() {
 
   return (
     <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">{t('outbound.waves', 'גלי ליקוט')}</h1>
-        <SmartTable 
-            table={table} 
-            columnsLength={columns.length} 
+        <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">{t('outbound.waves', 'גלי ליקוט')}</h1>
+            <Button onClick={() => setWizardOpen(true)} className="gap-2">
+                <Wand2 className="w-4 h-4" />
+                {t('outbound.createWave', 'צור גל חדש')}
+            </Button>
+        </div>
+        <SmartTable
+            table={table}
+            columnsLength={columns.length}
             isLoading={isLoading}
             searchValue={globalFilter}
             onSearchChange={setGlobalFilter}
             noDataMessage={t('common.noData')}
+        />
+
+        {/* Create Wave Wizard */}
+        <CreateWaveWizard
+            open={wizardOpen}
+            onOpenChange={setWizardOpen}
+            onSuccess={handleWizardSuccess}
         />
     </div>
   );

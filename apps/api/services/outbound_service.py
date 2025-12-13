@@ -1,4 +1,6 @@
 from typing import List, Optional
+from decimal import Decimal
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -7,6 +9,7 @@ from models.outbound_line import OutboundLine
 from models.outbound_wave import OutboundWave, OutboundWaveStatus
 from models.pick_task import PickTask, PickTaskStatus
 from models.inventory_transaction import InventoryTransaction, TransactionType
+from models.allocation_strategy import WaveType
 from repositories.outbound_order_repository import OutboundOrderRepository
 from repositories.outbound_line_repository import OutboundLineRepository
 from repositories.outbound_wave_repository import OutboundWaveRepository
@@ -14,8 +17,16 @@ from repositories.pick_task_repository import PickTaskRepository
 from repositories.product_repository import ProductRepository
 from repositories.inventory_repository import InventoryRepository
 from repositories.inventory_transaction_repository import InventoryTransactionRepository
+from repositories.allocation_strategy_repository import AllocationStrategyRepository
 from services.allocation_service import AllocationService
-from schemas.outbound import OutboundOrderCreate, OutboundWaveCreate
+from schemas.outbound import (
+    OutboundOrderCreate,
+    OutboundWaveCreate,
+    WaveSimulationCriteria,
+    WaveSimulationResponse,
+    OrderSimulationSummary,
+    CreateWaveWithCriteriaRequest
+)
 
 class OutboundService:
     def __init__(self, db: AsyncSession):
@@ -27,6 +38,7 @@ class OutboundService:
         self.product_repo = ProductRepository(db)
         self.inventory_repo = InventoryRepository(db)
         self.transaction_repo = InventoryTransactionRepository(db)
+        self.strategy_repo = AllocationStrategyRepository(db)
         self.allocation_service = AllocationService(db)
 
     async def create_order(self, order_data: OutboundOrderCreate, tenant_id: int, user_id: int) -> OutboundOrder:
@@ -325,3 +337,151 @@ class OutboundService:
             "inventory_allocated": inventory.allocated_quantity,
             "inventory_available": inventory.available_quantity
         }
+
+    # ============================================================================
+    # Wave Wizard Methods
+    # ============================================================================
+
+    async def simulate_wave(
+        self,
+        wave_type: WaveType,
+        criteria: WaveSimulationCriteria,
+        tenant_id: int
+    ) -> WaveSimulationResponse:
+        """
+        Simulate wave creation to preview matched orders and resolved strategy.
+        """
+        # 1. Resolve strategy from wave_type
+        strategy = await self.strategy_repo.get_by_wave_type(wave_type, tenant_id)
+        if not strategy:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No active strategy configured for wave type: {wave_type.value}"
+            )
+
+        # 2. Query orders matching criteria (DRAFT or VERIFIED status, not in a wave)
+        from sqlalchemy import select, and_
+        from sqlalchemy.orm import selectinload
+
+        stmt = select(OutboundOrder).where(
+            OutboundOrder.tenant_id == tenant_id,
+            OutboundOrder.status.in_([OutboundOrderStatus.DRAFT, OutboundOrderStatus.VERIFIED]),
+            OutboundOrder.wave_id.is_(None)  # Not already in a wave
+        ).options(
+            selectinload(OutboundOrder.lines),
+            selectinload(OutboundOrder.customer)
+        )
+
+        # Apply criteria filters
+        if criteria.delivery_date_from:
+            stmt = stmt.where(OutboundOrder.requested_delivery_date >= criteria.delivery_date_from)
+        if criteria.delivery_date_to:
+            stmt = stmt.where(OutboundOrder.requested_delivery_date <= criteria.delivery_date_to)
+        if criteria.customer_id:
+            stmt = stmt.where(OutboundOrder.customer_id == criteria.customer_id)
+        if criteria.order_type:
+            stmt = stmt.where(OutboundOrder.order_type == criteria.order_type)
+        if criteria.priority:
+            stmt = stmt.where(OutboundOrder.priority <= criteria.priority)
+
+        # Order by priority (urgent first)
+        stmt = stmt.order_by(OutboundOrder.priority.asc(), OutboundOrder.created_at.asc())
+
+        result = await self.db.execute(stmt)
+        orders = list(result.scalars().all())
+
+        # 3. Build response
+        order_summaries = []
+        total_lines = 0
+        total_qty = Decimal("0")
+
+        for order in orders:
+            lines_count = len(order.lines) if order.lines else 0
+            order_total_qty = sum(Decimal(str(line.qty_ordered)) for line in order.lines) if order.lines else Decimal("0")
+
+            order_summaries.append(OrderSimulationSummary(
+                id=order.id,
+                order_number=order.order_number,
+                customer_name=order.customer.name if order.customer else "Unknown",
+                order_type=order.order_type,
+                priority=order.priority,
+                requested_delivery_date=order.requested_delivery_date,
+                lines_count=lines_count,
+                total_qty=order_total_qty
+            ))
+
+            total_lines += lines_count
+            total_qty += order_total_qty
+
+        return WaveSimulationResponse(
+            matched_orders_count=len(orders),
+            total_lines=total_lines,
+            total_qty=total_qty,
+            orders=order_summaries,
+            resolved_strategy_id=strategy.id,
+            resolved_strategy_name=strategy.name,
+            wave_type=wave_type
+        )
+
+    async def get_available_wave_types(self, tenant_id: int):
+        """Get all wave types with configured strategies."""
+        return await self.strategy_repo.list_available_wave_types(tenant_id)
+
+    async def create_wave_with_criteria(
+        self,
+        request: CreateWaveWithCriteriaRequest,
+        tenant_id: int,
+        user_id: int
+    ) -> OutboundWave:
+        """
+        Create a wave with auto-strategy mapping based on wave type.
+        Stores the criteria used for audit purposes.
+        """
+        # 1. Resolve strategy from wave_type
+        strategy = await self.strategy_repo.get_by_wave_type(request.wave_type, tenant_id)
+        if not strategy:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No active strategy configured for wave type: {request.wave_type.value}"
+            )
+
+        # 2. Generate wave name if not provided
+        if request.wave_name:
+            wave_number = request.wave_name
+        else:
+            timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+            wave_type_short = request.wave_type.value[:4].upper()
+            wave_number = f"WV-{wave_type_short}-{timestamp}"
+
+        # 3. Create wave with strategy and metadata
+        wave = OutboundWave(
+            tenant_id=tenant_id,
+            wave_number=wave_number,
+            status=OutboundWaveStatus.PLANNING,
+            strategy_id=strategy.id,
+            created_by=user_id,
+            # Store criteria in metrics for audit
+            metrics={
+                "wave_type": request.wave_type.value,
+                "criteria": {
+                    "delivery_date_from": str(request.criteria.delivery_date_from) if request.criteria.delivery_date_from else None,
+                    "delivery_date_to": str(request.criteria.delivery_date_to) if request.criteria.delivery_date_to else None,
+                    "customer_id": request.criteria.customer_id,
+                    "order_type": request.criteria.order_type,
+                    "priority": request.criteria.priority
+                },
+                "created_with_wizard": True
+            }
+        )
+        created_wave = await self.wave_repo.create(wave)
+
+        # 4. Link orders to wave
+        if request.order_ids:
+            for order_id in request.order_ids:
+                order = await self.order_repo.get_by_id(order_id, tenant_id)
+                if order and order.wave_id is None:  # Only if not already in a wave
+                    order.wave_id = created_wave.id
+                    await self.order_repo.update(order)
+
+        # 5. Fetch and return the wave with relationships
+        return await self.wave_repo.get_by_id(created_wave.id, tenant_id)

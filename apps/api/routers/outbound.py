@@ -13,7 +13,11 @@ from schemas.outbound import (
     AllocateOrderRequest,
     AllocateWaveRequest,
     AddOrdersToWaveRequest,
-    AllocationStrategyResponse
+    AllocationStrategyResponse,
+    WaveSimulationRequest,
+    WaveSimulationResponse,
+    CreateWaveWithCriteriaRequest,
+    WaveTypeOption
 )
 from services.outbound_service import OutboundService
 from services.allocation_service import AllocationService
@@ -62,6 +66,34 @@ async def get_allocation_strategy(
     if not strategy:
         raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
     return AllocationStrategyResponse.model_validate(strategy)
+
+
+# ============================================================================
+# Wave Types (for Wave Wizard)
+# ============================================================================
+
+@router.get("/wave-types", response_model=List[WaveTypeOption])
+async def list_wave_types(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[WaveTypeOption]:
+    """
+    List available wave types with their associated strategies.
+    Used by the Create Wave Wizard to populate the Wave Type dropdown.
+    """
+    service = OutboundService(db)
+    strategies = await service.get_available_wave_types(current_user.tenant_id)
+
+    return [
+        WaveTypeOption(
+            wave_type=s.wave_type,
+            strategy_id=s.id,
+            strategy_name=s.name,
+            description=s.description,
+            picking_policy=s.rules_config.get("picking_policy") if s.rules_config else None
+        )
+        for s in strategies if s.wave_type
+    ]
 
 
 # ============================================================================
@@ -199,13 +231,56 @@ async def list_outbound_waves(
     return [OutboundWaveListResponse.model_validate(wave) for wave in waves]
 
 
+@router.post("/waves/simulate", response_model=WaveSimulationResponse)
+async def simulate_wave(
+    request: WaveSimulationRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> WaveSimulationResponse:
+    """
+    Simulate wave creation - preview matched orders and resolved strategy.
+    Used by the Create Wave Wizard Step 3 (Preview).
+
+    Input: wave_type and filter criteria
+    Output: Matched orders, total counts, and the strategy that will be used
+    """
+    service = OutboundService(db)
+    return await service.simulate_wave(
+        wave_type=request.wave_type,
+        criteria=request.criteria,
+        tenant_id=current_user.tenant_id
+    )
+
+
+@router.post("/waves/wizard", response_model=OutboundWaveResponse, status_code=status.HTTP_201_CREATED)
+async def create_wave_wizard(
+    request: CreateWaveWithCriteriaRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> OutboundWaveResponse:
+    """
+    Create a new wave using the wizard with auto-strategy mapping.
+
+    - Automatically resolves the allocation strategy based on wave_type
+    - Stores the criteria used for audit purposes
+    - Associates selected orders with the wave
+    """
+    service = OutboundService(db)
+    wave = await service.create_wave_with_criteria(
+        request=request,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )
+    return OutboundWaveResponse.model_validate(wave)
+
+
 @router.post("/waves", response_model=OutboundWaveResponse, status_code=status.HTTP_201_CREATED)
 async def create_outbound_wave(
     wave_data: OutboundWaveCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> OutboundWaveResponse:
-    """Create a new outbound wave."""
+    """Create a new outbound wave (legacy endpoint - use /waves/wizard for new waves)."""
     service = OutboundService(db)
     # FIX: Pass wave_data object directly
     wave = await service.create_wave(

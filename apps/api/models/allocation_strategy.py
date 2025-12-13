@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Text, ForeignKey, Enum as SQLEnum, Boolean
+from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Text, ForeignKey, Enum as SQLEnum, Boolean, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from database import Base
@@ -11,6 +11,21 @@ class PickingType(str, Enum):
     DISCRETE = "DISCRETE"  # Pick one order at a time
     WAVE = "WAVE"  # Pick multiple orders together
     CLUSTER = "CLUSTER"  # Pick multiple orders to different containers
+
+
+class WaveType(str, Enum):
+    """
+    Business-friendly wave types that map to allocation strategies.
+    Users select these instead of technical strategy details.
+    """
+    ECOMMERCE_DAILY = "ECOMMERCE_DAILY"  # Standard e-commerce orders
+    ECOMMERCE_EXPRESS = "ECOMMERCE_EXPRESS"  # Rush e-commerce orders
+    B2B_STANDARD = "B2B_STANDARD"  # Regular B2B shipments
+    B2B_URGENT = "B2B_URGENT"  # Urgent B2B shipments
+    WHOLESALE = "WHOLESALE"  # Large wholesale orders
+    RETAIL_REPLENISHMENT = "RETAIL_REPLENISHMENT"  # Store replenishment
+    PERISHABLE = "PERISHABLE"  # Temperature-sensitive items (FEFO)
+    CUSTOM = "CUSTOM"  # Custom wave type
 
 
 class AllocationStrategy(Base):
@@ -50,6 +65,13 @@ class AllocationStrategy(Base):
     # Active flag
     is_active = Column(Boolean, nullable=False, default=True)
 
+    # Wave type - business-friendly mapping (unique per tenant)
+    wave_type = Column(
+        SQLEnum(WaveType, native_enum=False, length=50),
+        nullable=True,
+        index=True
+    )
+
     description = Column(Text, nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -64,5 +86,6 @@ class AllocationStrategy(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint('tenant_id', 'wave_type', name='uq_strategy_wave_type_per_tenant'),
         {"comment": "Allocation strategies for outbound order fulfillment"}
     )
