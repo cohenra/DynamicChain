@@ -23,12 +23,12 @@ export const Dialog = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ direction: 'rtl' }}>
       <div
-        className="fixed inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/50 transition-opacity"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative bg-white rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto z-50">
+      <div className="relative bg-white rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-200">
         {children}
       </div>
     </div>
@@ -54,7 +54,7 @@ export const DialogHeader = ({
   children: React.ReactNode;
   className?: string
 }) => (
-  <div className={`flex flex-col space-y-1.5 text-center sm:text-left ${className}`}>
+  <div className={`flex flex-col space-y-1.5 text-center sm:text-right ${className}`}>
     {children}
   </div>
 );
@@ -66,9 +66,22 @@ export const DialogTitle = ({
   children: React.ReactNode;
   className?: string
 }) => (
-  <h2 className={`text-lg font-semibold ${className}`}>
+  <h2 className={`text-lg font-semibold leading-none tracking-tight ${className}`}>
     {children}
   </h2>
+);
+
+// --- הרכיב שהיה חסר ---
+export const DialogDescription = ({
+  children,
+  className = ""
+}: {
+  children: React.ReactNode;
+  className?: string
+}) => (
+  <p className={`text-sm text-muted-foreground ${className}`}>
+    {children}
+  </p>
 );
 
 export const DialogFooter = ({

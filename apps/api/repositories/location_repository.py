@@ -12,7 +12,8 @@ class LocationRepository(BaseRepository[Location]):
     def __init__(self, db: AsyncSession):
         super().__init__(db, Location)
 
-    async def get_by_id(self, location_id: int, tenant_id: int) -> Optional[Location]:
+    # FIX: Changed 'location_id' to 'id' to match BaseRepository signature
+    async def get_by_id(self, id: int, tenant_id: int) -> Optional[Location]:
         """Get a location by ID with tenant isolation and relationships loaded."""
         result = await self.db.execute(
             select(Location)
@@ -22,7 +23,7 @@ class LocationRepository(BaseRepository[Location]):
             )
             .where(
                 and_(
-                    Location.id == location_id,
+                    Location.id == id,
                     Location.tenant_id == tenant_id
                 )
             )
@@ -125,4 +126,5 @@ class LocationRepository(BaseRepository[Location]):
     async def update(self, location: Location) -> Location:
         """Update an existing location and return with all relationships loaded."""
         await self.db.flush()
-        return await self.get_by_id(location.id, location.tenant_id)
+        # FIX: Use 'id' instead of 'location.id' passed to generic get_by_id
+        return await self.get_by_id(id=location.id, tenant_id=location.tenant_id)

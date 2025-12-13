@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from repositories.location_repository import LocationRepository
 from repositories.zone_repository import ZoneRepository
 from repositories.warehouse_repository import WarehouseRepository
-from repositories.inventory_repository import InventoryRepository # Added
+from repositories.inventory_repository import InventoryRepository
 from schemas.location import LocationCreate, LocationUpdate, LocationBulkCreateConfig
 from models.location import Location
 
@@ -17,7 +17,7 @@ class LocationService:
         self.location_repo = LocationRepository(db)
         self.zone_repo = ZoneRepository(db)
         self.warehouse_repo = WarehouseRepository(db)
-        self.inventory_repo = InventoryRepository(db) # Added
+        self.inventory_repo = InventoryRepository(db)
 
     async def create_location(
         self,
@@ -25,8 +25,9 @@ class LocationService:
         tenant_id: int
     ) -> Location:
         # Verify warehouse exists and belongs to tenant
+        # FIX: Changed 'warehouse_id' to 'id'
         warehouse = await self.warehouse_repo.get_by_id(
-            warehouse_id=location_data.warehouse_id,
+            id=location_data.warehouse_id,
             tenant_id=tenant_id
         )
         if not warehouse:
@@ -36,8 +37,9 @@ class LocationService:
             )
 
         # Verify zone exists and belongs to tenant and warehouse
+        # FIX: Changed 'zone_id' to 'id'
         zone = await self.zone_repo.get_by_id(
-            zone_id=location_data.zone_id,
+            id=location_data.zone_id,
             tenant_id=tenant_id
         )
         if not zone or zone.warehouse_id != location_data.warehouse_id:
@@ -82,8 +84,9 @@ class LocationService:
         tenant_id: int
     ) -> List[Location]:
         # Verify warehouse exists
+        # FIX: Changed 'warehouse_id' to 'id'
         warehouse = await self.warehouse_repo.get_by_id(
-            warehouse_id=config.warehouse_id,
+            id=config.warehouse_id,
             tenant_id=tenant_id
         )
         if not warehouse:
@@ -93,8 +96,9 @@ class LocationService:
             )
 
         # Verify zone exists
+        # FIX: Changed 'zone_id' to 'id'
         zone = await self.zone_repo.get_by_id(
-            zone_id=config.zone_id,
+            id=config.zone_id,
             tenant_id=tenant_id
         )
         if not zone or zone.warehouse_id != config.warehouse_id:
@@ -212,7 +216,8 @@ class LocationService:
         return sequences
 
     async def get_location(self, location_id: int, tenant_id: int) -> Location:
-        location = await self.location_repo.get_by_id(location_id=location_id, tenant_id=tenant_id)
+        # FIX: Changed 'location_id' to 'id'
+        location = await self.location_repo.get_by_id(id=location_id, tenant_id=tenant_id)
         if not location:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Location with ID {location_id} not found")
         return location

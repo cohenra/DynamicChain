@@ -12,7 +12,8 @@ class ZoneRepository(BaseRepository[Zone]):
     def __init__(self, db: AsyncSession):
         super().__init__(db, Zone)
 
-    async def get_by_id(self, zone_id: int, tenant_id: int) -> Optional[Zone]:
+    # FIX: Changed 'zone_id' to 'id' to match BaseRepository signature and Service calls
+    async def get_by_id(self, id: int, tenant_id: int) -> Optional[Zone]:
         """Get a zone by ID with tenant isolation and relationships loaded."""
         result = await self.db.execute(
             select(Zone)
@@ -21,7 +22,7 @@ class ZoneRepository(BaseRepository[Zone]):
             )
             .where(
                 and_(
-                    Zone.id == zone_id,
+                    Zone.id == id,
                     Zone.tenant_id == tenant_id
                 )
             )
@@ -77,4 +78,5 @@ class ZoneRepository(BaseRepository[Zone]):
     async def update(self, zone: Zone) -> Zone:
         """Update an existing zone and return with relationships loaded."""
         await self.db.flush()
-        return await self.get_by_id(zone.id, zone.tenant_id)
+        # FIX: Use 'id' instead of 'zone_id'
+        return await self.get_by_id(id=zone.id, tenant_id=zone.tenant_id)

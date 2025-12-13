@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from repositories.zone_repository import ZoneRepository
 from repositories.warehouse_repository import WarehouseRepository
-from repositories.inventory_repository import InventoryRepository # Added
+from repositories.inventory_repository import InventoryRepository
 from schemas.zone import ZoneCreate, ZoneUpdate
 from models.zone import Zone
 
@@ -15,7 +15,7 @@ class ZoneService:
         self.db = db
         self.zone_repo = ZoneRepository(db)
         self.warehouse_repo = WarehouseRepository(db)
-        self.inventory_repo = InventoryRepository(db) # Added
+        self.inventory_repo = InventoryRepository(db)
 
     async def create_zone(
         self,
@@ -23,8 +23,9 @@ class ZoneService:
         tenant_id: int
     ) -> Zone:
         # Verify warehouse exists and belongs to tenant
+        # FIX: Changed 'warehouse_id' to 'id'
         warehouse = await self.warehouse_repo.get_by_id(
-            warehouse_id=zone_data.warehouse_id,
+            id=zone_data.warehouse_id,
             tenant_id=tenant_id
         )
         if not warehouse:
@@ -61,8 +62,9 @@ class ZoneService:
         zone_id: int,
         tenant_id: int
     ) -> Zone:
+        # FIX: Changed 'zone_id' to 'id'
         zone = await self.zone_repo.get_by_id(
-            zone_id=zone_id,
+            id=zone_id,
             tenant_id=tenant_id
         )
 
