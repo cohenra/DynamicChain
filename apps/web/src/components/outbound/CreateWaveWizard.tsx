@@ -152,6 +152,33 @@ export function CreateWaveWizard({
     enabled: open,
   });
 
+  // Helper: Format Pydantic validation errors (422) into a readable string
+  const formatApiError = (error: any): string => {
+    const detail = error.response?.data?.detail;
+
+    // Case 1: detail is an array (Pydantic validation errors)
+    if (Array.isArray(detail)) {
+      return detail.map((e: any) => {
+        const field = e.loc?.slice(-1)?.[0] || 'field';
+        const msg = e.msg || 'Invalid value';
+        return `${field}: ${msg}`;
+      }).join(', ');
+    }
+
+    // Case 2: detail is an object with 'msg' property
+    if (detail && typeof detail === 'object' && detail.msg) {
+      return detail.msg;
+    }
+
+    // Case 3: detail is a string
+    if (typeof detail === 'string') {
+      return detail;
+    }
+
+    // Fallback
+    return t('outbound.waveCreateError', 'יצירת הגל נכשלה');
+  };
+
   // Mutation
   const createWaveMutation = useMutation({
     mutationFn: createWaveWithWizard,
@@ -164,8 +191,10 @@ export function CreateWaveWizard({
       onSuccess?.();
     },
     onError: (error: any) => {
+      // FIX: Properly handle 422 validation errors from Pydantic
+      const errorMessage = formatApiError(error);
       toast.error(t('common.error', 'שגיאה'), {
-        description: error.response?.data?.detail || t('outbound.waveCreateError', 'יצירת הגל נכשלה'),
+        description: errorMessage,
       });
     },
   });
@@ -317,8 +346,10 @@ export function CreateWaveWizard({
 
       setCurrentStep(3);
     } catch (error: any) {
+      // FIX: Properly handle 422 validation errors from Pydantic
+      const errorMessage = formatApiError(error);
       toast.error(t('common.error', 'שגיאה'), {
-        description: error.response?.data?.detail || t('outbound.simulationFailed', 'הסימולציה נכשלה'),
+        description: errorMessage || t('outbound.simulationFailed', 'הסימולציה נכשלה'),
       });
     } finally {
       setIsSimulating(false);

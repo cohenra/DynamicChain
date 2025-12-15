@@ -2,16 +2,15 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { 
-  LogOut, 
-  Package, 
-  Warehouse, 
-  FileText, 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  Boxes, 
-  TruckIcon, 
+import {
+  LogOut,
+  Package,
+  FileText,
+  LayoutDashboard,
+  Users,
+  Building2,
+  Boxes,
+  TruckIcon,
   Send,
   Layers,
   Settings,
@@ -51,7 +50,7 @@ export default function Layout() {
     { icon: Package, label: t('layout.products'), path: '/products' },
     { icon: Users, label: t('layout.depositors'), path: '/depositors' },
     { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },
-    { icon: Warehouse, label: t('layout.locations'), path: '/locations' },
+    // REMOVED: Locations link - managed inside Warehouse view
     { icon: FileText, label: t('layout.invoices'), path: '/invoices' },
   ];
 

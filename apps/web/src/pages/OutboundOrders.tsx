@@ -20,20 +20,23 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { OutboundOrderRowDetail } from '@/components/outbound/OutboundOrderRowDetail';
+import { OutboundOrderForm } from '@/components/outbound/OutboundOrderForm';
 import { Plus, ChevronRight, ChevronDown, Package, XCircle, Loader2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
-import type { OutboundOrder } from '@/services/outboundService';
+import type { OutboundOrder, OutboundOrderCreateRequest } from '@/services/outboundService';
 import {
   getOrders,
   allocateOrder,
   cancelOrder,
   createWave,
+  createOrder,
   calculateOrderProgress,
   getStatusColor,
   getPriorityInfo,
@@ -67,6 +70,42 @@ export default function OutboundOrders() {
     queryKey: ['allocation-strategies'],
     queryFn: () => getStrategies(),
   });
+
+  // --- Create Order Mutation ---
+  const createOrderMutation = useMutation({
+    mutationFn: createOrder,
+    onSuccess: (order) => {
+      toast.success(t('outbound.orderCreated', 'הזמנה נוצרה בהצלחה'), {
+        description: order.order_number,
+      });
+      queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
+      setIsSheetOpen(false);
+    },
+    onError: (error: any) => {
+      // Handle 422 validation errors from Pydantic
+      const detail = error.response?.data?.detail;
+      let errorMessage: string;
+
+      if (Array.isArray(detail)) {
+        errorMessage = detail.map((e: any) => {
+          const field = e.loc?.slice(-1)?.[0] || 'field';
+          return `${field}: ${e.msg || 'Invalid value'}`;
+        }).join(', ');
+      } else if (typeof detail === 'string') {
+        errorMessage = detail;
+      } else {
+        errorMessage = t('outbound.createOrderError', 'יצירת ההזמנה נכשלה');
+      }
+
+      toast.error(t('common.error', 'שגיאה'), {
+        description: errorMessage,
+      });
+    },
+  });
+
+  const handleCreateOrder = (data: OutboundOrderCreateRequest) => {
+    createOrderMutation.mutate(data);
+  };
 
   // --- Bulk Allocate Handler ---
   const handleBulkAllocate = async () => {
@@ -376,12 +415,19 @@ export default function OutboundOrders() {
       </div>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent side="left">
+        <SheetContent side="left" className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{t('outbound.createOrder')}</SheetTitle>
+            <SheetTitle>{t('outbound.createOrder', 'יצירת הזמנת יציאה')}</SheetTitle>
+            <SheetDescription>
+              {t('outbound.createOrderDescription', 'הזן את פרטי ההזמנה והפריטים הנדרשים')}
+            </SheetDescription>
           </SheetHeader>
-          <div className="mt-4">
-              <p className="text-muted-foreground">{t('common.comingSoon', 'בקרוב...')}</p>
+          <div className="mt-6">
+            <OutboundOrderForm
+              onSubmit={handleCreateOrder}
+              onCancel={() => setIsSheetOpen(false)}
+              isSubmitting={createOrderMutation.isPending}
+            />
           </div>
         </SheetContent>
       </Sheet>

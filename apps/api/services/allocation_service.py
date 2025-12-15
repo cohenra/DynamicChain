@@ -161,6 +161,8 @@ class AllocationService:
         """
         Allocate inventory for a single order line.
         Returns the number of pick tasks created.
+
+        FIX: Properly handles Fill-or-Kill policy with rollback.
         """
         rules = strategy.rules_config
         qty_needed = line.qty_ordered - line.qty_allocated
@@ -180,6 +182,9 @@ class AllocationService:
         # 2. Search inventory in selected warehouses
         total_allocated = Decimal('0')
         tasks_created = 0
+
+        # Track allocations for potential rollback (Fill-or-Kill)
+        allocation_records: List[Dict] = []
 
         for warehouse_id in warehouses:
             if total_allocated >= qty_needed:
@@ -204,11 +209,11 @@ class AllocationService:
                 # Calculate available quantity for this inventory item
                 # IMPORTANT: allocated_quantity should prevent double booking
                 available = inv_item.quantity - inv_item.allocated_quantity
-                
+
                 # Double check available quantity is positive
                 if available <= 0:
                     continue
-                    
+
                 qty_to_pick = min(available, remaining)
 
                 # Create pick task
@@ -225,7 +230,14 @@ class AllocationService:
 
                 # Update allocated_quantity
                 inv_item.allocated_quantity += qty_to_pick
-                
+
+                # Track for potential rollback
+                allocation_records.append({
+                    "task": task,
+                    "inventory": inv_item,
+                    "qty": qty_to_pick
+                })
+
                 # Note: We skip creating an InventoryTransaction here to simplify logic and prevent locking issues.
                 # The PickTask serves as the reservation. The transaction will be created upon Pick Completion.
 
@@ -233,24 +245,37 @@ class AllocationService:
                 remaining = qty_needed - total_allocated
                 tasks_created += 1
 
-        # 3. Update line quantities
+        # 3. Handle partial allocation policy - FILL_OR_KILL ROLLBACK
+        partial_policy = rules.get("partial_policy", "ALLOW_PARTIAL")
+
+        if total_allocated < qty_needed and partial_policy == "FILL_OR_KILL":
+            # ROLLBACK: Undo all allocations made for this line
+            logger.warning(f"Fill-or-Kill policy triggered for line {line.id}. Rolling back {len(allocation_records)} allocations.")
+
+            for record in allocation_records:
+                # Remove the task from session (not yet flushed)
+                self.db.expunge(record["task"])
+                # Restore the inventory allocated_quantity
+                record["inventory"].allocated_quantity -= record["qty"]
+
+            # Reset line status to SHORT
+            line.line_status = "SHORT"
+            line.qty_allocated = line.qty_allocated  # Keep existing (don't add anything)
+
+            # Return 0 tasks since we rolled back
+            return 0
+
+        # 4. Update line quantities (only if not Fill-or-Kill failure)
         # Add to existing allocated amount (handling partial re-runs)
         line.qty_allocated += total_allocated
 
-        # 4. Set line status based on allocation result
+        # 5. Set line status based on allocation result
         if line.qty_allocated == 0:
             line.line_status = "SHORT"  # No inventory found
         elif line.qty_allocated < line.qty_ordered:
             line.line_status = "PARTIAL"  # Some allocated but not all
         else:
             line.line_status = "ALLOCATED"  # Fully allocated
-
-        # 5. Handle partial allocation policy
-        partial_policy = rules.get("partial_policy", "ALLOW_PARTIAL")
-        if total_allocated < qty_needed and partial_policy == "FILL_OR_KILL":
-             # This check should ideally roll back tasks created for this line if fill or kill
-             # For now, simplistic implementation just warns
-             print(f"⚠️ Fill or Kill failed for line {line.id}")
 
         return tasks_created
 

@@ -221,25 +221,107 @@ class OutboundService:
         return list(result.scalars().all())
 
     async def complete_pick_task(self, task_id: int, qty_picked: float, user_id: int, tenant_id: int):
-        # ... (Keep existing implementation) ...
+        """
+        Complete a pick task with proper inventory management.
+
+        FIX: This now properly:
+        1. Decrements source inventory
+        2. Creates/updates destination inventory at to_location (Packing/Staging area)
+        3. Releases zombie allocations on short picks
+        """
+        from models.inventory import Inventory, InventoryStatus
+
         task = await self.task_repo.get_by_id(task_id)
-        if not task: raise HTTPException(404, "Task not found")
-        inventory = await self.inventory_repo.get_by_id(task.inventory_id, tenant_id)
-        if not inventory: raise HTTPException(404, "Inventory source not found")
+        if not task:
+            raise HTTPException(404, "Task not found")
 
-        inventory.quantity -= Decimal(str(qty_picked))
-        inventory.allocated_quantity -= Decimal(str(qty_picked))
-        if inventory.quantity < 0: inventory.quantity = 0
-        if inventory.allocated_quantity < 0: inventory.allocated_quantity = 0
-        await self.inventory_repo.update(inventory)
+        source_inventory = await self.inventory_repo.get_by_id(task.inventory_id, tenant_id)
+        if not source_inventory:
+            raise HTTPException(404, "Inventory source not found")
 
-        task.qty_picked = Decimal(str(qty_picked))
-        task.status = PickTaskStatus.COMPLETED if task.qty_picked >= task.qty_to_pick else PickTaskStatus.SHORT
+        qty_picked_decimal = Decimal(str(qty_picked))
+        now = datetime.utcnow()
+
+        # Calculate short pick amount for zombie allocation release
+        short_pick_qty = Decimal('0')
+        if qty_picked_decimal < task.qty_to_pick:
+            short_pick_qty = task.qty_to_pick - qty_picked_decimal
+
+        # --- 1. DECREMENT SOURCE INVENTORY ---
+        source_inventory.quantity -= qty_picked_decimal
+        # Release the picked amount from allocation
+        source_inventory.allocated_quantity -= qty_picked_decimal
+
+        # FIX ZOMBIE ALLOCATIONS: If short pick, release remaining allocation
+        if short_pick_qty > 0:
+            source_inventory.allocated_quantity -= short_pick_qty
+
+        # Ensure non-negative values
+        if source_inventory.quantity < 0:
+            source_inventory.quantity = Decimal('0')
+        if source_inventory.allocated_quantity < 0:
+            source_inventory.allocated_quantity = Decimal('0')
+
+        await self.inventory_repo.update(source_inventory)
+
+        # --- 2. CREATE/UPDATE DESTINATION INVENTORY (FIX: Disappearing Inventory Bug) ---
+        dest_inventory = None
+        if task.to_location_id and qty_picked_decimal > 0:
+            # Check if destination inventory already exists for consolidation
+            from sqlalchemy import select, and_
+            consolidation_query = select(Inventory).where(
+                and_(
+                    Inventory.tenant_id == tenant_id,
+                    Inventory.product_id == source_inventory.product_id,
+                    Inventory.location_id == task.to_location_id,
+                    Inventory.depositor_id == source_inventory.depositor_id,
+                    Inventory.batch_number == source_inventory.batch_number,
+                    Inventory.expiry_date == source_inventory.expiry_date,
+                    Inventory.status == InventoryStatus.AVAILABLE
+                )
+            ).with_for_update()
+
+            result = await self.db.execute(consolidation_query)
+            dest_inventory = result.scalar_one_or_none()
+
+            if dest_inventory:
+                # Consolidate: Add to existing inventory at destination
+                dest_inventory.quantity += qty_picked_decimal
+                dest_inventory.updated_at = now
+                await self.inventory_repo.update(dest_inventory)
+            else:
+                # Create NEW inventory record at destination (packing/staging area)
+                import uuid
+                new_lpn = f"PICK-{uuid.uuid4().hex[:12].upper()}"
+                dest_inventory = Inventory(
+                    tenant_id=tenant_id,
+                    depositor_id=source_inventory.depositor_id,
+                    product_id=source_inventory.product_id,
+                    location_id=task.to_location_id,
+                    lpn=new_lpn,
+                    quantity=qty_picked_decimal,
+                    allocated_quantity=Decimal('0'),
+                    status=InventoryStatus.AVAILABLE,
+                    batch_number=source_inventory.batch_number,
+                    expiry_date=source_inventory.expiry_date,
+                    fifo_date=source_inventory.fifo_date,
+                    created_at=now,
+                    updated_at=now
+                )
+                self.db.add(dest_inventory)
+                await self.db.flush()
+
+        # --- 3. UPDATE TASK STATUS ---
+        task.qty_picked = qty_picked_decimal
+        task.status = PickTaskStatus.COMPLETED if qty_picked_decimal >= task.qty_to_pick else PickTaskStatus.SHORT
         task.assigned_to_user_id = user_id
-        task.completed_at = datetime.utcnow()
+        task.completed_at = now
         await self.task_repo.update(task)
 
-        stmt = update(OutboundLine).where(OutboundLine.id == task.line_id).values(qty_picked=OutboundLine.qty_picked + Decimal(str(qty_picked))).execution_options(synchronize_session="fetch")
+        # --- 4. UPDATE OUTBOUND LINE ---
+        stmt = update(OutboundLine).where(OutboundLine.id == task.line_id).values(
+            qty_picked=OutboundLine.qty_picked + qty_picked_decimal
+        ).execution_options(synchronize_session="fetch")
         await self.db.execute(stmt)
         await self.db.flush()
 
@@ -248,21 +330,38 @@ class OutboundService:
             line.line_status = "PICKED"
             await self.line_repo.update(line)
 
+        # --- 5. CREATE TRANSACTION RECORD ---
         transaction = InventoryTransaction(
             tenant_id=tenant_id,
             transaction_type=TransactionType.PICK,
             product_id=line.product_id,
             from_location_id=task.from_location_id,
             to_location_id=task.to_location_id,
-            inventory_id=inventory.id,
-            quantity=Decimal(str(qty_picked)),
+            inventory_id=dest_inventory.id if dest_inventory else source_inventory.id,
+            quantity=qty_picked_decimal,
             reference_doc=f"TASK-{task.id}",
             performed_by=user_id,
-            timestamp=datetime.utcnow(),
-            billing_metadata={"operation": "pick", "task_id": task.id}
+            timestamp=now,
+            billing_metadata={
+                "operation": "pick",
+                "task_id": task.id,
+                "source_inventory_id": source_inventory.id,
+                "short_pick": short_pick_qty > 0,
+                "short_pick_qty": float(short_pick_qty) if short_pick_qty > 0 else None
+            }
         )
         await self.transaction_repo.create(transaction)
-        return {"task_id": task.id}
+
+        # Return detailed response for verification
+        return {
+            "task_id": task.id,
+            "qty_picked": float(qty_picked_decimal),
+            "inventory_remaining": float(source_inventory.quantity),
+            "inventory_allocated": float(source_inventory.allocated_quantity),
+            "inventory_available": float(source_inventory.quantity - source_inventory.allocated_quantity),
+            "destination_inventory_id": dest_inventory.id if dest_inventory else None,
+            "short_pick_released": float(short_pick_qty) if short_pick_qty > 0 else 0
+        }
 
     # ... (Keep Wave Wizard methods unchanged) ...
     async def simulate_wave(self, wave_type, criteria, tenant_id):
