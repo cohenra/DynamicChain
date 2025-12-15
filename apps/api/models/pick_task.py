@@ -70,3 +70,12 @@ class PickTask(Base):
     __table_args__ = (
         {"comment": "Pick tasks for warehouse operators"}
     )
+
+    # FIX: Add product property to allow Pydantic to access product details
+    @property
+    def product(self):
+        if self.line:
+            return self.line.product
+        if self.inventory:
+            return self.inventory.product
+        return None

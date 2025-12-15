@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Date, Text, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -17,6 +17,26 @@ class OutboundOrderStatus(str, Enum):
     PACKED = "PACKED"
     SHIPPED = "SHIPPED"
     CANCELLED = "CANCELLED"
+
+
+class OrderType(str, Enum):
+    """Types of outbound orders."""
+    CUSTOMER_ORDER = "CUSTOMER_ORDER"
+    B2B = "B2B"
+    ECOM = "ECOM"
+    TRANSFER = "TRANSFER"
+    RETURN = "RETURN"
+    RETAIL = "RETAIL"
+
+
+class OrderPriority(IntEnum):
+    """Priority levels for orders (Higher number = Higher priority)."""
+    LOW = 1
+    NORMAL = 2
+    STANDARD = 3  # Added to fix validation error (Value 3 exists in DB)
+    MEDIUM = 5
+    HIGH = 10
+    CRITICAL = 20
 
 
 class OutboundOrder(Base):
@@ -45,21 +65,19 @@ class OutboundOrder(Base):
     )
 
     # Critical for strategy mapping (e.g., "B2B", "ECOM", "RETAIL")
-    order_type = Column(String(50), nullable=False, index=True)
+    order_type = Column(String(50), nullable=False, index=True, default=OrderType.CUSTOMER_ORDER.value)
 
     # Priority for sorting
-    priority = Column(Integer, nullable=False, default=5)
+    priority = Column(Integer, nullable=False, default=OrderPriority.MEDIUM.value)
 
     # Important dates for SLA billing
     requested_delivery_date = Column(Date, nullable=True)
     status_changed_at = Column(DateTime, nullable=True)
 
     # Shipping details stored as JSONB for flexibility
-    # Structure: {carrier, driver_name, license_plate, dock_id, manifest_id}
     shipping_details = Column(JSONB, nullable=True)
 
     # Metrics stored as JSONB for BI and billing
-    # Structure: {total_lines, total_units, total_volume, progress_percent}
     metrics = Column(JSONB, nullable=True, default={})
 
     notes = Column(Text, nullable=True)

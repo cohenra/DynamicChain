@@ -17,7 +17,8 @@ from schemas.outbound import (
     WaveSimulationRequest,
     WaveSimulationResponse,
     CreateWaveWithCriteriaRequest,
-    WaveTypeOption
+    WaveTypeOption,
+    PickTaskResponse  # Ensure this is imported or defined in schemas
 )
 from services.outbound_service import OutboundService
 from services.allocation_service import AllocationService
@@ -133,7 +134,6 @@ async def create_outbound_order(
     Create a new outbound order.
     """
     service = OutboundService(db)
-    # FIX: Pass order_data object directly, not exploded arguments
     order = await service.create_order(
         order_data=order_data,
         tenant_id=current_user.tenant_id,
@@ -239,10 +239,6 @@ async def simulate_wave(
 ) -> WaveSimulationResponse:
     """
     Simulate wave creation - preview matched orders and resolved strategy.
-    Used by the Create Wave Wizard Step 3 (Preview).
-
-    Input: wave_type and filter criteria
-    Output: Matched orders, total counts, and the strategy that will be used
     """
     service = OutboundService(db)
     return await service.simulate_wave(
@@ -260,10 +256,6 @@ async def create_wave_wizard(
 ) -> OutboundWaveResponse:
     """
     Create a new wave using the wizard with auto-strategy mapping.
-
-    - Automatically resolves the allocation strategy based on wave_type
-    - Stores the criteria used for audit purposes
-    - Associates selected orders with the wave
     """
     service = OutboundService(db)
     wave = await service.create_wave_with_criteria(
@@ -280,9 +272,8 @@ async def create_outbound_wave(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> OutboundWaveResponse:
-    """Create a new outbound wave (legacy endpoint - use /waves/wizard for new waves)."""
+    """Create a new outbound wave (legacy endpoint)."""
     service = OutboundService(db)
-    # FIX: Pass wave_data object directly
     wave = await service.create_wave(
         wave_data=wave_data,
         tenant_id=current_user.tenant_id,
@@ -358,6 +349,25 @@ async def release_wave(
     return OutboundWaveResponse.model_validate(wave)
 
 
+# FIX: Added Endpoint for fetching Wave Tasks
+@router.get("/waves/{wave_id}/tasks", response_model=List[PickTaskResponse])
+async def get_wave_tasks(
+    wave_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[PickTaskResponse]:
+    """
+    Get all pick tasks associated with a specific wave.
+    """
+    service = OutboundService(db)
+    tasks = await service.get_wave_tasks(
+        wave_id=wave_id,
+        tenant_id=current_user.tenant_id
+    )
+    # Using model_validate allows Pydantic to extract data from ORM models
+    return [PickTaskResponse.model_validate(task) for task in tasks]
+
+
 # ============================================================================
 # Pick Tasks & Shortage Management
 # ============================================================================
@@ -397,3 +407,22 @@ async def complete_pick_task(
         user_id=current_user.id
     )
     return result
+    
+    # ... (Keep all existing imports and code) ...
+
+# ADD THIS ENDPOINT:
+@router.delete("/waves/{wave_id}/orders/{order_id}", response_model=OutboundWaveResponse)
+async def remove_order_from_wave(
+    wave_id: int,
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> OutboundWaveResponse:
+    """Remove an order from a wave."""
+    service = OutboundService(db)
+    wave = await service.remove_order_from_wave(
+        wave_id=wave_id,
+        order_id=order_id,
+        tenant_id=current_user.tenant_id
+    )
+    return OutboundWaveResponse.model_validate(wave)

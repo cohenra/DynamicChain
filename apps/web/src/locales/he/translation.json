@@ -32,7 +32,9 @@
     "nextPage": "עמוד הבא",
     "prevPage": "עמוד קודם",
     "selected": "נבחרו {{count}} רשומות",
-    "clearSelection": "נקה בחירה"
+    "clearSelection": "נקה בחירה",
+    "success": "בוצע בהצלחה",
+    "add": "הוסף"
   },
   "auth": {
     "login": "התחברות למערכת",
@@ -226,6 +228,17 @@
     "pickingType": "סוג ליקוט",
     "allocationPolicy": "מדיניות הקצאה",
     "warehouseLogic": "פיצול מחסנים",
+    "createdAt": "נוצר בתאריך",
+    "orders": "הזמנות",
+    "lines": "שורות",
+    "items": "פריטים",
+    "pickingProgress": "התקדמות ליקוט",
+    "wavesTitle": "גלי ליקוט",
+    "createWave": "צור גל חדש",
+    "task": "משימה",
+    "picked": "לוקט",
+    "location": "מיקום",
+    "addOrders": "הוסף הזמנות",
     "actions": {
       "allocate": "הרץ הקצאה",
       "allocateSelected": "הקצה נבחרים ({{count}})",
@@ -237,7 +250,19 @@
     },
     "tabs": {
       "lines": "שורות הזמנה",
-      "tasks": "משימות ליקוט"
+      "tasks": "משימות ליקוט",
+      "orders": "הזמנות"
+    },
+    "messages": {
+      "allocationStarted": "תהליך ההקצאה החל",
+      "waveReleased": "הגל שוחרר לליקוט בהצלחה",
+      "orderRemoved": "ההזמנה הוסרה מהגל",
+      "ordersAdded": "ההזמנות נוספו לגל בהצלחה",
+      "noWaves": "לא נמצאו גלי ליקוט",
+      "noOrdersInWave": "אין הזמנות בגל זה",
+      "noTasksYet": "טרם נוצרו משימות (יש לבצע הקצאה)",
+      "noAvailableOrders": "לא נמצאו הזמנות זמינות להוספה",
+      "shortageDetected": "זוהה חוסר במלאי"
     },
     "table": {
       "product": "מוצר",
