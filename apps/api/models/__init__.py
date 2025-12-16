@@ -21,6 +21,7 @@ from models.outbound_wave import OutboundWave, OutboundWaveStatus
 from models.outbound_order import OutboundOrder, OutboundOrderStatus
 from models.outbound_line import OutboundLine
 from models.pick_task import PickTask, PickTaskStatus
+from models.order_type_definition import OrderTypeDefinition, OrderTypeBehavior
 
 __all__ = [
     "Tenant",
@@ -53,5 +54,7 @@ __all__ = [
     "OutboundOrderStatus",
     "OutboundLine",
     "PickTask",
-    "PickTaskStatus"
+    "PickTaskStatus",
+    "OrderTypeDefinition",
+    "OrderTypeBehavior"
 ]

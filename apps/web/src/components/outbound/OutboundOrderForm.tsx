@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { productService } from '@/services/products';
 import { uomDefinitionService } from '@/services/uom-definitions';
 import { depositorService } from '@/services/depositors';
+import { getOrderTypeOptions, OrderTypeSelectOption } from '@/services/orderTypeService';
 import { OutboundOrderCreateRequest } from '@/services/outboundService';
 import { Plus, Trash2, Loader2, CalendarIcon, Package, Send, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,11 +23,12 @@ interface OutboundOrderFormProps {
   isSubmitting: boolean;
 }
 
-const ORDER_TYPES = [
-  { value: 'SALES', label: { he: 'מכירות', en: 'Sales' } },
-  { value: 'TRANSFER', label: { he: 'העברה', en: 'Transfer' } },
-  { value: 'RETURN', label: { he: 'החזרה', en: 'Return' } },
-  { value: 'SAMPLE', label: { he: 'דוגמה', en: 'Sample' } },
+// Fallback order types in case API fails
+const FALLBACK_ORDER_TYPES = [
+  { code: 'SALES', name: 'Sales', default_priority: 5 },
+  { code: 'TRANSFER', name: 'Transfer', default_priority: 3 },
+  { code: 'RETURN', name: 'Return', default_priority: 2 },
+  { code: 'SAMPLE', name: 'Sample', default_priority: 1 },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -46,10 +48,21 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
   const { data: allProducts } = useQuery({ queryKey: ['products'], queryFn: productService.getProducts });
   const { data: uoms } = useQuery({ queryKey: ['uomDefinitions'], queryFn: uomDefinitionService.getUomDefinitions });
 
-  // Schema Validation
+  // FIX: Fetch dynamic order types from API
+  const { data: orderTypes, isLoading: isLoadingOrderTypes } = useQuery({
+    queryKey: ['order-types-options'],
+    queryFn: getOrderTypeOptions,
+  });
+
+  // Use fetched order types or fallback
+  const availableOrderTypes = orderTypes && orderTypes.length > 0
+    ? orderTypes
+    : FALLBACK_ORDER_TYPES.map(t => ({ ...t, id: 0, behavior_key: 'B2B' }));
+
+  // Schema Validation - now accepts any order type code
   const formSchema = z.object({
     order_number: z.string().min(1, t('outbound.fields.orderNumberRequired', 'מספר הזמנה נדרש')),
-    order_type: z.enum(['SALES', 'TRANSFER', 'RETURN', 'SAMPLE']),
+    order_type: z.string().min(1, t('outbound.fields.orderTypeRequired', 'סוג הזמנה נדרש')),
     customer_id: z.string().min(1, t('outbound.fields.customerRequired', 'לקוח נדרש')),
     priority: z.string().default('5'),
     requested_delivery_date: z.string().min(1, t('outbound.fields.deliveryDateRequired', 'תאריך משלוח נדרש')),
@@ -102,7 +115,7 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
     onSubmit(formattedData);
   };
 
-  const isLoadingData = !customers || !allProducts || !uoms;
+  const isLoadingData = !customers || !allProducts || !uoms || isLoadingOrderTypes;
 
   if (isLoadingData) {
     return (
@@ -166,16 +179,27 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
               <FormField control={form.control} name="order_type" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('outbound.orderType', 'סוג הזמנה')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      // Auto-set priority based on selected order type
+                      const selectedType = availableOrderTypes.find(ot => ot.code === val);
+                      if (selectedType) {
+                        form.setValue('priority', selectedType.default_priority.toString());
+                      }
+                    }}
+                    value={field.value}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  >
                     <FormControl>
                       <SelectTrigger className="bg-white">
-                        <SelectValue />
+                        <SelectValue placeholder={t('outbound.selectOrderType', 'בחר סוג הזמנה')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {ORDER_TYPES.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label[isRTL ? 'he' : 'en']}
+                      {availableOrderTypes.map(type => (
+                        <SelectItem key={type.code} value={type.code}>
+                          {type.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

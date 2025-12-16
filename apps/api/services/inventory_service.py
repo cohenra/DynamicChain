@@ -182,36 +182,130 @@ class InventoryService:
         return await self.inventory_repo.list_inventory(tenant_id, skip, limit, product_id, location_id, depositor_id, status, lpn)
 
     async def move_stock(self, move_data: InventoryMoveRequest, tenant_id: int, user_id: int) -> Inventory:
-        inventory = await self.inventory_repo.get_by_lpn_with_lock(move_data.lpn, tenant_id)
-        if not inventory:
+        """
+        Move stock from one location to another with consolidation support.
+
+        FIX: Now checks if inventory already exists at destination and merges if so.
+        Also supports partial moves (split logic).
+        """
+        from sqlalchemy import select, and_
+
+        # Get source inventory with lock
+        source_inventory = await self.inventory_repo.get_by_lpn_with_lock(move_data.lpn, tenant_id)
+        if not source_inventory:
             raise HTTPException(status_code=404, detail=f"Inventory {move_data.lpn} not found")
-        
+
+        # Validate destination location
         from repositories.location_repository import LocationRepository
         location_repo = LocationRepository(self.db)
         to_location = await location_repo.get_by_id(id=move_data.to_location_id, tenant_id=tenant_id)
         if not to_location:
             raise HTTPException(status_code=404, detail="Destination location not found")
 
-        from_location_id = inventory.location_id
-        inventory.location_id = move_data.to_location_id
-        inventory.updated_at = datetime.utcnow()
-        updated = await self.inventory_repo.update(inventory)
+        # Determine move quantity
+        move_qty = move_data.quantity if move_data.quantity else source_inventory.quantity
 
-        transaction = InventoryTransaction(
-            tenant_id=tenant_id,
-            transaction_type=TransactionType.MOVE,
-            product_id=inventory.product_id,
-            from_location_id=from_location_id,
-            to_location_id=move_data.to_location_id,
-            inventory_id=inventory.id,
-            quantity=move_data.quantity or inventory.quantity,
-            reference_doc=move_data.reference_doc,
-            performed_by=user_id,
-            timestamp=datetime.utcnow()
-        )
-        await self.transaction_repo.create(transaction)
-        
-        return await self.get_inventory(updated.id, tenant_id)
+        # Validate move quantity
+        if move_qty <= 0:
+            raise HTTPException(status_code=400, detail="Move quantity must be positive")
+        if move_qty > source_inventory.quantity:
+            raise HTTPException(status_code=400, detail="Move quantity exceeds available quantity")
+
+        from_location_id = source_inventory.location_id
+        now = datetime.utcnow()
+
+        async with self.db.begin_nested():
+            # Check if destination inventory already exists for CONSOLIDATION
+            consolidation_query = select(Inventory).where(
+                and_(
+                    Inventory.tenant_id == tenant_id,
+                    Inventory.product_id == source_inventory.product_id,
+                    Inventory.location_id == move_data.to_location_id,
+                    Inventory.depositor_id == source_inventory.depositor_id,
+                    Inventory.batch_number == source_inventory.batch_number,
+                    Inventory.expiry_date == source_inventory.expiry_date,
+                    Inventory.status == InventoryStatus.AVAILABLE,
+                    Inventory.id != source_inventory.id  # Don't match self
+                )
+            ).with_for_update()
+
+            result = await self.db.execute(consolidation_query)
+            target_inventory = result.scalar_one_or_none()
+
+            is_full_move = move_qty >= source_inventory.quantity
+            consolidated = False
+
+            if target_inventory:
+                # CONSOLIDATION: Add quantity to existing inventory at destination
+                target_inventory.quantity += move_qty
+                target_inventory.updated_at = now
+
+                if is_full_move:
+                    # Full move + merge: Delete source inventory
+                    await self.inventory_repo.delete(source_inventory)
+                else:
+                    # Partial move + merge: Decrement source
+                    source_inventory.quantity -= move_qty
+                    source_inventory.updated_at = now
+                    await self.inventory_repo.update(source_inventory)
+
+                await self.inventory_repo.update(target_inventory)
+                result_inventory = target_inventory
+                consolidated = True
+
+            elif is_full_move:
+                # FULL MOVE (no consolidation): Simply update location
+                source_inventory.location_id = move_data.to_location_id
+                source_inventory.updated_at = now
+                result_inventory = await self.inventory_repo.update(source_inventory)
+
+            else:
+                # PARTIAL MOVE (split): Create new inventory at destination
+                source_inventory.quantity -= move_qty
+                source_inventory.updated_at = now
+                await self.inventory_repo.update(source_inventory)
+
+                # Create new inventory record at destination
+                new_lpn = self._generate_lpn()
+                new_inventory = Inventory(
+                    tenant_id=tenant_id,
+                    depositor_id=source_inventory.depositor_id,
+                    product_id=source_inventory.product_id,
+                    location_id=move_data.to_location_id,
+                    lpn=new_lpn,
+                    quantity=move_qty,
+                    allocated_quantity=Decimal('0'),
+                    status=InventoryStatus.AVAILABLE,
+                    batch_number=source_inventory.batch_number,
+                    expiry_date=source_inventory.expiry_date,
+                    fifo_date=source_inventory.fifo_date,
+                    created_at=now,
+                    updated_at=now
+                )
+                result_inventory = await self.inventory_repo.create(new_inventory)
+
+            # Create transaction record
+            transaction = InventoryTransaction(
+                tenant_id=tenant_id,
+                transaction_type=TransactionType.MOVE,
+                product_id=source_inventory.product_id,
+                from_location_id=from_location_id,
+                to_location_id=move_data.to_location_id,
+                inventory_id=result_inventory.id,
+                quantity=move_qty,
+                reference_doc=move_data.reference_doc,
+                performed_by=user_id,
+                timestamp=now,
+                billing_metadata={
+                    "operation": "move",
+                    "partial": not is_full_move,
+                    "consolidated": consolidated,
+                    "source_lpn": move_data.lpn
+                }
+            )
+            await self.transaction_repo.create(transaction)
+
+        return await self.get_inventory(result_inventory.id, tenant_id)
 
     async def adjust_stock(self, adjust_data: InventoryAdjustRequest, tenant_id: int, user_id: int) -> Inventory:
         inventory = await self.inventory_repo.get_by_lpn_with_lock(adjust_data.lpn, tenant_id)

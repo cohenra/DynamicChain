@@ -12,5 +12,6 @@ from routers.user_table_settings import router as user_table_settings_router
 from routers.inventory import router as inventory_router
 from routers.inbound import router as inbound_router
 from routers.outbound import router as outbound_router
+from routers.order_type_definitions import router as order_type_definitions_router
 
-__all__ = ["auth_router", "products_router", "depositors_router", "warehouses_router", "product_uoms_router", "uom_definitions_router", "zones_router", "locations_router", "location_type_definitions_router", "location_usage_definitions_router", "user_table_settings_router", "inventory_router", "inbound_router", "outbound_router"]
+__all__ = ["auth_router", "products_router", "depositors_router", "warehouses_router", "product_uoms_router", "uom_definitions_router", "zones_router", "locations_router", "location_type_definitions_router", "location_usage_definitions_router", "user_table_settings_router", "inventory_router", "inbound_router", "outbound_router", "order_type_definitions_router"]

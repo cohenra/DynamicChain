@@ -65,7 +65,11 @@ class OutboundOrder(Base):
     )
 
     # Critical for strategy mapping (e.g., "B2B", "ECOM", "RETAIL")
+    # LEGACY: order_type string kept for backward compatibility
     order_type = Column(String(50), nullable=False, index=True, default=OrderType.CUSTOMER_ORDER.value)
+
+    # NEW: Dynamic order type reference (FK to order_type_definitions)
+    order_type_id = Column(Integer, ForeignKey("order_type_definitions.id"), nullable=True, index=True)
 
     # Priority for sorting
     priority = Column(Integer, nullable=False, default=OrderPriority.MEDIUM.value)
@@ -103,6 +107,9 @@ class OutboundOrder(Base):
         lazy="selectin"
     )
     created_by_user = relationship("User", foreign_keys=[created_by])
+
+    # Relationship to dynamic order type definition
+    order_type_def = relationship("OrderTypeDefinition", back_populates="outbound_orders", lazy="joined")
 
     __table_args__ = (
         {"comment": "Outbound orders for customer fulfillment"}
