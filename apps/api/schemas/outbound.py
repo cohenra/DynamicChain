@@ -46,10 +46,17 @@ class OutboundLineResponse(OutboundLineBase):
     qty_allocated: float
     qty_picked: float
     line_status: str
-    product: Optional[ProductSimple] = None  # FIX: Use Schema instead of Dict
+    product: Optional[ProductSimple] = None 
 
     class Config:
         from_attributes = True
+
+    # --- FIX: Validator to handle NULL values from DB ---
+    @field_validator('line_status', mode='before')
+    @classmethod
+    def set_default_status(cls, v):
+        # If DB returns None/Null, default to "PENDING"
+        return v or "PENDING"
 
 # --- Order Schemas ---
 
@@ -74,7 +81,7 @@ class OutboundOrderResponse(BaseModel):
     wave_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
-    customer: Optional[CustomerSimple] = None # FIX: Use Schema instead of Dict
+    customer: Optional[CustomerSimple] = None 
     lines: List[OutboundLineResponse] = []
 
     class Config:
@@ -89,7 +96,7 @@ class OutboundOrderListResponse(BaseModel):
     priority: OrderPriority
     requested_delivery_date: Optional[date] = None
     wave_id: Optional[int] = None
-    customer: Optional[CustomerSimple] = None # FIX: Use Schema instead of Dict
+    customer: Optional[CustomerSimple] = None 
     
     class Config:
         from_attributes = True
@@ -103,7 +110,7 @@ class OutboundOrderSummary(BaseModel):
     customer_id: int
     status: OutboundOrderStatus
     requested_delivery_date: Optional[date] = None
-    customer: Optional[CustomerSimple] = None # FIX: Use Schema instead of Dict
+    customer: Optional[CustomerSimple] = None
     lines: List[OutboundLineResponse] = [] 
 
     class Config:
@@ -217,7 +224,7 @@ class PickTaskResponse(BaseModel):
     status: str
     task_number: Optional[str] = Field(default_factory=lambda: "TASK-000")
     
-    # Relationships (FIX: Use Schema instead of Dict)
+    # Relationships
     product: Optional[ProductSimple] = None 
     from_location: Optional[LocationSimple] = None
     to_location: Optional[LocationSimple] = None

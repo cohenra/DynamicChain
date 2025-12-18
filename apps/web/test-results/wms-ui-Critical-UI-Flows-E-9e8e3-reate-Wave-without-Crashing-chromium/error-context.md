@@ -1,0 +1,83 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - heading "LogiSnap" [level=1] [ref=e7]
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - img [ref=e10]
+            - combobox [active] [ref=e14] [cursor=pointer]:
+              - generic: English
+              - img [ref=e15]
+          - button "Logout" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - text: Logout
+    - generic [ref=e21]:
+      - complementary [ref=e22]:
+        - button [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+        - navigation [ref=e27]:
+          - button "Dashboard" [ref=e28] [cursor=pointer]:
+            - img [ref=e29]
+            - generic [ref=e34]: Dashboard
+          - button "Inventory" [ref=e36] [cursor=pointer]:
+            - img [ref=e37]
+            - generic [ref=e47]: Inventory
+          - button "Inbound" [ref=e48] [cursor=pointer]:
+            - img [ref=e49]
+            - generic [ref=e54]: Inbound
+          - button "הזמנות יציאה" [ref=e55] [cursor=pointer]:
+            - img [ref=e56]
+            - generic [ref=e59]: הזמנות יציאה
+          - button "גלי ליקוט" [ref=e60] [cursor=pointer]:
+            - img [ref=e61]
+            - generic [ref=e65]: גלי ליקוט
+          - button "אסטרטגיות" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]
+            - generic [ref=e70]: אסטרטגיות
+          - button "Products" [ref=e71] [cursor=pointer]:
+            - img [ref=e72]
+            - generic [ref=e76]: Products
+          - button "Depositors" [ref=e77] [cursor=pointer]:
+            - img [ref=e78]
+            - generic [ref=e83]: Depositors
+          - button "Warehouses" [ref=e84] [cursor=pointer]:
+            - img [ref=e85]
+            - generic [ref=e89]: Warehouses
+          - button "Invoices" [ref=e90] [cursor=pointer]:
+            - img [ref=e91]
+            - generic [ref=e94]: Invoices
+        - generic [ref=e95]: v1.0.0
+      - main [ref=e96]:
+        - generic [ref=e98]:
+          - heading "Dashboard" [level=2] [ref=e99]
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - heading "Welcome to LogiSnap" [level=3] [ref=e103]
+                - paragraph [ref=e104]: Advanced Warehouse Management System
+              - paragraph [ref=e106]: Phase 1 completed successfully - Authentication system and basic infrastructure are ready for use
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - heading "System Status" [level=3] [ref=e109]
+                - paragraph [ref=e110]: General Information
+              - generic [ref=e112]:
+                - generic [ref=e113]:
+                  - generic [ref=e114]: "Version:"
+                  - generic [ref=e115]: 1.0.0
+                - generic [ref=e116]:
+                  - generic [ref=e117]: "Status:"
+                  - generic [ref=e118]: Active
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - heading "Next Steps" [level=3] [ref=e121]
+                - paragraph [ref=e122]: What's next?
+              - list [ref=e124]:
+                - listitem [ref=e125]: "• Phase 2: WMS Core"
+                - listitem [ref=e126]: "• Phase 3: Billing Engine"
+                - listitem [ref=e127]: "• Phase 4: Refinements"
+  - region "Notifications alt+T"
+```

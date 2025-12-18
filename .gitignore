@@ -52,3 +52,10 @@ dist-ssr/
 # Keep alembic/ directory but ignore __pycache__
 apps/api/alembic/__pycache__/
 apps/api/alembic/versions/__pycache__/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

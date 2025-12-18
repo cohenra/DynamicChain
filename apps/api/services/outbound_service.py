@@ -7,7 +7,6 @@ from sqlalchemy import select, update, func, and_
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 
-# ... (Imports remain same as before) ...
 from models.outbound_order import OutboundOrder, OutboundOrderStatus
 from models.outbound_line import OutboundLine
 from models.outbound_wave import OutboundWave, OutboundWaveStatus
@@ -22,6 +21,7 @@ from repositories.product_repository import ProductRepository
 from repositories.inventory_repository import InventoryRepository
 from repositories.inventory_transaction_repository import InventoryTransactionRepository
 from repositories.allocation_strategy_repository import AllocationStrategyRepository
+from repositories.order_type_definition_repository import OrderTypeDefinitionRepository
 from services.allocation_service import AllocationService
 from schemas.outbound import (
     OutboundOrderCreate,
@@ -47,18 +47,44 @@ class OutboundService:
         self.strategy_repo = AllocationStrategyRepository(db)
         self.allocation_service = AllocationService(db)
 
-    # ... (Keep create_order, list_orders, get_order, allocate_order, release_order, accept_shortages, cancel_order unchanged) ...
-    # (העתק את הפונקציות הקיימות מהקובץ הקודם)
-    
     async def create_order(self, order_data: OutboundOrderCreate, tenant_id: int, user_id: int) -> OutboundOrder:
-        # Implementation from previous file
+        # Validate products
         for line in order_data.lines:
             product = await self.product_repo.get_by_id(line.product_id, tenant_id)
-            if not product: raise HTTPException(400, f"Product {line.product_id} not found")
-        order = OutboundOrder(tenant_id=tenant_id, order_number=order_data.order_number, customer_id=order_data.customer_id, order_type=order_data.order_type, priority=order_data.priority, requested_delivery_date=order_data.requested_delivery_date, shipping_details=order_data.shipping_details, status=OutboundOrderStatus.DRAFT, created_by=user_id)
+            if not product: 
+                raise HTTPException(400, f"Product {line.product_id} not found")
+
+        # FIX: Fetch the dynamic order type definition to link it correctly
+        order_type_repo = OrderTypeDefinitionRepository(self.db)
+        order_type_def = await order_type_repo.get_by_code(order_data.order_type, tenant_id)
+
+        order = OutboundOrder(
+            tenant_id=tenant_id,
+            order_number=order_data.order_number,
+            customer_id=order_data.customer_id,
+            # Store both the legacy code and the new foreign key
+            order_type=order_data.order_type, 
+            order_type_id=order_type_def.id if order_type_def else None,
+            priority=order_data.priority,
+            requested_delivery_date=order_data.requested_delivery_date,
+            shipping_details=order_data.shipping_details,
+            status=OutboundOrderStatus.DRAFT,
+            created_by=user_id
+        )
+        
         created = await self.order_repo.create(order)
+        
         for ld in order_data.lines:
-            await self.line_repo.create(OutboundLine(order_id=created.id, product_id=ld.product_id, uom_id=ld.uom_id, qty_ordered=ld.qty_ordered, qty_allocated=0, qty_picked=0, constraints=ld.constraints))
+            await self.line_repo.create(OutboundLine(
+                order_id=created.id,
+                product_id=ld.product_id,
+                uom_id=ld.uom_id,
+                qty_ordered=ld.qty_ordered,
+                qty_allocated=0,
+                qty_picked=0,
+                constraints=ld.constraints
+            ))
+            
         return await self.order_repo.get_by_id(created.id, tenant_id)
 
     async def list_orders(self, tenant_id: int, skip: int=0, limit: int=100, status: str=None, customer_id: int=None, order_type: str=None):
@@ -85,30 +111,36 @@ class OutboundService:
 
     async def cancel_order(self, order_id: int, tenant_id: int):
         o = await self.get_order(order_id, tenant_id)
-        if o.status in [OutboundOrderStatus.SHIPPED, OutboundOrderStatus.CANCELLED]: raise HTTPException(400, "Cannot cancel")
+        if o.status in [OutboundOrderStatus.SHIPPED, OutboundOrderStatus.CANCELLED]: 
+            raise HTTPException(400, "Cannot cancel")
         o.status = OutboundOrderStatus.CANCELLED
         return await self.order_repo.update(o)
 
-    # --- Wave Management Updates ---
+    # --- Wave Management ---
 
     async def create_wave(self, wave_data: OutboundWaveCreate, tenant_id: int, user_id: int) -> OutboundWave:
-        from datetime import datetime
         timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
         wave_number = wave_data.wave_number if wave_data.wave_number else f"WV-{timestamp}"
 
-        wave = OutboundWave(
-            tenant_id=tenant_id,
-            wave_number=wave_number,
-            status=OutboundWaveStatus.PLANNING,
-            created_by=user_id,
-            strategy_id=wave_data.strategy_id
-        )
-        created_wave = await self.wave_repo.create(wave)
+        # Use transaction to ensure wave and order updates happen together
+        async with self.db.begin_nested():
+            wave = OutboundWave(
+                tenant_id=tenant_id,
+                wave_number=wave_number,
+                status=OutboundWaveStatus.PLANNING,
+                created_by=user_id,
+                strategy_id=wave_data.strategy_id
+            )
+            created_wave = await self.wave_repo.create(wave)
 
-        if wave_data.order_ids:
-            stmt = update(OutboundOrder).where(and_(OutboundOrder.id.in_(wave_data.order_ids), OutboundOrder.tenant_id == tenant_id)).values(wave_id=created_wave.id)
-            await self.db.execute(stmt)
-            await self.db.commit()
+            if wave_data.order_ids:
+                stmt = update(OutboundOrder).where(
+                    and_(
+                        OutboundOrder.id.in_(wave_data.order_ids),
+                        OutboundOrder.tenant_id == tenant_id
+                    )
+                ).values(wave_id=created_wave.id)
+                await self.db.execute(stmt)
 
         return await self.wave_repo.get_by_id(created_wave.id, tenant_id)
 
@@ -142,7 +174,6 @@ class OutboundService:
         
         return await self.get_wave(wave_id, tenant_id)
 
-    # NEW: Function to remove order from wave
     async def remove_order_from_wave(self, wave_id: int, order_id: int, tenant_id: int) -> OutboundWave:
         wave = await self.get_wave(wave_id, tenant_id)
         if wave.status != OutboundWaveStatus.PLANNING:
@@ -157,17 +188,10 @@ class OutboundService:
         return await self.get_wave(wave_id, tenant_id)
 
     async def allocate_wave(self, wave_id: int, tenant_id: int) -> OutboundWave:
-        # Perform allocation
         wave = await self.allocation_service.allocate_wave(wave_id, tenant_id)
-        
-        # Check if any inventory was actually allocated
-        # Logic: If all tasks are SHORT, we might want to flag the wave
         tasks = await self.get_wave_tasks(wave_id, tenant_id)
         if not tasks:
-             # No tasks generated at all - likely no stock for anything
-             # Optionally update status to error or just stay in PLANNING
              pass 
-             
         return wave
 
     async def release_wave(self, wave_id: int, tenant_id: int) -> OutboundWave:
@@ -175,23 +199,18 @@ class OutboundService:
         if wave.status != OutboundWaveStatus.ALLOCATED:
             raise HTTPException(status_code=400, detail="Wave must be ALLOCATED to release")
 
-        # Business Logic Check: Validate Inventory
         tasks = await self.get_wave_tasks(wave_id, tenant_id)
         
         if not tasks:
             raise HTTPException(status_code=400, detail="Cannot release wave: No pick tasks generated (Possible shortage)")
 
-        # Check if all tasks are SHORT (No inventory found for anything)
         all_short = all(t.status == PickTaskStatus.SHORT for t in tasks)
         if all_short:
              raise HTTPException(status_code=400, detail="Cannot release wave: Total inventory shortage. Please review orders.")
 
-        # If we are here, we have some valid tasks. 
-        # Update Status
         wave.status = OutboundWaveStatus.RELEASED
         await self.wave_repo.update(wave)
         
-        # Update Orders
         for order in wave.orders:
             if order.status == OutboundOrderStatus.PLANNED:
                 order.status = OutboundOrderStatus.RELEASED
@@ -199,7 +218,6 @@ class OutboundService:
         return wave
 
     async def get_wave_tasks(self, wave_id: int, tenant_id: int) -> List[PickTask]:
-        # Using selectinload to fetch relationships correctly via Line
         stmt = (
             select(PickTask)
             .join(OutboundLine, PickTask.line_id == OutboundLine.id)
@@ -221,14 +239,6 @@ class OutboundService:
         return list(result.scalars().all())
 
     async def complete_pick_task(self, task_id: int, qty_picked: float, user_id: int, tenant_id: int):
-        """
-        Complete a pick task with proper inventory management.
-
-        FIX: This now properly:
-        1. Decrements source inventory
-        2. Creates/updates destination inventory at to_location (Packing/Staging area)
-        3. Releases zombie allocations on short picks
-        """
         from models.inventory import Inventory, InventoryStatus
 
         task = await self.task_repo.get_by_id(task_id)
@@ -242,32 +252,23 @@ class OutboundService:
         qty_picked_decimal = Decimal(str(qty_picked))
         now = datetime.utcnow()
 
-        # Calculate short pick amount for zombie allocation release
         short_pick_qty = Decimal('0')
         if qty_picked_decimal < task.qty_to_pick:
             short_pick_qty = task.qty_to_pick - qty_picked_decimal
 
-        # --- 1. DECREMENT SOURCE INVENTORY ---
         source_inventory.quantity -= qty_picked_decimal
-        # Release the picked amount from allocation
         source_inventory.allocated_quantity -= qty_picked_decimal
 
-        # FIX ZOMBIE ALLOCATIONS: If short pick, release remaining allocation
         if short_pick_qty > 0:
             source_inventory.allocated_quantity -= short_pick_qty
 
-        # Ensure non-negative values
-        if source_inventory.quantity < 0:
-            source_inventory.quantity = Decimal('0')
-        if source_inventory.allocated_quantity < 0:
-            source_inventory.allocated_quantity = Decimal('0')
+        if source_inventory.quantity < 0: source_inventory.quantity = Decimal('0')
+        if source_inventory.allocated_quantity < 0: source_inventory.allocated_quantity = Decimal('0')
 
         await self.inventory_repo.update(source_inventory)
 
-        # --- 2. CREATE/UPDATE DESTINATION INVENTORY (FIX: Disappearing Inventory Bug) ---
         dest_inventory = None
         if task.to_location_id and qty_picked_decimal > 0:
-            # Check if destination inventory already exists for consolidation
             from sqlalchemy import select, and_
             consolidation_query = select(Inventory).where(
                 and_(
@@ -285,12 +286,10 @@ class OutboundService:
             dest_inventory = result.scalar_one_or_none()
 
             if dest_inventory:
-                # Consolidate: Add to existing inventory at destination
                 dest_inventory.quantity += qty_picked_decimal
                 dest_inventory.updated_at = now
                 await self.inventory_repo.update(dest_inventory)
             else:
-                # Create NEW inventory record at destination (packing/staging area)
                 import uuid
                 new_lpn = f"PICK-{uuid.uuid4().hex[:12].upper()}"
                 dest_inventory = Inventory(
@@ -311,14 +310,12 @@ class OutboundService:
                 self.db.add(dest_inventory)
                 await self.db.flush()
 
-        # --- 3. UPDATE TASK STATUS ---
         task.qty_picked = qty_picked_decimal
         task.status = PickTaskStatus.COMPLETED if qty_picked_decimal >= task.qty_to_pick else PickTaskStatus.SHORT
         task.assigned_to_user_id = user_id
         task.completed_at = now
         await self.task_repo.update(task)
 
-        # --- 4. UPDATE OUTBOUND LINE ---
         stmt = update(OutboundLine).where(OutboundLine.id == task.line_id).values(
             qty_picked=OutboundLine.qty_picked + qty_picked_decimal
         ).execution_options(synchronize_session="fetch")
@@ -330,7 +327,6 @@ class OutboundService:
             line.line_status = "PICKED"
             await self.line_repo.update(line)
 
-        # --- 5. CREATE TRANSACTION RECORD ---
         transaction = InventoryTransaction(
             tenant_id=tenant_id,
             transaction_type=TransactionType.PICK,
@@ -352,7 +348,6 @@ class OutboundService:
         )
         await self.transaction_repo.create(transaction)
 
-        # Return detailed response for verification
         return {
             "task_id": task.id,
             "qty_picked": float(qty_picked_decimal),
@@ -363,10 +358,6 @@ class OutboundService:
             "short_pick_released": float(short_pick_qty) if short_pick_qty > 0 else 0
         }
 
-    # ============================================================
-    # WAVE WIZARD METHODS - FIXED
-    # ============================================================
-
     async def simulate_wave(
         self,
         wave_type: WaveType,
@@ -375,10 +366,7 @@ class OutboundService:
     ) -> WaveSimulationResponse:
         """
         Simulate wave creation - preview matched orders and resolved strategy.
-
-        FIX: Now properly returns orders mapped to OrderSimulationSummary schema.
         """
-        # 1. Get the strategy for this wave type
         strategy = await self.strategy_repo.get_by_wave_type(wave_type, tenant_id)
         if not strategy:
             raise HTTPException(
@@ -386,13 +374,12 @@ class OutboundService:
                 detail=f"No allocation strategy configured for wave type '{wave_type.value}'"
             )
 
-        # 2. Build query with criteria filters
         stmt = (
             select(OutboundOrder)
             .where(
                 OutboundOrder.tenant_id == tenant_id,
                 OutboundOrder.status.in_([OutboundOrderStatus.DRAFT, OutboundOrderStatus.VERIFIED]),
-                OutboundOrder.wave_id.is_(None)  # Not already in a wave
+                OutboundOrder.wave_id.is_(None)
             )
             .options(
                 selectinload(OutboundOrder.customer),
@@ -400,7 +387,6 @@ class OutboundService:
             )
         )
 
-        # Apply criteria filters
         if criteria.delivery_date_from:
             stmt = stmt.where(OutboundOrder.requested_delivery_date >= criteria.delivery_date_from)
         if criteria.delivery_date_to:
@@ -412,7 +398,6 @@ class OutboundService:
         if criteria.priority:
             stmt = stmt.where(OutboundOrder.priority >= criteria.priority)
 
-        # Order by priority (highest first), then delivery date
         stmt = stmt.order_by(
             OutboundOrder.priority.desc(),
             OutboundOrder.requested_delivery_date.asc()
@@ -421,7 +406,6 @@ class OutboundService:
         result = await self.db.execute(stmt)
         orders = list(result.scalars().all())
 
-        # 3. Map orders to OrderSimulationSummary Pydantic schema
         order_summaries = []
         total_lines = 0
         total_qty = Decimal('0')
@@ -433,7 +417,6 @@ class OutboundService:
             total_lines += lines_count
             total_qty += order_qty
 
-            # Map to Pydantic schema
             summary = OrderSimulationSummary(
                 id=order.id,
                 order_number=order.order_number,
@@ -446,19 +429,17 @@ class OutboundService:
             )
             order_summaries.append(summary)
 
-        # 4. Return complete simulation response
         return WaveSimulationResponse(
             matched_orders_count=len(orders),
             total_lines=total_lines,
             total_qty=float(total_qty),
-            orders=order_summaries,  # FIX: Now populated correctly!
+            orders=order_summaries,
             resolved_strategy_id=strategy.id,
             resolved_strategy_name=strategy.name,
             wave_type=wave_type
         )
 
     async def get_available_wave_types(self, tenant_id: int):
-        """Get available wave types with associated strategies."""
         return await self.strategy_repo.list_available_wave_types(tenant_id)
 
     async def create_wave_with_criteria(
@@ -467,12 +448,6 @@ class OutboundService:
         tenant_id: int,
         user_id: int
     ) -> OutboundWave:
-        """
-        Create a wave using the wizard with auto-strategy mapping.
-
-        FIX: Now uses atomic transaction to prevent orphan waves.
-        """
-        # 1. Get strategy
         strategy = await self.strategy_repo.get_by_wave_type(request.wave_type, tenant_id)
         if not strategy:
             raise HTTPException(
@@ -480,14 +455,11 @@ class OutboundService:
                 detail=f"No strategy found for wave type '{request.wave_type.value}'"
             )
 
-        # Generate wave number
         timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
         wave_number = request.wave_name or f"WV-{request.wave_type.value}-{timestamp}"
 
-        # 2. TRANSACTIONAL SAFETY: Wrap wave creation and order updates in one transaction
         try:
             async with self.db.begin_nested():
-                # Create wave
                 wave = OutboundWave(
                     tenant_id=tenant_id,
                     wave_number=wave_number,
@@ -498,9 +470,8 @@ class OutboundService:
                     updated_at=datetime.utcnow()
                 )
                 self.db.add(wave)
-                await self.db.flush()  # Get wave ID
+                await self.db.flush()
 
-                # Update orders to reference the wave
                 if request.order_ids:
                     stmt = (
                         update(OutboundOrder)
@@ -508,17 +479,16 @@ class OutboundService:
                             and_(
                                 OutboundOrder.id.in_(request.order_ids),
                                 OutboundOrder.tenant_id == tenant_id,
-                                OutboundOrder.wave_id.is_(None)  # Safety check
+                                OutboundOrder.wave_id.is_(None)
                             )
                         )
                         .values(
                             wave_id=wave.id,
-                            status=OutboundOrderStatus.VERIFIED  # Upgrade status
+                            status=OutboundOrderStatus.VERIFIED
                         )
                     )
                     await self.db.execute(stmt)
 
-            # Transaction committed successfully
             await self.db.commit()
 
         except Exception as e:
@@ -529,5 +499,4 @@ class OutboundService:
                 detail=f"Failed to create wave: {str(e)}"
             )
 
-        # 3. Return the created wave with orders loaded
         return await self.wave_repo.get_by_id(wave.id, tenant_id)

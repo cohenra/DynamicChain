@@ -2,7 +2,6 @@ import { Table } from "@tanstack/react-table";
 import { X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTableViewOptions } from "@/components/ui/data-table-view-options";
 import {
   Select,
   SelectContent,
@@ -28,6 +27,7 @@ interface DataTableToolbarProps<TData> {
   onSearchChange?: (value: string) => void;
   filters?: FilterOption[];
   actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
@@ -36,25 +36,23 @@ export function DataTableToolbar<TData>({
   onSearchChange,
   filters = [],
   actions,
+  children,
 }: DataTableToolbarProps<TData>) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'he' || i18n.language === 'ar';
   const isFiltered = table.getState().columnFilters.length > 0 || !!searchValue;
   
-  // Local state for immediate input feedback
   const [localSearch, setLocalSearch] = useState(searchValue || "");
 
-  // Debounce logic
   useEffect(() => {
     const timer = setTimeout(() => {
         if (onSearchChange && localSearch !== searchValue) {
             onSearchChange(localSearch);
         }
-    }, 500); // 500ms debounce
-
+    }, 500);
     return () => clearTimeout(timer);
   }, [localSearch, onSearchChange, searchValue]);
 
-  // Sync local state if external prop changes (e.g. clear filters)
   useEffect(() => {
     if (searchValue !== undefined && searchValue !== localSearch) {
         setLocalSearch(searchValue);
@@ -62,17 +60,20 @@ export function DataTableToolbar<TData>({
   }, [searchValue]);
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between gap-3 items-center bg-background border rounded-lg p-2 shadow-sm mb-4">
-      {/* Search & Filters */}
-      <div className="flex flex-1 items-center gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+    <div 
+      className="flex items-center gap-2 w-full p-1 border-b bg-background"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
+      {/* צד ימין (RTL): חיפוש ופילטרים */}
+      <div className="flex items-center gap-2 shrink-0">
         {onSearchChange && (
           <div className="relative">
-            <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute top-2.5 h-4 w-4 text-muted-foreground ltr:right-2 rtl:left-2" />
             <Input
-              placeholder={t('common.searchPlaceholder', 'חיפוש...')}
+              placeholder={t('common.search', 'חיפוש...')}
               value={localSearch}
               onChange={(event) => setLocalSearch(event.target.value)}
-              className="pr-8 h-9 w-[200px] text-sm"
+              className="h-8 w-[150px] lg:w-[200px] ltr:pr-8 rtl:pl-8 text-start"
             />
           </div>
         )}
@@ -83,7 +84,7 @@ export function DataTableToolbar<TData>({
             value={filter.value?.toString() || "all"}
             onValueChange={(val) => filter.onChange(val === "all" ? "" : val)}
           >
-            <SelectTrigger className="w-[130px] h-9 text-sm">
+            <SelectTrigger className="h-8 w-[130px] text-sm border-dashed">
               <SelectValue placeholder={filter.label} />
             </SelectTrigger>
             <SelectContent>
@@ -96,27 +97,32 @@ export function DataTableToolbar<TData>({
             </SelectContent>
           </Select>
         ))}
-
-        {isFiltered && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              table.resetColumnFilters();
-              setLocalSearch(""); // Clear local immediately
-              if (onSearchChange) onSearchChange("");
-              filters.forEach((f) => f.onChange(""));
-            }}
-            className="h-8 px-2 lg:px-3"
-          >
-            {t('common.resetFilters', 'אפס')}
-            <X className="mr-2 h-4 w-4" />
-          </Button>
-        )}
       </div>
 
-      {/* Actions & View Options */}
-      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-        <DataTableViewOptions table={table} />
+      {/* הטאבים - מוצגים מיד אחרי הפילטרים */}
+      <div className="flex-1 flex items-center shrink-0 px-2">
+         {children}
+      </div>
+
+      {/* כפתור איפוס */}
+      {isFiltered && (
+        <Button
+          variant="ghost"
+          onClick={() => {
+            table.resetColumnFilters();
+            setLocalSearch("");
+            if (onSearchChange) onSearchChange("");
+            filters.forEach((f) => f.onChange(""));
+          }}
+          className="h-8 px-2 lg:px-3 shrink-0"
+        >
+          {t('common.reset', 'אפס')}
+          <X className="ml-2 h-4 w-4 rtl:mr-2 rtl:ml-0" />
+        </Button>
+      )}
+
+      {/* צד שמאל (RTL): כפתורי פעולה בלבד */}
+      <div className="flex items-center gap-2 shrink-0 ltr:ml-auto rtl:mr-auto">
         {actions}
       </div>
     </div>

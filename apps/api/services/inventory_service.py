@@ -48,7 +48,7 @@ class InventoryService:
                 detail=f"Product with ID {receive_data.product_id} not found"
             )
 
-        # Validate depositor exists - FIX: Use 'id' instead of 'depositor_id'
+        # Validate depositor exists
         from repositories.depositor_repository import DepositorRepository
         depositor_repo = DepositorRepository(self.db)
         depositor = await depositor_repo.get_by_id(
@@ -61,7 +61,7 @@ class InventoryService:
                 detail=f"Depositor with ID {receive_data.depositor_id} not found"
             )
 
-        # Validate location exists - FIX: Use 'id' instead of 'location_id'
+        # Validate location exists
         from repositories.location_repository import LocationRepository
         location_repo = LocationRepository(self.db)
         location = await location_repo.get_by_id(
@@ -160,12 +160,8 @@ class InventoryService:
 
             await self.transaction_repo.create(transaction)
 
-        # FIX: Fetch fully loaded inventory to prevent MissingGreenlet error on response
         return await self.get_inventory(created_inventory.id, tenant_id)
 
-    # ... (Keep rest of the file exactly as it was) ...
-    # העתק את שאר הפונקציות (get_inventory, list_inventory, move_stock, etc.) מהקובץ הקודם ללא שינוי
-    
     async def get_inventory(self, inventory_id: int, tenant_id: int) -> Inventory:
         inventory = await self.inventory_repo.get_by_id(inventory_id, tenant_id)
         if not inventory:
@@ -183,10 +179,7 @@ class InventoryService:
 
     async def move_stock(self, move_data: InventoryMoveRequest, tenant_id: int, user_id: int) -> Inventory:
         """
-        Move stock from one location to another with consolidation support.
-
-        FIX: Now checks if inventory already exists at destination and merges if so.
-        Also supports partial moves (split logic).
+        Move stock from one location to another with consolidation support and safety checks.
         """
         from sqlalchemy import select, and_
 
@@ -235,7 +228,11 @@ class InventoryService:
             is_full_move = move_qty >= source_inventory.quantity
             consolidated = False
 
-            if target_inventory:
+            # FIX: Check if source has allocations. If so, we CANNOT delete/merge safely without re-pointing allocations.
+            # Safety rule: Do not consolidate if source is allocated. Just move it.
+            has_allocation = source_inventory.allocated_quantity > 0
+
+            if target_inventory and not has_allocation:
                 # CONSOLIDATION: Add quantity to existing inventory at destination
                 target_inventory.quantity += move_qty
                 target_inventory.updated_at = now
@@ -255,6 +252,7 @@ class InventoryService:
 
             elif is_full_move:
                 # FULL MOVE (no consolidation): Simply update location
+                # This preserves ID and allocations
                 source_inventory.location_id = move_data.to_location_id
                 source_inventory.updated_at = now
                 result_inventory = await self.inventory_repo.update(source_inventory)
@@ -336,7 +334,6 @@ class InventoryService:
         return await self.get_inventory(updated.id, tenant_id)
 
     async def correct_transaction(self, original_transaction_id: int, new_quantity: Decimal, tenant_id: int, user_id: int, reason: Optional[str] = None) -> InventoryTransaction:
-        # Implementation remains same as original
         original = await self.transaction_repo.get_by_id(original_transaction_id, tenant_id)
         if not original: raise HTTPException(404, "Transaction not found")
 
@@ -386,7 +383,6 @@ class InventoryService:
         if depositor_id:
             conditions.append(Inventory.depositor_id == depositor_id)
 
-        # FIX: Use (quantity - allocated_quantity) instead of just quantity
         stmt = select(
             func.coalesce(
                 func.sum(Inventory.quantity - Inventory.allocated_quantity),
@@ -406,7 +402,6 @@ class InventoryService:
     ) -> Inventory:
         """
         Move stock with support for partial moves (split logic).
-        If move_qty < total_qty: Split the inventory record.
         """
         from sqlalchemy import select, and_
 
@@ -436,12 +431,10 @@ class InventoryService:
         async with self.db.begin_nested():
             if move_qty < source_inventory.quantity:
                 # PARTIAL MOVE: Split logic
-                # 1. Decrement source quantity
                 source_inventory.quantity -= move_qty
                 source_inventory.updated_at = now
                 await self.inventory_repo.update(source_inventory)
 
-                # 2. Check if target inventory exists (same product, depositor, batch, expiry at dest location)
                 consolidation_query = select(Inventory).where(
                     and_(
                         Inventory.tenant_id == tenant_id,
@@ -458,13 +451,13 @@ class InventoryService:
                 target_inventory = result.scalar_one_or_none()
 
                 if target_inventory:
-                    # Consolidate with existing inventory at destination
+                    # Consolidate
                     target_inventory.quantity += move_qty
                     target_inventory.updated_at = now
                     await self.inventory_repo.update(target_inventory)
                     result_inventory = target_inventory
                 else:
-                    # Create NEW inventory record at destination
+                    # Create NEW
                     new_lpn = self._generate_lpn()
                     new_inventory = Inventory(
                         tenant_id=tenant_id,
@@ -483,12 +476,11 @@ class InventoryService:
                     )
                     result_inventory = await self.inventory_repo.create(new_inventory)
             else:
-                # FULL MOVE: Just update the location
+                # FULL MOVE
                 source_inventory.location_id = move_data.to_location_id
                 source_inventory.updated_at = now
                 result_inventory = await self.inventory_repo.update(source_inventory)
 
-            # Create transaction record
             transaction = InventoryTransaction(
                 tenant_id=tenant_id,
                 transaction_type=TransactionType.MOVE,
@@ -502,7 +494,7 @@ class InventoryService:
                 timestamp=now,
                 billing_metadata={
                     "operation": "move",
-                    "partial": move_qty < source_inventory.quantity + move_qty,  # Was it a split?
+                    "partial": move_qty < source_inventory.quantity + move_qty,
                     "source_lpn": move_data.lpn
                 }
             )

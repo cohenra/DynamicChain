@@ -23,6 +23,7 @@ interface SmartTableProps<TData> {
   onSearchChange?: (value: string) => void;
   filters?: FilterOption[];
   actions?: React.ReactNode;
+  children?: React.ReactNode; // הוספת Prop לילדים (טאבים)
   noDataMessage?: string;
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement;
   containerClassName?: string;
@@ -37,6 +38,7 @@ export function SmartTable<TData>({
   onSearchChange,
   filters,
   actions,
+  children,
   noDataMessage,
   renderSubComponent,
   containerClassName,
@@ -44,7 +46,7 @@ export function SmartTable<TData>({
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col space-y-2">
+    <div className="flex flex-col space-y-4">
       <DataTableToolbar
         table={table}
         searchKey={searchKey}
@@ -52,14 +54,15 @@ export function SmartTable<TData>({
         onSearchChange={onSearchChange}
         filters={filters}
         actions={actions}
-      />
+      >
+        {children}
+      </DataTableToolbar>
 
       <div className={cn("rounded-md border bg-white shadow-sm overflow-hidden", containerClassName)}>
         <div className="w-full overflow-x-auto">
-            {/* Using minWidth ensures columns don't squash each other */}
             <Table 
               className="table-fixed" 
-              dir="rtl"
+              dir="rtl" // חשוב לוודא שהכיוון מוגדר נכון ברמת האפליקציה, אך כאן זה נשמר מהקובץ המקורי
               style={{ minWidth: table.getTotalSize() }}
             >
             <TableHeader className="bg-slate-50">
@@ -68,7 +71,7 @@ export function SmartTable<TData>({
                     {headerGroup.headers.map((header) => (
                     <TableHead 
                         key={header.id} 
-                        className="h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-right text-xs border-l last:border-l-0 border-slate-100"
+                        className="h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-right text-xs border-l last:border-l-0 border-slate-100 rtl:text-right rtl:border-l-0 rtl:border-r rtl:last:border-r-0"
                         style={{ width: header.getSize() }}
                     >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -98,7 +101,7 @@ export function SmartTable<TData>({
                         {row.getVisibleCells().map((cell) => (
                         <TableCell 
                           key={cell.id} 
-                          className="py-1 px-2 whitespace-nowrap text-xs text-right border-l last:border-l-0 border-slate-50"
+                          className="py-1 px-2 whitespace-nowrap text-xs text-right border-l last:border-l-0 border-slate-50 rtl:text-right rtl:border-l-0 rtl:border-r rtl:last:border-r-0"
                           style={{ width: cell.column.getSize() }}
                         >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -106,11 +109,9 @@ export function SmartTable<TData>({
                         ))}
                     </TableRow>
                     
-                    {/* Expanded Row Detail */}
                     {row.getIsExpanded() && renderSubComponent && (
                         <TableRow className="hover:bg-transparent bg-slate-50/50">
                         <TableCell colSpan={columnsLength} className="p-0 border-b">
-                            {/* FIX: Removed 'sticky' wrapper causing layout breakage */}
                             <div className="w-full">
                                 {renderSubComponent({ row })}
                             </div>

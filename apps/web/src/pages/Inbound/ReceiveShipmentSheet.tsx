@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InboundShipment, InboundOrder, inboundService, ReceiveShipmentItemRequest } from '@/services/inboundService';
 import { locationService } from '@/services/locations';
@@ -22,18 +22,20 @@ interface ReceiveShipmentSheetProps {
   onClose: () => void;
 }
 
-const receiveSchema = z.object({
-  inbound_line_id: z.string().min(1, 'חובה לבחור מוצר'),
-  location_id: z.string().min(1, 'חובה לבחור מיקום'),
-  quantity: z.string().refine(val => parseFloat(val) > 0, 'כמות חייבת להיות חיובית'),
-  lpn: z.string().optional(),
-  batch_number: z.string().optional(),
-  expiry_date: z.string().optional(),
-});
-
 export function ReceiveShipmentSheet({ shipment, order, open, onClose }: ReceiveShipmentSheetProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const isRTL = i18n.language === 'he' || i18n.language === 'ar';
+
+  // סכמת ולידציה עם תרגומים
+  const receiveSchema = z.object({
+    inbound_line_id: z.string().min(1, t('inbound.sheet.validation.productRequired', 'חובה לבחור מוצר')),
+    location_id: z.string().min(1, t('inbound.sheet.validation.locationRequired', 'חובה לבחור מיקום')),
+    quantity: z.string().refine(val => parseFloat(val) > 0, t('inbound.sheet.validation.positiveQuantity', 'כמות חייבת להיות חיובית')),
+    lpn: z.string().optional(),
+    batch_number: z.string().optional(),
+    expiry_date: z.string().optional(),
+  });
 
   const form = useForm<z.infer<typeof receiveSchema>>({
     resolver: zodResolver(receiveSchema),
@@ -71,12 +73,12 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
-      toast.success('פריט נקלט בהצלחה');
+      toast.success(t('inbound.sheet.success', 'פריט נקלט בהצלחה'));
       form.reset();
       onClose();
     },
     onError: (error: any) => {
-      const errorDetail = error?.response?.data?.detail || 'שגיאה בקליטת פריט';
+      const errorDetail = error?.response?.data?.detail || t('inbound.sheet.error', 'שגיאה בקליטת פריט');
       toast.error(errorDetail);
     },
   });
@@ -99,19 +101,29 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
     const expected = parseFloat(line.expected_quantity);
     const received = parseFloat(line.received_quantity);
     const remaining = expected - received;
-    return `${line.product?.name || 'Unknown'} (צפוי: ${expected} / נקלט: ${received} / נותר: ${remaining})`;
+    
+    return t('inbound.sheet.lineSummary', '{{product}} (צפוי: {{expected}} / נקלט: {{received}} / נותר: {{remaining}})', {
+      product: line.product?.name || t('common.unknown', 'לא ידוע'),
+      expected,
+      received,
+      remaining
+    });
   };
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="left" className="w-full sm:max-w-md p-0 flex flex-col h-full">
-        <SheetHeader className="p-6 border-b">
+      <SheetContent 
+        side={isRTL ? "right" : "left"} // צד דינמי בהתאם לשפה
+        className="w-full sm:max-w-md p-0 flex flex-col h-full"
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
+        <SheetHeader className="p-6 border-b text-start">
           <SheetTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            קליטת פריט ממשלוח
+            {t('inbound.sheet.title', 'קליטת פריט ממשלוח')}
           </SheetTitle>
-          <SheetDescription>
-            משלוח: {shipment?.shipment_number || '-'}
+          <SheetDescription className="text-start">
+            {t('inbound.sheet.shipment', 'משלוח')}: {shipment?.shipment_number || '-'}
           </SheetDescription>
         </SheetHeader>
 
@@ -124,11 +136,11 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
                 name="inbound_line_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>מוצר *</FormLabel>
+                    <FormLabel>{t('inbound.sheet.product', 'מוצר')} *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="בחר מוצר..." />
+                          <SelectValue placeholder={t('inbound.sheet.selectProduct', 'בחר מוצר...')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -150,11 +162,11 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
                 name="location_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>מיקום *</FormLabel>
+                    <FormLabel>{t('inbound.sheet.location', 'מיקום')} *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="בחר מיקום..." />
+                          <SelectValue placeholder={t('inbound.sheet.selectLocation', 'בחר מיקום...')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -176,9 +188,9 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>כמות *</FormLabel>
+                    <FormLabel>{t('inbound.sheet.quantity', 'כמות')} *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} className="text-start" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -191,12 +203,12 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
                 name="lpn"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>LPN (אופציונלי)</FormLabel>
+                    <FormLabel>{t('inbound.sheet.lpn', 'LPN (אופציונלי)')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={generateLpnPlaceholder()} {...field} />
+                      <Input placeholder={generateLpnPlaceholder()} {...field} className="text-start" />
                     </FormControl>
                     <p className="text-xs text-muted-foreground">
-                      ישתולל אוטומטית אם לא יוזן
+                      {t('inbound.sheet.lpnHint', 'ישתולל אוטומטית אם לא יוזן')}
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -209,9 +221,9 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
                 name="batch_number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>מספר אצווה (אופציונלי)</FormLabel>
+                    <FormLabel>{t('inbound.sheet.batch', 'מספר אצווה (אופציונלי)')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="BATCH-001" {...field} />
+                      <Input placeholder="BATCH-001" {...field} className="text-start" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -224,9 +236,9 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
                 name="expiry_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>תאריך תפוגה (אופציונלי)</FormLabel>
+                    <FormLabel>{t('inbound.sheet.expiry', 'תאריך תפוגה (אופציונלי)')}</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="text-start" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -243,7 +255,7 @@ export function ReceiveShipmentSheet({ shipment, order, open, onClose }: Receive
             className="w-full"
             disabled={receiveMutation.isPending}
           >
-            {receiveMutation.isPending ? 'קולט...' : 'קלוט פריט'}
+            {receiveMutation.isPending ? t('common.processing', 'קולט...') : t('inbound.sheet.submit', 'קלוט פריט')}
           </Button>
         </div>
       </SheetContent>

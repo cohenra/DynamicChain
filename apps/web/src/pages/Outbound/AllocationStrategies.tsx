@@ -1,51 +1,78 @@
-import { useQuery } from '@tanstack/react-query';
-import { getStrategies } from '@/services/outboundService';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Plus, Save, Trash2, ArrowLeft, ArrowRight, GitBranch } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useTranslation } from 'react-i18next';
 
 export default function AllocationStrategies() {
-  const { t } = useTranslation();
-  const { data: strategies, isLoading } = useQuery({
-    queryKey: ['allocation-strategies'],
-    queryFn: () => getStrategies(),
-  });
-
-  if (isLoading) return <div>{t('common.loading')}</div>;
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'he' || i18n.language === 'ar';
+  
+  const [strategies, setStrategies] = useState([
+    { id: 1, name: 'Standard FIFO', type: 'FIFO', rules: ['Expiration Date', 'Location Sequence'] },
+    { id: 2, name: 'LIFO Pick', type: 'LIFO', rules: ['Reception Date'] },
+  ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{t('outbound.strategies', 'אסטרטגיות הקצאה')}</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {strategies?.map((strategy) => (
-          <Card key={strategy.id} className="border-t-4 border-t-blue-500 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-xl">{strategy.name}</CardTitle>
-                <Badge variant={strategy.is_active ? 'default' : 'secondary'}>
-                  {strategy.is_active ? t('dashboard.active') : t('common.inactive', 'לא פעיל')}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{strategy.description || '-'}</p>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <Separator />
-              <div className="grid grid-cols-2 gap-2">
-                <div className="font-semibold">{t('outbound.pickingType', 'סוג ליקוט')}:</div>
-                <div>{strategy.picking_type}</div>
-                
-                <div className="font-semibold">{t('outbound.allocationPolicy', 'מדיניות הקצאה')}:</div>
-                <div>{strategy.rules_config.picking_policy || 'N/A'}</div>
+    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('strategies.title', 'אסטרטגיות הקצאה')}</h1>
+          <p className="text-muted-foreground">
+            {t('strategies.description', 'הגדר ונהל את החוקים להקצאת מלאי עבור הזמנות יציאה')}
+          </p>
+        </div>
+        <Button>
+          <Plus className={cn("h-4 w-4", isRTL ? "ml-2" : "mr-2")} />
+          {t('strategies.create', 'צור אסטרטגיה')}
+        </Button>
+      </div>
 
-                <div className="font-semibold">{t('outbound.warehouseLogic', 'פיצול מחסנים')}:</div>
-                <div>
-                    {strategy.rules_config.warehouse_logic ? (
-                        <span className="flex flex-col">
-                            <span>Mode: {strategy.rules_config.warehouse_logic.mode}</span>
-                            <span>Max Splits: {strategy.rules_config.warehouse_logic.max_splits}</span>
-                        </span>
-                    ) : t('common.notDefined', 'לא מוגדר')}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {strategies.map((strategy) => (
+          <Card key={strategy.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2">
+                   <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                     <GitBranch className="h-5 w-5" />
+                   </div>
+                   <CardTitle className="text-lg">{strategy.name}</CardTitle>
+                </div>
+                <Badge variant="outline">{strategy.type}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-slate-700">{t('strategies.rules', 'חוקים')}:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {strategy.rules.map((rule, idx) => (
+                    <Badge key={idx} variant="secondary" className="bg-slate-100 font-normal">
+                      {rule}
+                    </Badge>
+                  ))}
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-end gap-2 pt-2">
+                   <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-600 hover:bg-red-50">
+                      <Trash2 className="h-4 w-4" />
+                   </Button>
+                   <Button variant="outline" size="sm" className="h-8">
+                      {t('common.edit', 'ערוך')}
+                   </Button>
                 </div>
               </div>
             </CardContent>
