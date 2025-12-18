@@ -31,7 +31,17 @@
     "lastPage": "Last Page",
     "nextPage": "Next Page",
     "prevPage": "Previous Page",
-    "selected": "{{count}} selected"
+    "selected": "{{count}} selected",
+    "selectAll": "Select all",
+    "select": "Select",
+    "selectRow": "Select row",
+    "clearSelection": "Clear selection",
+    "refresh": "Refresh",
+    "processing": "Processing...",
+    "unknown": "Unknown",
+    "dataRefreshed": "Data refreshed",
+    "adding": "Adding...",
+    "success": "Success"
   },
   "auth": {
     "login": "System Login",
@@ -88,6 +98,182 @@
       "DAMAGED": "Damaged",
       "MISSING": "Missing"
     }
+  },
+  "inbound": {
+    "title": "Inbound Orders",
+    "description": "Manage purchase orders and incoming shipments",
+    "createOrder": "New Order",
+    "orderNumber": "Order Number",
+    "orderType": "Order Type",
+    "status": "Status",
+    "supplier": "Supplier",
+    "expectedDate": "Expected Date",
+    "totalItems": "Total Items",
+    "progress": "Progress",
+    "noOrders": "No orders found",
+    "createSuccess": "Order created successfully",
+    "createError": "Error creating order",
+    "orderTypes": {
+      "PO": "Purchase Order (PO)",
+      "RETURN": "Return",
+      "TRANSFER": "Transfer"
+    },
+    "bulk": {
+      "selected": "selected",
+      "close": "Close Selected",
+      "closed": "closed successfully",
+      "failed": "failed",
+      "closedSuccess": "{{count}} orders closed successfully",
+      "partialSuccess": "{{success}} closed successfully, {{failed}} failed",
+      "error": "Error performing bulk operation",
+      "noSelection": "Please select orders",
+      "closeConfirm": "Close {{count}} selected orders?"
+    },
+    "sheet": {
+      "title": "Receive Item from Shipment",
+      "shipment": "Shipment",
+      "product": "Product",
+      "selectProduct": "Select product...",
+      "location": "Location",
+      "selectLocation": "Select location...",
+      "quantity": "Quantity",
+      "lpn": "LPN (Optional)",
+      "lpnHint": "Will be auto-generated if not provided",
+      "batch": "Batch Number (Optional)",
+      "expiry": "Expiry Date (Optional)",
+      "submit": "Receive Item",
+      "success": "Item received successfully",
+      "error": "Error receiving item",
+      "lineSummary": "{{product}} (Expected: {{expected}} / Received: {{received}} / Remaining: {{remaining}})",
+      "validation": {
+        "productRequired": "Product is required",
+        "locationRequired": "Location is required",
+        "positiveQuantity": "Quantity must be positive"
+      }
+    }
+  },
+  "outbound": {
+    "title": "Outbound Orders",
+    "description": "Control center for picking and shipping",
+    "createOrder": "New Order",
+    "orderNumber": "Order Number",
+    "customer": "Customer",
+    "status": "Status",
+    "priority": "Priority",
+    "progress": "Progress",
+    "deliveryDate": "Delivery Date",
+    "linesCount": "Lines",
+    "waveNumber": "Wave Number",
+    "ordersCount": "Orders",
+    "createdDate": "Created Date",
+    "strategy": "Strategy",
+    "pickingType": "Picking Type",
+    "allocationPolicy": "Allocation Policy",
+    "warehouseLogic": "Warehouse Split",
+    "createdAt": "Created At",
+    "createdOn": "Created on",
+    "orders": "Orders",
+    "lines": "Lines",
+    "items": "Items",
+    "pickingProgress": "Picking Progress",
+    "wavesTitle": "Picking Waves",
+    "createWave": "Create Wave",
+    "task": "Task",
+    "tasks": "Pick Tasks",
+    "picked": "Picked",
+    "location": "Location",
+    "addOrders": "Add Orders",
+    "totalLines": "Total Lines",
+    "allocateSelected": "Allocate",
+    "orderCreated": "Order created successfully",
+    "createOrderError": "Failed to create order",
+    "createOrderDescription": "Enter the order details and required items",
+    "waveNotFound": "Wave not found",
+    "actions": {
+      "allocate": "Run Allocation",
+      "allocateSelected": "Allocate Selected ({{count}})",
+      "allocateSuccess": "{{count}} orders allocated successfully",
+      "release": "Release for Picking",
+      "cancel": "Cancel Order",
+      "cancelSelected": "Cancel Selected ({{count}})",
+      "cancelConfirm": "Are you sure?",
+      "createWave": "Create Pick Wave",
+      "waveCreated": "Wave created successfully",
+      "acceptShortages": "Accept Shortages"
+    },
+    "tabs": {
+      "lines": "Order Lines",
+      "tasks": "Pick Tasks",
+      "orders": "Orders"
+    },
+    "messages": {
+      "allocationStarted": "Allocation process started",
+      "waveReleased": "Wave released for picking successfully",
+      "orderRemoved": "Order removed from wave",
+      "ordersAdded": "Orders added to wave successfully",
+      "noWaves": "No picking waves found",
+      "noOrdersInWave": "No orders in this wave",
+      "noTasksYet": "No pick tasks yet. Run allocation and release first.",
+      "noAvailableOrders": "No available orders to add",
+      "shortageDetected": "Inventory shortage detected"
+    },
+    "table": {
+      "product": "Product",
+      "sku": "SKU",
+      "ordered": "Ordered",
+      "allocated": "Allocated",
+      "picked": "Picked",
+      "status": "Line Status",
+      "task": "Task #",
+      "fromLocation": "From Location",
+      "qtyToPick": "Qty to Pick"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "VERIFIED": "Verified",
+      "PLANNED": "Planned",
+      "RELEASED": "Released",
+      "PICKING": "Picking",
+      "PICKED": "Picked",
+      "PACKED": "Packed",
+      "SHIPPED": "Shipped",
+      "CANCELLED": "Cancelled",
+      "PARTIAL": "Partial",
+      "SHORT": "Short",
+      "PLANNING": "Planning",
+      "ALLOCATED": "Allocated",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed"
+    },
+    "priorities": {
+      "CRITICAL": "Critical",
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low"
+    },
+    "waves": {
+      "description": "Manage warehouse picking waves",
+      "status": {
+        "planning": "Planning",
+        "allocated": "Allocated",
+        "released": "Released",
+        "completed": "Completed"
+      }
+    },
+    "dialog": {
+      "addOrdersTitle": "Add Orders to Wave",
+      "addOrdersDescription": "Select verified orders from the list to add to this wave.",
+      "searchOrdersPlaceholder": "Search by order number or customer...",
+      "loadingOrders": "Loading orders...",
+      "selectedOrders": "{{count}} orders selected",
+      "addToWave": "Add to Wave"
+    }
+  },
+  "strategies": {
+    "title": "Allocation Strategies",
+    "description": "Define and manage inventory allocation rules for outbound orders",
+    "create": "Create Strategy",
+    "rules": "Rules"
   },
   "products": {
     "title": "Products",

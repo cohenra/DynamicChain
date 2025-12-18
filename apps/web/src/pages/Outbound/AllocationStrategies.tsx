@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Save, Trash2, ArrowLeft, ArrowRight, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -28,14 +29,14 @@ export default function AllocationStrategies() {
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('strategies.title', 'אסטרטגיות הקצאה')}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('strategies.title')}</h1>
           <p className="text-muted-foreground">
-            {t('strategies.description', 'הגדר ונהל את החוקים להקצאת מלאי עבור הזמנות יציאה')}
+            {t('strategies.description')}
           </p>
         </div>
         <Button>
           <Plus className={cn("h-4 w-4", isRTL ? "ml-2" : "mr-2")} />
-          {t('strategies.create', 'צור אסטרטגיה')}
+          {t('strategies.create')}
         </Button>
       </div>
 
@@ -56,7 +57,7 @@ export default function AllocationStrategies() {
             <CardContent>
               <div className="space-y-3">
                 <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-slate-700">{t('strategies.rules', 'חוקים')}:</span>
+                  <span className="font-medium text-slate-700">{t('strategies.rules')}:</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {strategy.rules.map((rule, idx) => (
@@ -71,7 +72,7 @@ export default function AllocationStrategies() {
                       <Trash2 className="h-4 w-4" />
                    </Button>
                    <Button variant="outline" size="sm" className="h-8">
-                      {t('common.edit', 'ערוך')}
+                      {t('common.edit')}
                    </Button>
                 </div>
               </div>

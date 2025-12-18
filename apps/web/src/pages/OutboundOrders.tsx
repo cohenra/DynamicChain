@@ -75,7 +75,7 @@ export default function OutboundOrders() {
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: (order) => {
-      toast.success(t('outbound.orderCreated', 'הזמנה נוצרה בהצלחה'), {
+      toast.success(t('outbound.orderCreated'), {
         description: order.order_number,
       });
       queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
@@ -94,10 +94,10 @@ export default function OutboundOrders() {
       } else if (typeof detail === 'string') {
         errorMessage = detail;
       } else {
-        errorMessage = t('outbound.createOrderError', 'יצירת ההזמנה נכשלה');
+        errorMessage = t('outbound.createOrderError');
       }
 
-      toast.error(t('common.error', 'שגיאה'), {
+      toast.error(t('common.error'), {
         description: errorMessage,
       });
     },
@@ -133,13 +133,13 @@ export default function OutboundOrders() {
     setBulkLoading(false);
     setRowSelection({});
     queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
-    toast.success(t('outbound.actions.allocateSelected', { count: successCount }) + ' ' + t('common.success', 'בוצע בהצלחה'));
+    toast.success(t('outbound.actions.allocateSuccess', { count: successCount }));
   };
 
   // --- Bulk Cancel Handler ---
   const handleBulkCancel = async () => {
       const selectedIds = Object.keys(rowSelection).map(Number);
-      if (selectedIds.length === 0 || !confirm(t('outbound.actions.cancelConfirm', 'האם אתה בטוח?'))) return;
+      if (selectedIds.length === 0 || !confirm(t('outbound.actions.cancelConfirm'))) return;
 
       setBulkLoading(true);
       for (const id of selectedIds) {
@@ -160,8 +160,8 @@ export default function OutboundOrders() {
       
       setBulkLoading(true);
       try {
-          await createWave({ order_ids: selectedIds }); 
-          toast.success(t('outbound.actions.waveCreated', 'גל נוצר בהצלחה'));
+          await createWave({ order_ids: selectedIds });
+          toast.success(t('outbound.actions.waveCreated'));
           queryClient.invalidateQueries({ queryKey: ['outbound-orders'] });
           setRowSelection({});
       } catch (err: any) {
@@ -235,7 +235,7 @@ export default function OutboundOrders() {
         accessorKey: 'wave.wave_number',
         id: 'wave',
         size: 110, // Fixed width
-        header: t('outbound.waveNumber', 'מספר גל'),
+        header: t('outbound.waveNumber'),
         cell: ({ row }) => row.original.wave ? (
             <Badge variant="outline" className="text-[10px] h-5 px-1">{row.original.wave.wave_number}</Badge>
         ) : '-',
@@ -380,7 +380,7 @@ export default function OutboundOrders() {
 
             <Button size="sm" variant="outline" onClick={handleCreateWave} disabled={bulkLoading} className="bg-white hover:bg-slate-50 text-blue-700 border-blue-200 h-8">
                 {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Layers className="h-3 w-3 mr-2" />}
-                {t('outbound.actions.createWave', 'צור גל ליקוט')}
+                {t('outbound.actions.createWave')}
             </Button>
 
             <Button size="sm" variant="destructive" onClick={handleBulkCancel} disabled={bulkLoading} className="h-8">
@@ -417,9 +417,9 @@ export default function OutboundOrders() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="left" className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{t('outbound.createOrder', 'יצירת הזמנת יציאה')}</SheetTitle>
+            <SheetTitle>{t('outbound.createOrder')}</SheetTitle>
             <SheetDescription>
-              {t('outbound.createOrderDescription', 'הזן את פרטי ההזמנה והפריטים הנדרשים')}
+              {t('outbound.createOrderDescription')}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">

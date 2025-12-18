@@ -59,7 +59,7 @@ export default function OutboundWaves() {
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-            aria-label={t('common.selectAll', 'בחר הכל')}
+            aria-label={t('common.selectAll')}
             className="mx-1 translate-y-[2px]"
           />
         ),
@@ -67,7 +67,7 @@ export default function OutboundWaves() {
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label={t('common.selectRow', 'בחר שורה')}
+            aria-label={t('common.selectRow')}
             className="mx-1 translate-y-[2px]"
           />
         ),
@@ -98,12 +98,12 @@ export default function OutboundWaves() {
       },
       {
         accessorKey: 'wave_number',
-        header: t('outbound.waveNumber', 'מספר גל'),
+        header: t('outbound.waveNumber'),
         cell: ({ row }) => <span className="font-bold text-primary">{row.original.wave_number}</span>,
       },
       {
         accessorKey: 'status',
-        header: t('outbound.status', 'סטטוס'),
+        header: t('outbound.status'),
         cell: ({ row }) => {
           const status = row.original.status;
           let color = 'bg-slate-100 text-slate-800 border-slate-200';
@@ -117,12 +117,12 @@ export default function OutboundWaves() {
       },
       {
         id: 'orders_count',
-        header: t('outbound.ordersCount', 'הזמנות'),
+        header: t('outbound.ordersCount'),
         cell: ({ row }) => <div className="text-center font-medium">{row.original.orders?.length || 0}</div>,
       },
       {
         id: 'lines_count',
-        header: t('outbound.linesCount', 'שורות'),
+        header: t('outbound.linesCount'),
         cell: ({ row }) => {
           const lines = row.original.orders?.reduce((acc, o) => acc + (o.lines?.length || 0), 0) || 0;
           return <div className="text-center">{lines}</div>;
@@ -130,7 +130,7 @@ export default function OutboundWaves() {
       },
       {
         id: 'items_progress',
-        header: t('outbound.pickingProgress', 'התקדמות ליקוט'),
+        header: t('outbound.pickingProgress'),
         cell: ({ row }) => {
           const totalItems = row.original.orders?.reduce((acc, o) => acc + o.lines?.reduce((lAcc, l) => lAcc + Number(l.qty_ordered), 0), 0) || 0;
           const pickedItems = row.original.orders?.reduce((acc, o) => acc + o.lines?.reduce((lAcc, l) => lAcc + Number(l.qty_picked || 0), 0), 0) || 0;
@@ -149,7 +149,7 @@ export default function OutboundWaves() {
       },
       {
         accessorKey: 'created_at',
-        header: t('outbound.createdAt', 'נוצר בתאריך'),
+        header: t('outbound.createdAt'),
         cell: ({ row }) => <span className="text-xs text-muted-foreground">{format(new Date(row.original.created_at), 'dd/MM/yy HH:mm')}</span>,
       },
     ],
@@ -180,8 +180,8 @@ export default function OutboundWaves() {
   return (
     <div className="space-y-6 h-full flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('outbound.wavesTitle', 'גלי ליקוט')}</h1>
-        <p className="text-muted-foreground">{t('outbound.waves.description', 'נהל את גלי הליקוט במחסן')}</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('outbound.wavesTitle')}</h1>
+        <p className="text-muted-foreground">{t('outbound.waves.description')}</p>
       </div>
 
       <div className="flex-1 overflow-auto min-h-0 bg-white">
@@ -214,32 +214,32 @@ export default function OutboundWaves() {
                 <div className="flex items-center gap-2">
                    <Button size="sm" variant="default" className="h-8">
                     <Play className="mr-2 h-3 w-3 rtl:ml-2 rtl:mr-0" />
-                    {t('outbound.allocateSelected', 'הקצאה')}
+                    {t('outbound.allocateSelected')}
                   </Button>
                   <Button size="sm" variant="destructive" className="h-8">
                     <Trash2 className="mr-2 h-3 w-3 rtl:ml-2 rtl:mr-0" />
-                    {t('common.delete', 'מחק')}
+                    {t('common.delete')}
                   </Button>
                 </div>
               ) : (
                 <>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => refetch()} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetch()}
                     disabled={isRefetching}
                     className="h-8"
                   >
                     <RefreshCw className={`mr-2 h-3 w-3 rtl:ml-2 rtl:mr-0 ${isRefetching ? 'animate-spin' : ''}`} />
-                    {t('common.refresh', 'רענן')}
+                    {t('common.refresh')}
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={() => setIsWizardOpen(true)}
                     className="h-8"
                   >
                     <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                    {t('outbound.createWave', 'צור גל')}
+                    {t('outbound.createWave')}
                   </Button>
                 </>
               )
@@ -247,7 +247,7 @@ export default function OutboundWaves() {
             
             renderSubComponent={({ row }) => <WaveRowDetail wave={row.original} />}
             className="border-0"
-            noDataMessage={t('outbound.messages.noWaves', 'לא נמצאו גלי ליקוט')}
+            noDataMessage={t('outbound.messages.noWaves')}
           />
         </Tabs>
       </div>

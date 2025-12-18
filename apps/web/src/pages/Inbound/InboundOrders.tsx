@@ -95,24 +95,24 @@ export default function InboundOrders() {
       queryClient.invalidateQueries({ queryKey: ['inbound-orders'] });
       setRowSelection({});
       if (result.failed_count > 0) {
-        toast.warning(`${result.success_count} נסגרו בהצלחה, ${result.failed_count} נכשלו`);
+        toast.warning(t('inbound.bulk.partialSuccess', { success: result.success_count, failed: result.failed_count }));
       } else {
-        toast.success(`${result.success_count} הזמנות נסגרו בהצלחה`);
+        toast.success(t('inbound.bulk.closedSuccess', { count: result.success_count }));
       }
     },
     onError: (err) => {
       console.error(err);
-      toast.error(t('inbound.bulk.error', 'שגיאה בסגירה המונית'));
+      toast.error(t('inbound.bulk.error'));
     }
   });
 
   const handleBulkClose = () => {
     const selectedIds = Object.keys(rowSelection).map(Number);
     if (selectedIds.length === 0) {
-      toast.error(t('inbound.bulk.noSelection', 'נא לבחור הזמנות'));
+      toast.error(t('inbound.bulk.noSelection'));
       return;
     }
-    if (confirm(`האם לסגור ${selectedIds.length} הזמנות שנבחרו?`)) {
+    if (confirm(t('inbound.bulk.closeConfirm', { count: selectedIds.length }))) {
         bulkCloseMutation.mutate(selectedIds);
     }
   };
@@ -125,14 +125,14 @@ export default function InboundOrders() {
         <Checkbox
           checked={table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label={t('common.selectAll', 'בחר הכל')}
+          aria-label={t('common.selectAll')}
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label={t('common.select', 'בחר')}
+          aria-label={t('common.select')}
           onClick={(e) => e.stopPropagation()}
         />
       ),
@@ -198,7 +198,7 @@ export default function InboundOrders() {
     {
       id: 'progress',
       size: 100,
-      header: t('inbound.progress', 'התקדמות'),
+      header: t('inbound.progress'),
       cell: ({ row }) => {
           const progress = calculateProgress(row.original);
           return (
@@ -226,7 +226,7 @@ export default function InboundOrders() {
     {
       id: 'total_items',
       size: 80,
-      header: t('inbound.totalItems', 'פריטים'),
+      header: t('inbound.totalItems'),
       cell: ({ row }) => <span className="font-medium text-xs">{calculateTotalItems(row.original)}</span>
     },
     {
@@ -269,7 +269,7 @@ export default function InboundOrders() {
       {selectedCount > 0 && (
         <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 p-2 rounded-md mb-2 animate-in fade-in slide-in-from-top-2">
           <span className="text-sm font-medium text-blue-900 ml-2">
-            {selectedCount} {t('inbound.bulk.selected', 'נבחרו')}
+            {selectedCount} {t('inbound.bulk.selected')}
           </span>
           
             <Button
@@ -279,7 +279,7 @@ export default function InboundOrders() {
               className="bg-blue-600 hover:bg-blue-700 h-8"
             >
               <CheckCircle2 className="ml-2 h-3 w-3" />
-              {t('inbound.bulk.close', 'סגור נבחרים')}
+              {t('inbound.bulk.close')}
             </Button>
             
             <Button
@@ -288,7 +288,7 @@ export default function InboundOrders() {
               onClick={() => setRowSelection({})}
               className="h-8"
             >
-              {t('common.clearSelection', 'נקה בחירה')}
+              {t('common.clearSelection')}
             </Button>
         </div>
       )}
