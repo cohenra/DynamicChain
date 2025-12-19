@@ -18,10 +18,9 @@ from schemas.outbound import (
     WaveSimulationResponse,
     CreateWaveWithCriteriaRequest,
     WaveTypeOption,
-    PickTaskResponse  # Ensure this is imported or defined in schemas
+    PickTaskResponse
 )
 from services.outbound_service import OutboundService
-from services.allocation_service import AllocationService
 from repositories.allocation_strategy_repository import AllocationStrategyRepository
 from auth.dependencies import get_current_user
 from models.user import User
@@ -349,7 +348,6 @@ async def release_wave(
     return OutboundWaveResponse.model_validate(wave)
 
 
-# FIX: Added Endpoint for fetching Wave Tasks
 @router.get("/waves/{wave_id}/tasks", response_model=List[PickTaskResponse])
 async def get_wave_tasks(
     wave_id: int,
@@ -364,8 +362,24 @@ async def get_wave_tasks(
         wave_id=wave_id,
         tenant_id=current_user.tenant_id
     )
-    # Using model_validate allows Pydantic to extract data from ORM models
     return [PickTaskResponse.model_validate(task) for task in tasks]
+
+
+@router.delete("/waves/{wave_id}/orders/{order_id}", response_model=OutboundWaveResponse)
+async def remove_order_from_wave(
+    wave_id: int,
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> OutboundWaveResponse:
+    """Remove an order from a wave."""
+    service = OutboundService(db)
+    wave = await service.remove_order_from_wave(
+        wave_id=wave_id,
+        order_id=order_id,
+        tenant_id=current_user.tenant_id
+    )
+    return OutboundWaveResponse.model_validate(wave)
 
 
 # ============================================================================
@@ -407,22 +421,3 @@ async def complete_pick_task(
         user_id=current_user.id
     )
     return result
-    
-    # ... (Keep all existing imports and code) ...
-
-# ADD THIS ENDPOINT:
-@router.delete("/waves/{wave_id}/orders/{order_id}", response_model=OutboundWaveResponse)
-async def remove_order_from_wave(
-    wave_id: int,
-    order_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> OutboundWaveResponse:
-    """Remove an order from a wave."""
-    service = OutboundService(db)
-    wave = await service.remove_order_from_wave(
-        wave_id=wave_id,
-        order_id=order_id,
-        tenant_id=current_user.tenant_id
-    )
-    return OutboundWaveResponse.model_validate(wave)

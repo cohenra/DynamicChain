@@ -204,7 +204,7 @@ export default function OutboundOrders() {
             variant="ghost"
             size="icon"
             onClick={(e) => {
-              e.stopPropagation();
+              e.stopPropagation(); // Fixed: prevent row click conflict
               row.toggleExpanded();
             }}
             className="h-6 w-6"

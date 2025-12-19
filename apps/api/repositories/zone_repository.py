@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload # OPTIMIZATION: Use joinedload
 from models.zone import Zone
 from repositories.base_repository import BaseRepository
 
@@ -12,13 +12,12 @@ class ZoneRepository(BaseRepository[Zone]):
     def __init__(self, db: AsyncSession):
         super().__init__(db, Zone)
 
-    # FIX: Changed 'zone_id' to 'id' to match BaseRepository signature and Service calls
     async def get_by_id(self, id: int, tenant_id: int) -> Optional[Zone]:
         """Get a zone by ID with tenant isolation and relationships loaded."""
         result = await self.db.execute(
             select(Zone)
             .options(
-                selectinload(Zone.warehouse)
+                joinedload(Zone.warehouse)
             )
             .where(
                 and_(
@@ -54,7 +53,8 @@ class ZoneRepository(BaseRepository[Zone]):
         if warehouse_id is not None:
             filters.append(Zone.warehouse_id == warehouse_id)
 
-        options = [selectinload(Zone.warehouse)]
+        # OPTIMIZATION: joinedload is faster for retrieving parent relationships in lists
+        options = [joinedload(Zone.warehouse)]
 
         return await self.list(
             tenant_id=tenant_id,
@@ -78,5 +78,4 @@ class ZoneRepository(BaseRepository[Zone]):
     async def update(self, zone: Zone) -> Zone:
         """Update an existing zone and return with relationships loaded."""
         await self.db.flush()
-        # FIX: Use 'id' instead of 'zone_id'
         return await self.get_by_id(id=zone.id, tenant_id=zone.tenant_id)

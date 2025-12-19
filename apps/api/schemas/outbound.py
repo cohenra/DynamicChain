@@ -5,7 +5,7 @@ from models.outbound_order import OutboundOrderStatus, OrderType, OrderPriority
 from models.outbound_wave import OutboundWaveStatus
 from models.allocation_strategy import WaveType
 
-# --- Helper Schemas (New - Fixes Validation Error) ---
+# --- Helper Schemas ---
 
 class ProductSimple(BaseModel):
     id: int
@@ -51,11 +51,9 @@ class OutboundLineResponse(OutboundLineBase):
     class Config:
         from_attributes = True
 
-    # --- FIX: Validator to handle NULL values from DB ---
     @field_validator('line_status', mode='before')
     @classmethod
     def set_default_status(cls, v):
-        # If DB returns None/Null, default to "PENDING"
         return v or "PENDING"
 
 # --- Order Schemas ---
@@ -97,14 +95,15 @@ class OutboundOrderListResponse(BaseModel):
     requested_delivery_date: Optional[date] = None
     wave_id: Optional[int] = None
     customer: Optional[CustomerSimple] = None 
-    
+    lines: List[OutboundLineResponse] = []
+    metrics: Optional[Dict[str, Any]] = None
+
     class Config:
         from_attributes = True
 
 # --- Wave Schemas ---
 
 class OutboundOrderSummary(BaseModel):
-    """Simplified order view for wave listing."""
     id: int
     order_number: str
     customer_id: int
@@ -118,10 +117,13 @@ class OutboundOrderSummary(BaseModel):
 
 class OutboundWaveBase(BaseModel):
     wave_number: Optional[str] = None
-    strategy_id: int
+    # FIX: Changed to Optional[int] to prevent crash when strategy_id is NULL in DB
+    strategy_id: Optional[int] = None 
 
 class OutboundWaveCreate(OutboundWaveBase):
     order_ids: Optional[List[int]] = None
+    # For creation, we might want strategy_id to be required or optional logic handled in service, 
+    # but base definition needs to support None for reads.
 
 class OutboundWaveResponse(OutboundWaveBase):
     id: int
@@ -131,7 +133,6 @@ class OutboundWaveResponse(OutboundWaveBase):
     updated_at: datetime
     metrics: Optional[Dict[str, Any]] = None
     created_by: Optional[int] = None
-    
     orders: List[OutboundOrderSummary] = []
 
     class Config:
@@ -224,7 +225,6 @@ class PickTaskResponse(BaseModel):
     status: str
     task_number: Optional[str] = Field(default_factory=lambda: "TASK-000")
     
-    # Relationships
     product: Optional[ProductSimple] = None 
     from_location: Optional[LocationSimple] = None
     to_location: Optional[LocationSimple] = None
@@ -234,7 +234,6 @@ class PickTaskResponse(BaseModel):
         
     @field_validator('task_number', mode='before')
     def set_task_number(cls, v, info):
-        # Generate a task number from ID if not present in DB model
         if v: return v
         if info.data.get('id'): return f"TSK-{info.data.get('id'):06d}"
         return "TSK-NEW"

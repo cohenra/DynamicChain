@@ -40,17 +40,19 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const menuItems = [
+const menuItems = [
     { icon: LayoutDashboard, label: t('layout.dashboard'), path: '/' },
     { icon: Boxes, label: t('layout.inventory'), path: '/inventory' },
     { icon: TruckIcon, label: t('layout.inbound'), path: '/inbound' },
-    { icon: Send, label: t('outbound.title') || 'outbound', path: '/outbound' },
-    { icon: Layers, label: 'waves', path: '/outbound/waves' },
-    { icon: Settings, label: 'strategies', path: '/outbound/strategies' },
+    // כאן השתמשנו ב-layout.outbound במקום outbound.title לשם אחידות
+    { icon: Send, label: t('layout.outbound'), path: '/outbound' },
+    // התיקון: שינוי ל-layout.waves
+    { icon: Layers, label: t('layout.waves'), path: '/outbound/waves' },
+    // התיקון: שינוי ל-layout.strategies
+    { icon: Settings, label: t('layout.strategies'), path: '/outbound/strategies' },
     { icon: Package, label: t('layout.products'), path: '/products' },
     { icon: Users, label: t('layout.depositors'), path: '/depositors' },
     { icon: Building2, label: t('layout.warehouses'), path: '/warehouses' },
-    // REMOVED: Locations link - managed inside Warehouse view
     { icon: FileText, label: t('layout.invoices'), path: '/invoices' },
   ];
 

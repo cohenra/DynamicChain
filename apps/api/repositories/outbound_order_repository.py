@@ -44,10 +44,13 @@ class OutboundOrderRepository(BaseRepository[OutboundOrder]):
         if search:
             filters.append(or_(OutboundOrder.order_number.ilike(f"%{search}%")))
 
-        # OPTIMIZATION: Load minimal relations for list view
+        # OPTIMIZATION FIX: Load lines and tasks for list view expansion
+        # הוספתי כאן את טעינת השורות והמשימות כדי שיוצגו בהרחבת השורה בממשק
         options = [
             selectinload(OutboundOrder.customer),
-            selectinload(OutboundOrder.wave)  # <--- Added to support Wave column
+            selectinload(OutboundOrder.wave),
+            selectinload(OutboundOrder.lines).selectinload(OutboundLine.product),
+            selectinload(OutboundOrder.pick_tasks).selectinload(PickTask.from_location)
         ]
 
         return await super().list(

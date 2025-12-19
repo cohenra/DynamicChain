@@ -1,8 +1,6 @@
 from typing import List, Optional
-# --- התיקון: הוספת HTTPException לרשימה ---
-from fastapi import APIRouter, Depends, status, Query, HTTPException 
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-# ... שאר האימפורטים נשארים אותו דבר
 
 from database import get_db
 from schemas.inbound import (
@@ -81,18 +79,6 @@ async def close_inbound_order(
 ) -> InboundOrderResponse:
     """
     Close an order with business validation.
-
-    Args:
-        order_id: ID of the order to close
-        force: If True, allow closing even if nothing was received (will set status to CANCELLED)
-        current_user: Authenticated user
-        db: Database session
-
-    Returns:
-        InboundOrderResponse: The closed order
-
-    Raises:
-        400: If no items received and force=False
     """
     service = InboundService(db)
     order = await service.close_order(
@@ -234,21 +220,6 @@ async def receive_shipment_item(
 ) -> InboundShipmentResponse:
     """
     Receive an item from a shipment.
-
-    This endpoint:
-    - Creates inventory record with the received item
-    - Links the transaction to the shipment for traceability
-    - Updates the inbound line received quantity
-    - Changes shipment status from SCHEDULED to RECEIVING if needed
-
-    Args:
-        shipment_id: ID of the shipment
-        receive_data: Receiving data (line, location, quantity, etc.)
-        current_user: Authenticated user
-        db: Database session
-
-    Returns:
-        InboundShipmentResponse: The updated shipment
     """
     service = InboundService(db)
     shipment = await service.receive_shipment_item(

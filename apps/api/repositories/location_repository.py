@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload # OPTIMIZATION: Use joinedload instead of selectinload
 from models.location import Location
 from repositories.base_repository import BaseRepository
 
@@ -12,14 +12,13 @@ class LocationRepository(BaseRepository[Location]):
     def __init__(self, db: AsyncSession):
         super().__init__(db, Location)
 
-    # FIX: Changed 'location_id' to 'id' to match BaseRepository signature
     async def get_by_id(self, id: int, tenant_id: int) -> Optional[Location]:
         """Get a location by ID with tenant isolation and relationships loaded."""
         result = await self.db.execute(
             select(Location)
             .options(
-                selectinload(Location.zone),
-                selectinload(Location.warehouse)
+                joinedload(Location.zone),
+                joinedload(Location.warehouse)
             )
             .where(
                 and_(
@@ -44,8 +43,8 @@ class LocationRepository(BaseRepository[Location]):
         result = await self.db.execute(
             select(Location)
             .options(
-                selectinload(Location.zone),
-                selectinload(Location.warehouse)
+                joinedload(Location.zone),
+                joinedload(Location.warehouse)
             )
             .where(
                 and_(
@@ -88,9 +87,10 @@ class LocationRepository(BaseRepository[Location]):
         if usage_id is not None:
             filters.append(Location.usage_id == usage_id)
 
+        # OPTIMIZATION: joinedload performs a single query with JOINs, much faster for lists
         options = [
-            selectinload(Location.zone),
-            selectinload(Location.warehouse)
+            joinedload(Location.zone),
+            joinedload(Location.warehouse)
         ]
 
         return await self.list(
@@ -126,5 +126,4 @@ class LocationRepository(BaseRepository[Location]):
     async def update(self, location: Location) -> Location:
         """Update an existing location and return with all relationships loaded."""
         await self.db.flush()
-        # FIX: Use 'id' instead of 'location.id' passed to generic get_by_id
         return await self.get_by_id(id=location.id, tenant_id=location.tenant_id)

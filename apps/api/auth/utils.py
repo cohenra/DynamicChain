@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Any, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from config import settings
@@ -13,6 +13,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt."""
     return pwd_context.hash(password)
+
+def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt (Alias for compatibility)."""
+    return hash_password(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

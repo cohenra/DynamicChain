@@ -23,7 +23,7 @@ interface SmartTableProps<TData> {
   onSearchChange?: (value: string) => void;
   filters?: FilterOption[];
   actions?: React.ReactNode;
-  children?: React.ReactNode; // הוספת Prop לילדים (טאבים)
+  children?: React.ReactNode;
   noDataMessage?: string;
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement;
   containerClassName?: string;
@@ -62,7 +62,7 @@ export function SmartTable<TData>({
         <div className="w-full overflow-x-auto">
             <Table 
               className="table-fixed" 
-              dir="rtl" // חשוב לוודא שהכיוון מוגדר נכון ברמת האפליקציה, אך כאן זה נשמר מהקובץ המקורי
+              dir="rtl"
               style={{ minWidth: table.getTotalSize() }}
             >
             <TableHeader className="bg-slate-50">
@@ -96,7 +96,12 @@ export function SmartTable<TData>({
                     <TableRow
                         data-state={row.getIsSelected() && "selected"}
                         className={`h-9 hover:bg-blue-50/50 transition-colors border-b border-slate-100 ${row.getCanExpand() ? "cursor-pointer" : ""}`}
-                        onClick={() => row.getCanExpand() && row.toggleExpanded()}
+                        // תיקון: אם המשתמש לוחץ על טקסט שניתן להעתקה או כפתור פנימי, ההרחבה תקרה רק אם לא בוצע stopPropagation
+                        onClick={(e) => {
+                           if (!e.defaultPrevented && row.getCanExpand()) {
+                               row.toggleExpanded();
+                           }
+                        }}
                     >
                         {row.getVisibleCells().map((cell) => (
                         <TableCell 
@@ -111,7 +116,7 @@ export function SmartTable<TData>({
                     
                     {row.getIsExpanded() && renderSubComponent && (
                         <TableRow className="hover:bg-transparent bg-slate-50/50">
-                        <TableCell colSpan={columnsLength} className="p-0 border-b">
+                        <TableCell colSpan={columnsLength} className="p-0 border-b w-full">
                             <div className="w-full">
                                 {renderSubComponent({ row })}
                             </div>

@@ -78,7 +78,7 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
     resolver: zodResolver(formSchema),
     defaultValues: {
       order_number: '',
-      order_type: 'SALES',
+      order_type: 'B2B',
       customer_id: '',
       priority: '5',
       requested_delivery_date: '',

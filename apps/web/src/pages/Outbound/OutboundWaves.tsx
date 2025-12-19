@@ -37,6 +37,7 @@ export default function OutboundWaves() {
   const [activeTab, setActiveTab] = useState('all');
   const [rowSelection, setRowSelection] = useState({});
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [expanded, setExpanded] = useState({}); // הוספת State חסר לניהול הרחבה
   
   const isRTL = i18n.language === 'he' || i18n.language === 'ar';
 
@@ -84,7 +85,10 @@ export default function OutboundWaves() {
             variant="ghost"
             size="icon"
             className="h-6 w-6 p-0 hover:bg-slate-200 rounded-full"
-            onClick={row.getToggleExpandedHandler()}
+            onClick={(e) => {
+              e.stopPropagation(); // תיקון קריטי: מניעת התנגשות עם לחיצה על השורה
+              row.toggleExpanded();
+            }}
           >
             {row.getIsExpanded() ? (
               <ChevronDown className="h-4 w-4" />
@@ -124,6 +128,7 @@ export default function OutboundWaves() {
         id: 'lines_count',
         header: t('outbound.linesCount'),
         cell: ({ row }) => {
+          // תיקון קריטי: שימוש ב- || [] למניעת שגיאות אם lines חסר
           const lines = row.original.orders?.reduce((acc, o) => acc + (o.lines?.length || 0), 0) || 0;
           return <div className="text-center">{lines}</div>;
         },
@@ -132,8 +137,11 @@ export default function OutboundWaves() {
         id: 'items_progress',
         header: t('outbound.pickingProgress'),
         cell: ({ row }) => {
-          const totalItems = row.original.orders?.reduce((acc, o) => acc + o.lines?.reduce((lAcc, l) => lAcc + Number(l.qty_ordered), 0), 0) || 0;
-          const pickedItems = row.original.orders?.reduce((acc, o) => acc + o.lines?.reduce((lAcc, l) => lAcc + Number(l.qty_picked || 0), 0), 0) || 0;
+          // תיקון קריטי: הגנה מפני NaN כאשר מערך השורות חסר
+          const totalItems = row.original.orders?.reduce((acc, o) => acc + (o.lines || []).reduce((lAcc, l) => lAcc + Number(l.qty_ordered || 0), 0), 0) || 0;
+          const pickedItems = row.original.orders?.reduce((acc, o) => acc + (o.lines || []).reduce((lAcc, l) => lAcc + Number(l.qty_picked || 0), 0), 0) || 0;
+          
+          // הגנה מפני חלוקה באפס
           const percent = totalItems > 0 ? Math.round((pickedItems / totalItems) * 100) : 0;
           
           return (
@@ -162,10 +170,12 @@ export default function OutboundWaves() {
     state: { 
       globalFilter,
       rowSelection, 
+      expanded // חיבור ה-State לטבלה
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onExpandedChange: setExpanded, // עדכון ה-State בעת שינוי
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -185,7 +195,6 @@ export default function OutboundWaves() {
       </div>
 
       <div className="flex-1 overflow-auto min-h-0 bg-white">
-        {/* שינוי קריטי: הוספת dir ישירות ל-Tabs מבטיחה שה-justify-start יתחיל מימין */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
           <SmartTable
             table={table}
