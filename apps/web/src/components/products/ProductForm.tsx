@@ -396,15 +396,15 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
             <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-4 rounded-md border border-blue-200 dark:border-blue-800">
               <p className="mb-2">{t('products.packagingHierarchyDescription')}</p>
               <div className="bg-white dark:bg-slate-900 p-3 rounded border mt-3">
-                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">💡 הוספת אריזות</p>
+                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">{t('products.packaging.tip')}</p>
                 <p>
-                  לאחר יצירת המוצר, תוכל להוסיף רמות אריזה (למשל: ארגז, משטח) עם פרטים מלאים:
+                  {t('products.packaging.tipDescription')}
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-                  <li><strong>סוג אריזה:</strong> בחירה מרשימה מוגדרת</li>
-                  <li><strong>מכיל (יח' בסיס):</strong> כמות יחידות בכל אריזה</li>
-                  <li><strong>ברקוד אריזה:</strong> ברקוד ייחודי לאריזה</li>
-                  <li><strong>מידות ומשקל:</strong> פרטים פיזיים של האריזה</li>
+                  <li><strong>{t('products.packaging.packagingType')}:</strong> {t('products.packaging.packagingTypeDesc')}</li>
+                  <li><strong>{t('products.packaging.contains')}:</strong> {t('products.packaging.containsDesc')}</li>
+                  <li><strong>{t('products.packaging.barcode')}:</strong> {t('products.packaging.barcodeDesc')}</li>
+                  <li><strong>{t('products.packaging.dimensionsWeight')}:</strong> {t('products.packaging.dimensionsWeightDesc')}</li>
                 </ul>
               </div>
             </div>
@@ -426,7 +426,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                 onClick={handleAddUOM}
                 disabled={isLoadingUOMs}
               >
-                <Plus className="ml-2 h-4 w-4" />
+                <Plus className="me-2 h-4 w-4" />
                 {t('products.addPackaging')}
               </Button>
             </div>
@@ -504,7 +504,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
               onClick={addCustomAttribute}
               disabled={isLoading}
             >
-              <Plus className="ml-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
               {t('products.addAttribute')}
             </Button>
           </div>

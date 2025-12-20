@@ -189,7 +189,7 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
         noDataMessage={t('zones.noZones')}
         actions={
           <Button onClick={() => setIsSheetOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t('zones.addZone')}
           </Button>
         }

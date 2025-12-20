@@ -36,12 +36,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-const uomSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100),
-  code: z.string().min(1, 'Code is required').max(50),
-});
-
-type UomFormData = z.infer<typeof uomSchema>;
+type UomFormData = {
+  name: string;
+  code: string;
+};
 
 export function UomDefinitionsTable() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -50,6 +48,12 @@ export function UomDefinitionsTable() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { toast } = useToast();
+
+  // Create schema with translations inside component
+  const uomSchema = z.object({
+    name: z.string().min(1, t('uomDefinitions.nameRequired')).max(100),
+    code: z.string().min(1, t('uomDefinitions.codeRequired')).max(50),
+  });
 
   const {
     register,
@@ -171,7 +175,7 @@ export function UomDefinitionsTable() {
           </p>
         </div>
         <Button onClick={handleAdd}>
-          <Plus className="ml-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t('uomDefinitions.addUom')}
         </Button>
       </div>
@@ -207,7 +211,7 @@ export function UomDefinitionsTable() {
               <TableRow>
                 <TableHead>{t('uomDefinitions.code')}</TableHead>
                 <TableHead>{t('uomDefinitions.name')}</TableHead>
-                <TableHead className="text-left">{t('common.actions')}</TableHead>
+                <TableHead className="text-end">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -215,8 +219,8 @@ export function UomDefinitionsTable() {
                 <TableRow key={uom.id}>
                   <TableCell className="font-mono font-semibold">{uom.code}</TableCell>
                   <TableCell>{uom.name}</TableCell>
-                  <TableCell className="text-left">
-                    <div className="flex gap-2">
+                  <TableCell className="text-end">
+                    <div className="flex gap-2 justify-end">
                       <Button
                         variant="ghost"
                         size="sm"

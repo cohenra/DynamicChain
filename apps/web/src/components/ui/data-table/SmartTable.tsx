@@ -86,7 +86,7 @@ export function SmartTable<TData>({
                     <TableCell colSpan={columnsLength} className="h-24 text-center">
                     <div className="flex justify-center items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="mr-2">{t("common.loading", "טוען נתונים...")}</span>
+                        <span className="ms-2">{t("common.loading")}</span>
                     </div>
                     </TableCell>
                 </TableRow>

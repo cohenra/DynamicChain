@@ -102,6 +102,9 @@
     "reference": "אסמכתא",
     "correct": "תקן",
     "noTransactions": "אין תנועות להצגה",
+    "lpnAutoGenerate": "אוטומטי אם ריק",
+    "referenceDoc": "מסמך אסמכתא",
+    "referenceDocPlaceholder": "לדוגמה: PO-123",
     "tabs": {
       "inventory": "מלאי נוכחי",
       "transactions": "היסטוריית תנועות"
@@ -294,8 +297,16 @@
     "tabs": {
       "lines": "שורות הזמנה",
       "tasks": "משימות ליקוט",
-      "orders": "הזמנות"
+      "orders": "הזמנות",
+      "pickTasks": "משימות ליקוט"
     },
+    "selectWaveType": "יש לבחור סוג גל",
+    "allTypes": "כל הסוגים",
+    "allPriorities": "כל העדיפויות",
+    "taskId": "מזהה משימה",
+    "taskType": "סוג פעולה",
+    "from": "ממקום",
+    "to": "למקום",
     "messages": {
       "allocationStarted": "תהליך ההקצאה החל",
       "waveReleased": "הגל שוחרר לליקוט בהצלחה",
@@ -370,7 +381,9 @@
     "description": "נהל את מוצרי המלאי שלך",
     "tabs": {
       "catalog": "קטלוג פריטים",
-      "uoms": "הגדרת יחידות מידה"
+      "uoms": "הגדרת יחידות מידה",
+      "packaging": "אריזות",
+      "details": "פרטים נוספים"
     },
     "addProduct": "הוסף מוצר",
     "addNewProduct": "הוסף מוצר חדש",
@@ -431,6 +444,25 @@
     "deleteConfirmDescription": "האם אתה בטוח?",
     "createdAt": "נוצר בתאריך",
     "updatedAt": "עודכן בתאריך",
+    "noUoms": "לא הוגדרו אריזות למוצר זה",
+    "uomName": "שם יחידה",
+    "conversionFactor": "יחס המרה",
+    "dimensions": "מידות (ס״מ)",
+    "volume": "נפח (סמ״ק)",
+    "weight": "משקל (ק״ג)",
+    "selectProduct": "בחר מוצר",
+    "packaging": {
+      "tip": "הוספת אריזות",
+      "tipDescription": "לאחר יצירת המוצר, תוכל להוסיף רמות אריזה (למשל: ארגז, משטח) עם פרטים מלאים:",
+      "packagingType": "סוג אריזה",
+      "packagingTypeDesc": "בחירה מרשימה מוגדרת",
+      "contains": "מכיל (יח' בסיס)",
+      "containsDesc": "כמות יחידות בכל אריזה",
+      "barcode": "ברקוד אריזה",
+      "barcodeDesc": "ברקוד ייחודי לאריזה",
+      "dimensionsWeight": "מידות ומשקל",
+      "dimensionsWeightDesc": "פרטים פיזיים של האריזה"
+    },
     "uoms": {
       "name": "שם",
       "conversionFactor": "מקדם המרה",
@@ -620,7 +652,15 @@
     "bulkCreateSuccess": "נוצרו {{count}} מיקומים בהצלחה",
     "bulkCreateError": "שגיאה ביצירת מיקומים",
     "deleteConfirmTitle": "למחוק מיקום?",
-    "deleteConfirmDescription": "האם אתה בטוח שברצונך למחוק את מיקום {{name}}?"
+    "deleteConfirmDescription": "האם אתה בטוח שברצונך למחוק את מיקום {{name}}?",
+    "selectLocation": "בחר מיקום",
+    "pickingRouteSettings": "הגדרות מסלול ליקוט",
+    "numberingStrategy": "אסטרטגיית מספור",
+    "strategyAscending": "רגיל (עולה תמיד)",
+    "strategySnake": "נחש (Z-Pick יעיל)",
+    "strategyAscendingDesc": "מספור עולה בכל המפרצים (פחות יעיל למלגזה)",
+    "strategySnakeDesc": "עולה במפרץ אי-זוגי, יורד במפרץ זוגי (חוסך נסיעה)",
+    "pickSequenceStartDesc": "מספר התחלתי לרצף"
   },
   "uomDefinitions": {
     "title": "יחידות מידה",
@@ -646,7 +686,9 @@
     "deleteConfirmTitle": "למחוק?",
     "deleteConfirmDescription": "פעולה זו עלולה להשפיע על מוצרים",
     "saveBtn": "שמור",
-    "createBtn": "צור"
+    "createBtn": "צור",
+    "nameRequired": "שם הוא שדה חובה",
+    "codeRequired": "קוד הוא שדה חובה"
   },
   "columns": {
     "lpn": "LPN",

@@ -126,7 +126,7 @@ export function InventoryReceiveForm({ onSubmit, onCancel, isSubmitting }: Inven
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="בחר מוצר" />
+                    <SelectValue placeholder={t('products.selectProduct')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -151,7 +151,7 @@ export function InventoryReceiveForm({ onSubmit, onCancel, isSubmitting }: Inven
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="בחר מיקום" />
+                    <SelectValue placeholder={t('locations.selectLocation')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -187,9 +187,9 @@ export function InventoryReceiveForm({ onSubmit, onCancel, isSubmitting }: Inven
             name="lpn"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>{t('inventory.lpn')} (אופציונלי)</FormLabel>
+                <FormLabel>{t('inventory.lpn')} ({t('common.optional')})</FormLabel>
                 <FormControl>
-                    <Input placeholder="אוטומטי אם ריק" {...field} />
+                    <Input placeholder={t('inventory.lpnAutoGenerate')} {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -215,9 +215,9 @@ export function InventoryReceiveForm({ onSubmit, onCancel, isSubmitting }: Inven
           name="reference_doc"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>מסמך אסמכתא</FormLabel>
+              <FormLabel>{t('inventory.referenceDoc')}</FormLabel>
               <FormControl>
-                <Input placeholder="לדוגמה: PO-123" {...field} />
+                <Input placeholder={t('inventory.referenceDocPlaceholder')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

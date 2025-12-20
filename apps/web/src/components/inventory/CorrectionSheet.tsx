@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -72,7 +72,7 @@ export function CorrectionSheet({ transaction, open, onOpenChange }: CorrectionS
   };
 
   // Update form when transaction changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (transaction && open) {
       setNewQuantity(transaction.quantity.toString());
       setReason('');
@@ -164,7 +164,7 @@ export function CorrectionSheet({ transaction, open, onOpenChange }: CorrectionS
                 className="flex-1"
               >
                 {correctionMutation.isPending && (
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 )}
                 {t('inventory.correction.submit', 'בצע תיקון')}
               </Button>

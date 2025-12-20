@@ -139,7 +139,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent font-bold">
           {t('locations.name')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
+          <ArrowUpDown className="ms-2 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => <div className="font-bold">{row.getValue("name")}</div>,
@@ -150,7 +150,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
           {t('locations.zone')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
+          <ArrowUpDown className="ms-2 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => getZoneName(row.original.zone_id),
@@ -161,7 +161,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
           {t('locations.aisle')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
+          <ArrowUpDown className="ms-2 h-3 w-3" />
         </Button>
       ),
     },
@@ -202,13 +202,13 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
           {t('locations.pickSequence')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
+          <ArrowUpDown className="ms-2 h-3 w-3" />
         </Button>
       ),
     },
     {
       id: 'actions',
-      header: () => <div className="text-left w-full pl-2">{t('common.actions')}</div>,
+      header: () => <div className="text-end w-full pe-2">{t('common.actions')}</div>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditingLocation(row.original); setIsSheetOpen(true); }}>
@@ -263,11 +263,11 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const actions = (
     <>
       <Button variant="outline" size="sm" onClick={() => setIsGeneratorOpen(true)} className="h-9">
-        <Wand2 className="mr-2 h-3.5 w-3.5" />
+        <Wand2 className="me-2 h-3.5 w-3.5" />
         {t('locations.generator')}
       </Button>
       <Button size="sm" onClick={() => setIsSheetOpen(true)} className="h-9">
-        <Plus className="mr-2 h-3.5 w-3.5" />
+        <Plus className="me-2 h-3.5 w-3.5" />
         {t('locations.addLocation')}
       </Button>
     </>
