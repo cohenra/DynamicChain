@@ -63,36 +63,37 @@ import {
 } from '@/services/outboundService';
 import { depositorService } from '@/services/depositors';
 
-// ... (Constants remain the same) ...
-const WAVE_TYPE_LABELS: Record<string, { he: string; en: string }> = {
-  ECOMMERCE_DAILY: { he: 'אי-קומרס יומי', en: 'E-commerce Daily' },
-  ECOMMERCE_EXPRESS: { he: 'אי-קומרס מהיר', en: 'E-commerce Express' },
-  B2B_STANDARD: { he: 'B2B רגיל', en: 'B2B Standard' },
-  B2B_URGENT: { he: 'B2B דחוף', en: 'B2B Urgent' },
-  WHOLESALE: { he: 'סיטונאי', en: 'Wholesale' },
-  RETAIL_REPLENISHMENT: { he: 'חידוש מדפים', en: 'Retail Replenishment' },
-  PERISHABLE: { he: 'מוצרים מתכלים', en: 'Perishable' },
-  CUSTOM: { he: 'מותאם אישית', en: 'Custom' },
+// Wave type labels with i18n keys
+const WAVE_TYPE_LABELS: Record<string, { he: string; en: string; ar: string; ru: string }> = {
+  ECOMMERCE_DAILY: { he: 'אי-קומרס יומי', en: 'E-commerce Daily', ar: 'التجارة اليومية', ru: 'Э-коммерция (ежедн.)' },
+  ECOMMERCE_EXPRESS: { he: 'אי-קומרס מהיר', en: 'E-commerce Express', ar: 'التجارة السريعة', ru: 'Э-коммерция (экспресс)' },
+  B2B_STANDARD: { he: 'B2B רגיל', en: 'B2B Standard', ar: 'B2B عادي', ru: 'B2B стандарт' },
+  B2B_URGENT: { he: 'B2B דחוף', en: 'B2B Urgent', ar: 'B2B عاجل', ru: 'B2B срочный' },
+  WHOLESALE: { he: 'סיטונאי', en: 'Wholesale', ar: 'الجملة', ru: 'Оптовый' },
+  RETAIL_REPLENISHMENT: { he: 'חידוש מדפים', en: 'Retail Replenishment', ar: 'تجديد الرفوف', ru: 'Пополнение' },
+  PERISHABLE: { he: 'מוצרים מתכלים', en: 'Perishable', ar: 'قابل للتلف', ru: 'Скоропортящиеся' },
+  CUSTOM: { he: 'מותאם אישית', en: 'Custom', ar: 'مخصص', ru: 'Пользовательский' },
 };
 
 const ORDER_TYPES = [
-  { value: 'SALES', label: { he: 'מכירות', en: 'Sales' } },
-  { value: 'TRANSFER', label: { he: 'העברה', en: 'Transfer' } },
-  { value: 'RETURN', label: { he: 'החזרה', en: 'Return' } },
-  { value: 'SAMPLE', label: { he: 'דוגמה', en: 'Sample' } },
+  { value: 'SALES', label: { he: 'מכירות', en: 'Sales', ar: 'مبيعات', ru: 'Продажи' } },
+  { value: 'TRANSFER', label: { he: 'העברה', en: 'Transfer', ar: 'نقل', ru: 'Перемещение' } },
+  { value: 'RETURN', label: { he: 'החזרה', en: 'Return', ar: 'إرجاع', ru: 'Возврат' } },
+  { value: 'SAMPLE', label: { he: 'דוגמה', en: 'Sample', ar: 'عينة', ru: 'Образец' } },
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: 1, label: { he: 'קריטי (1)', en: 'Critical (1)' } },
-  { value: 2, label: { he: 'גבוה (2)', en: 'High (2)' } },
-  { value: 3, label: { he: 'בינוני (3)', en: 'Medium (3)' } },
-  { value: 5, label: { he: 'רגיל (5)', en: 'Normal (5)' } },
-  { value: 10, label: { he: 'נמוך (10)', en: 'Low (10)' } },
+  { value: 1, label: { he: 'קריטי (1)', en: 'Critical (1)', ar: 'حرج (1)', ru: 'Критический (1)' } },
+  { value: 2, label: { he: 'גבוה (2)', en: 'High (2)', ar: 'عالي (2)', ru: 'Высокий (2)' } },
+  { value: 3, label: { he: 'בינוני (3)', en: 'Medium (3)', ar: 'متوسط (3)', ru: 'Средний (3)' } },
+  { value: 5, label: { he: 'רגיל (5)', en: 'Normal (5)', ar: 'عادي (5)', ru: 'Обычный (5)' } },
+  { value: 10, label: { he: 'נמוך (10)', en: 'Low (10)', ar: 'منخفض (10)', ru: 'Низкий (10)' } },
 ];
 
-const wizardSchema = z.object({
+// Base schema for type inference
+const wizardSchemaBase = z.object({
   waveName: z.string().max(50).optional(),
-  waveType: z.string().min(1, 'Wave type is required'),
+  waveType: z.string().min(1),
   deliveryDateFrom: z.string().optional(),
   deliveryDateTo: z.string().optional(),
   customerId: z.string().optional(),
@@ -100,7 +101,18 @@ const wizardSchema = z.object({
   priority: z.string().optional(),
 });
 
-type WizardFormValues = z.infer<typeof wizardSchema>;
+// Factory function for translated schema
+const createWizardSchema = (t: (key: string, fallback?: string) => string) => z.object({
+  waveName: z.string().max(50).optional(),
+  waveType: z.string().min(1, t('outbound.selectWaveType')),
+  deliveryDateFrom: z.string().optional(),
+  deliveryDateTo: z.string().optional(),
+  customerId: z.string().optional(),
+  orderType: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+type WizardFormValues = z.infer<typeof wizardSchemaBase>;
 
 interface CreateWaveWizardProps {
   open: boolean;
@@ -115,7 +127,9 @@ export function CreateWaveWizard({
 }: CreateWaveWizardProps) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const isRTL = i18n.language === 'he';
+  const isRTL = i18n.language === 'he' || i18n.language === 'ar';
+  // Get current language for label lookups
+  const langKey = (['he', 'en', 'ar', 'ru'].includes(i18n.language) ? i18n.language : 'en') as 'he' | 'en' | 'ar' | 'ru';
 
   // State
   const [currentStep, setCurrentStep] = useState(1);
@@ -124,7 +138,8 @@ export function CreateWaveWizard({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [selectedWaveType, setSelectedWaveType] = useState<string>('');
 
-  // Form
+  // Form - create schema with translations
+  const wizardSchema = createWizardSchema(t);
   const form = useForm<WizardFormValues>({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
@@ -477,7 +492,7 @@ export function CreateWaveWizard({
                       {waveTypes?.map((wt) => (
                         <SelectItem key={wt.wave_type} value={wt.wave_type}>
                           <div className="flex flex-col">
-                            <span>{WAVE_TYPE_LABELS[wt.wave_type]?.[isRTL ? 'he' : 'en'] || wt.wave_type}</span>
+                            <span>{WAVE_TYPE_LABELS[wt.wave_type]?.[langKey] || wt.wave_type}</span>
                             <span className="text-xs text-muted-foreground">{wt.strategy_name}</span>
                           </div>
                         </SelectItem>
@@ -524,7 +539,7 @@ export function CreateWaveWizard({
                       <FormControl><SelectTrigger><SelectValue placeholder={t('outbound.allTypes', 'כל הסוגים')} /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="ALL">{t('outbound.allTypes', 'כל הסוגים')}</SelectItem>
-                        {ORDER_TYPES.map((type) => (<SelectItem key={type.value} value={type.value}>{type.label[isRTL ? 'he' : 'en']}</SelectItem>))}
+                        {ORDER_TYPES.map((type) => (<SelectItem key={type.value} value={type.value}>{type.label[langKey]}</SelectItem>))}
                       </SelectContent>
                     </Select><FormMessage />
                   </FormItem>
@@ -535,7 +550,7 @@ export function CreateWaveWizard({
                       <FormControl><SelectTrigger><SelectValue placeholder={t('outbound.allPriorities', 'כל העדיפויות')} /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="ALL">{t('outbound.allPriorities', 'כל העדיפויות')}</SelectItem>
-                        {PRIORITY_OPTIONS.map((opt) => (<SelectItem key={opt.value} value={opt.value.toString()}>{opt.label[isRTL ? 'he' : 'en']}</SelectItem>))}
+                        {PRIORITY_OPTIONS.map((opt) => (<SelectItem key={opt.value} value={opt.value.toString()}>{opt.label[langKey]}</SelectItem>))}
                       </SelectContent>
                     </Select><FormMessage />
                   </FormItem>

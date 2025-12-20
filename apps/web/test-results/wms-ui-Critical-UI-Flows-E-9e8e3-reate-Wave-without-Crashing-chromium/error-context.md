@@ -1,0 +1,352 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - heading "LogiSnap" [level=1] [ref=e7]
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - img [ref=e10]
+            - combobox [ref=e14] [cursor=pointer]:
+              - img [ref=e15]
+          - button "Logout" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - text: Logout
+    - generic [ref=e21]:
+      - complementary [ref=e22]:
+        - button [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+        - navigation [ref=e27]:
+          - button "Dashboard" [ref=e28] [cursor=pointer]:
+            - img [ref=e29]
+            - generic [ref=e34]: Dashboard
+          - button "Inventory" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+            - generic [ref=e46]: Inventory
+          - button "Inbound" [ref=e47] [cursor=pointer]:
+            - img [ref=e48]
+            - generic [ref=e53]: Inbound
+          - button "Outbound" [ref=e54] [cursor=pointer]:
+            - img [ref=e55]
+            - generic [ref=e58]: Outbound
+          - button "layout.waves" [ref=e60] [cursor=pointer]:
+            - img [ref=e61]
+            - generic [ref=e65]: layout.waves
+          - button "layout.strategies" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]
+            - generic [ref=e70]: layout.strategies
+          - button "Products" [ref=e71] [cursor=pointer]:
+            - img [ref=e72]
+            - generic [ref=e76]: Products
+          - button "Depositors" [ref=e77] [cursor=pointer]:
+            - img [ref=e78]
+            - generic [ref=e83]: Depositors
+          - button "Warehouses" [ref=e84] [cursor=pointer]:
+            - img [ref=e85]
+            - generic [ref=e89]: Warehouses
+          - button "Invoices" [ref=e90] [cursor=pointer]:
+            - img [ref=e91]
+            - generic [ref=e94]: Invoices
+        - generic [ref=e95]: v1.0.0
+      - main [ref=e96]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - heading "Outbound Orders" [level=1] [ref=e100]
+            - paragraph [ref=e101]: Control center for picking and shipping
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - generic [ref=e106]:
+                - img [ref=e107]
+                - textbox "Search" [ref=e110]
+              - button "New Order" [ref=e112] [cursor=pointer]:
+                - img [ref=e113]
+                - text: New Order
+            - table [ref=e117]:
+              - rowgroup [ref=e118]:
+                - row "Select all Order Number Wave Number Customer Status Priority Progress Delivery Date Lines" [ref=e119]:
+                  - columnheader "Select all" [ref=e120]:
+                    - checkbox "Select all" [ref=e121] [cursor=pointer]
+                  - columnheader [ref=e122]
+                  - columnheader "Order Number" [ref=e123]
+                  - columnheader "Wave Number" [ref=e124]
+                  - columnheader "Customer" [ref=e125]
+                  - columnheader "Status" [ref=e126]
+                  - columnheader "Priority" [ref=e127]
+                  - columnheader "Progress" [ref=e128]
+                  - columnheader "Delivery Date" [ref=e129]
+                  - columnheader "Lines" [ref=e130]
+                  - columnheader [ref=e131]
+              - rowgroup [ref=e132]:
+                - row "Select row OUT-2025-004 B2B - מזון מהיר שיווק Released Critical 0% 15/12/2025 1" [ref=e133] [cursor=pointer]:
+                  - cell "Select row" [ref=e134]:
+                    - checkbox "Select row" [ref=e135]
+                  - cell [ref=e136]:
+                    - button [ref=e137]:
+                      - img [ref=e138]
+                  - cell "OUT-2025-004 B2B" [ref=e140]:
+                    - generic [ref=e141]:
+                      - generic [ref=e142]: OUT-2025-004
+                      - generic [ref=e143]: B2B
+                  - cell "-" [ref=e144]
+                  - cell "מזון מהיר שיווק" [ref=e145]:
+                    - generic "מזון מהיר שיווק" [ref=e146]
+                  - cell "Released" [ref=e147]:
+                    - generic [ref=e148]: Released
+                  - cell "Critical" [ref=e149]:
+                    - generic [ref=e150]: Critical
+                  - cell "0%" [ref=e151]:
+                    - generic [ref=e152]:
+                      - progressbar [ref=e153]
+                      - generic [ref=e155]: 0%
+                  - cell "15/12/2025" [ref=e156]
+                  - cell "1" [ref=e157]:
+                    - generic [ref=e158]: "1"
+                  - cell [ref=e159]
+                - row "Select row OUT-2025-003 RETAIL - אלקטרוניקה פלוס בע״מ Released High 0% 18/12/2025 2" [ref=e160] [cursor=pointer]:
+                  - cell "Select row" [ref=e161]:
+                    - checkbox "Select row" [ref=e162]
+                  - cell [ref=e163]:
+                    - button [ref=e164]:
+                      - img [ref=e165]
+                  - cell "OUT-2025-003 RETAIL" [ref=e167]:
+                    - generic [ref=e168]:
+                      - generic [ref=e169]: OUT-2025-003
+                      - generic [ref=e170]: RETAIL
+                  - cell "-" [ref=e171]
+                  - cell "אלקטרוניקה פלוס בע״מ" [ref=e172]:
+                    - generic "אלקטרוניקה פלוס בע״מ" [ref=e173]
+                  - cell "Released" [ref=e174]:
+                    - generic [ref=e175]: Released
+                  - cell "High" [ref=e176]:
+                    - generic [ref=e177]: High
+                  - cell "0%" [ref=e178]:
+                    - generic [ref=e179]:
+                      - progressbar [ref=e180]
+                      - generic [ref=e182]: 0%
+                  - cell "18/12/2025" [ref=e183]
+                  - cell "2" [ref=e184]:
+                    - generic [ref=e185]: "2"
+                  - cell [ref=e186]
+                - row "Select row OUT-2025-001 B2B - אלקטרוניקה פלוס בע״מ Draft Medium 0% 16/12/2025 2" [ref=e187] [cursor=pointer]:
+                  - cell "Select row" [ref=e188]:
+                    - checkbox "Select row" [ref=e189]
+                  - cell [ref=e190]:
+                    - button [ref=e191]:
+                      - img [ref=e192]
+                  - cell "OUT-2025-001 B2B" [ref=e194]:
+                    - generic [ref=e195]:
+                      - generic [ref=e196]: OUT-2025-001
+                      - generic [ref=e197]: B2B
+                  - cell "-" [ref=e198]
+                  - cell "אלקטרוניקה פלוס בע״מ" [ref=e199]:
+                    - generic "אלקטרוניקה פלוס בע״מ" [ref=e200]
+                  - cell "Draft" [ref=e201]:
+                    - generic [ref=e202]: Draft
+                  - cell "Medium" [ref=e203]:
+                    - generic [ref=e204]: Medium
+                  - cell "0%" [ref=e205]:
+                    - generic [ref=e206]:
+                      - progressbar [ref=e207]
+                      - generic [ref=e209]: 0%
+                  - cell "16/12/2025" [ref=e210]
+                  - cell "2" [ref=e211]:
+                    - generic [ref=e212]: "2"
+                  - cell [ref=e213]
+                - row "Select row PO-5122025 B2B - אדידס Draft Low 0% 24/12/2025 1" [ref=e214] [cursor=pointer]:
+                  - cell "Select row" [ref=e215]:
+                    - checkbox "Select row" [ref=e216]
+                  - cell [ref=e217]:
+                    - button [ref=e218]:
+                      - img [ref=e219]
+                  - cell "PO-5122025 B2B" [ref=e221]:
+                    - generic [ref=e222]:
+                      - generic [ref=e223]: PO-5122025
+                      - generic [ref=e224]: B2B
+                  - cell "-" [ref=e225]
+                  - cell "אדידס" [ref=e226]:
+                    - generic "אדידס" [ref=e227]
+                  - cell "Draft" [ref=e228]:
+                    - generic [ref=e229]: Draft
+                  - cell "Low" [ref=e230]:
+                    - generic [ref=e231]: Low
+                  - cell "0%" [ref=e232]:
+                    - generic [ref=e233]:
+                      - progressbar [ref=e234]
+                      - generic [ref=e236]: 0%
+                  - cell "24/12/2025" [ref=e237]
+                  - cell "1" [ref=e238]:
+                    - generic [ref=e239]: "1"
+                  - cell [ref=e240]
+                - row "Select row ORD-1766180951663 B2B - מזון מהיר שיווק Draft Low 0% 20/12/2025 1" [ref=e241] [cursor=pointer]:
+                  - cell "Select row" [ref=e242]:
+                    - checkbox "Select row" [ref=e243]
+                  - cell [ref=e244]:
+                    - button [ref=e245]:
+                      - img [ref=e246]
+                  - cell "ORD-1766180951663 B2B" [ref=e248]:
+                    - generic [ref=e249]:
+                      - generic [ref=e250]: ORD-1766180951663
+                      - generic [ref=e251]: B2B
+                  - cell "-" [ref=e252]
+                  - cell "מזון מהיר שיווק" [ref=e253]:
+                    - generic "מזון מהיר שיווק" [ref=e254]
+                  - cell "Draft" [ref=e255]:
+                    - generic [ref=e256]: Draft
+                  - cell "Low" [ref=e257]:
+                    - generic [ref=e258]: Low
+                  - cell "0%" [ref=e259]:
+                    - generic [ref=e260]:
+                      - progressbar [ref=e261]
+                      - generic [ref=e263]: 0%
+                  - cell "20/12/2025" [ref=e264]
+                  - cell "1" [ref=e265]:
+                    - generic [ref=e266]: "1"
+                  - cell [ref=e267]
+                - row "Select row ORD-1766182128613 B2B - מזון מהיר שיווק Draft Low 0% 20/12/2025 1" [ref=e268] [cursor=pointer]:
+                  - cell "Select row" [ref=e269]:
+                    - checkbox "Select row" [ref=e270]
+                  - cell [ref=e271]:
+                    - button [ref=e272]:
+                      - img [ref=e273]
+                  - cell "ORD-1766182128613 B2B" [ref=e275]:
+                    - generic [ref=e276]:
+                      - generic [ref=e277]: ORD-1766182128613
+                      - generic [ref=e278]: B2B
+                  - cell "-" [ref=e279]
+                  - cell "מזון מהיר שיווק" [ref=e280]:
+                    - generic "מזון מהיר שיווק" [ref=e281]
+                  - cell "Draft" [ref=e282]:
+                    - generic [ref=e283]: Draft
+                  - cell "Low" [ref=e284]:
+                    - generic [ref=e285]: Low
+                  - cell "0%" [ref=e286]:
+                    - generic [ref=e287]:
+                      - progressbar [ref=e288]
+                      - generic [ref=e290]: 0%
+                  - cell "20/12/2025" [ref=e291]
+                  - cell "1" [ref=e292]:
+                    - generic [ref=e293]: "1"
+                  - cell [ref=e294]
+                - row "Select row ORD-1766182282998 B2B - מזון מהיר שיווק Draft Low 0% 20/12/2025 1" [ref=e295] [cursor=pointer]:
+                  - cell "Select row" [ref=e296]:
+                    - checkbox "Select row" [ref=e297]
+                  - cell [ref=e298]:
+                    - button [ref=e299]:
+                      - img [ref=e300]
+                  - cell "ORD-1766182282998 B2B" [ref=e302]:
+                    - generic [ref=e303]:
+                      - generic [ref=e304]: ORD-1766182282998
+                      - generic [ref=e305]: B2B
+                  - cell "-" [ref=e306]
+                  - cell "מזון מהיר שיווק" [ref=e307]:
+                    - generic "מזון מהיר שיווק" [ref=e308]
+                  - cell "Draft" [ref=e309]:
+                    - generic [ref=e310]: Draft
+                  - cell "Low" [ref=e311]:
+                    - generic [ref=e312]: Low
+                  - cell "0%" [ref=e313]:
+                    - generic [ref=e314]:
+                      - progressbar [ref=e315]
+                      - generic [ref=e317]: 0%
+                  - cell "20/12/2025" [ref=e318]
+                  - cell "1" [ref=e319]:
+                    - generic [ref=e320]: "1"
+                  - cell [ref=e321]
+                - row "Select row ORD-1766100783412 B2B - מזון מהיר שיווק Cancelled Low 0% 19/12/2025 1" [ref=e322] [cursor=pointer]:
+                  - cell "Select row" [ref=e323]:
+                    - checkbox "Select row" [ref=e324]
+                  - cell [ref=e325]:
+                    - button [ref=e326]:
+                      - img [ref=e327]
+                  - cell "ORD-1766100783412 B2B" [ref=e329]:
+                    - generic [ref=e330]:
+                      - generic [ref=e331]: ORD-1766100783412
+                      - generic [ref=e332]: B2B
+                  - cell "-" [ref=e333]
+                  - cell "מזון מהיר שיווק" [ref=e334]:
+                    - generic "מזון מהיר שיווק" [ref=e335]
+                  - cell "Cancelled" [ref=e336]:
+                    - generic [ref=e337]: Cancelled
+                  - cell "Low" [ref=e338]:
+                    - generic [ref=e339]: Low
+                  - cell "0%" [ref=e340]:
+                    - generic [ref=e341]:
+                      - progressbar [ref=e342]
+                      - generic [ref=e344]: 0%
+                  - cell "19/12/2025" [ref=e345]
+                  - cell "1" [ref=e346]:
+                    - generic [ref=e347]: "1"
+                  - cell [ref=e348]
+                - row "Select row ORD-1766269908888 B2B - אדידס Draft Low 0% 21/12/2025 1" [ref=e349] [cursor=pointer]:
+                  - cell "Select row" [ref=e350]:
+                    - checkbox "Select row" [ref=e351]
+                  - cell [ref=e352]:
+                    - button [ref=e353]:
+                      - img [ref=e354]
+                  - cell "ORD-1766269908888 B2B" [ref=e356]:
+                    - generic [ref=e357]:
+                      - generic [ref=e358]: ORD-1766269908888
+                      - generic [ref=e359]: B2B
+                  - cell "-" [ref=e360]
+                  - cell "אדידס" [ref=e361]:
+                    - generic "אדידס" [ref=e362]
+                  - cell "Draft" [ref=e363]:
+                    - generic [ref=e364]: Draft
+                  - cell "Low" [ref=e365]:
+                    - generic [ref=e366]: Low
+                  - cell "0%" [ref=e367]:
+                    - generic [ref=e368]:
+                      - progressbar [ref=e369]
+                      - generic [ref=e371]: 0%
+                  - cell "21/12/2025" [ref=e372]
+                  - cell "1" [ref=e373]:
+                    - generic [ref=e374]: "1"
+                  - cell [ref=e375]
+                - row "Select row PO-5122025ננ B2B - אדידס Draft Low 0% 22/12/2025 1" [ref=e376] [cursor=pointer]:
+                  - cell "Select row" [ref=e377]:
+                    - checkbox "Select row" [ref=e378]
+                  - cell [ref=e379]:
+                    - button [ref=e380]:
+                      - img [ref=e381]
+                  - cell "PO-5122025ננ B2B" [ref=e383]:
+                    - generic [ref=e384]:
+                      - generic [ref=e385]: PO-5122025ננ
+                      - generic [ref=e386]: B2B
+                  - cell "-" [ref=e387]
+                  - cell "אדידס" [ref=e388]:
+                    - generic "אדידס" [ref=e389]
+                  - cell "Draft" [ref=e390]:
+                    - generic [ref=e391]: Draft
+                  - cell "Low" [ref=e392]:
+                    - generic [ref=e393]: Low
+                  - cell "0%" [ref=e394]:
+                    - generic [ref=e395]:
+                      - progressbar [ref=e396]
+                      - generic [ref=e398]: 0%
+                  - cell "22/12/2025" [ref=e399]
+                  - cell "1" [ref=e400]:
+                    - generic [ref=e401]: "1"
+                  - cell [ref=e402]
+            - generic [ref=e404]:
+              - generic [ref=e405]:
+                - generic [ref=e406]: Total 13 records
+                - generic [ref=e407]:
+                  - paragraph [ref=e408]: "Rows:"
+                  - combobox [ref=e409] [cursor=pointer]:
+                    - generic: "10"
+                    - img [ref=e410]
+              - generic [ref=e412]:
+                - generic [ref=e413]: Page 1 of 2
+                - generic [ref=e414]:
+                  - button "First Page" [disabled]:
+                    - img
+                  - button "Previous Page" [disabled]:
+                    - img
+                  - button "Next Page" [ref=e415] [cursor=pointer]:
+                    - img [ref=e416]
+                  - button "Last Page" [ref=e418] [cursor=pointer]:
+                    - img [ref=e419]
+  - region "Notifications alt+T"
+```

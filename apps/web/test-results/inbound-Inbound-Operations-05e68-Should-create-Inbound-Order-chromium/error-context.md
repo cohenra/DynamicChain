@@ -1,0 +1,305 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic:
+    - generic:
+      - banner:
+        - generic:
+          - generic:
+            - heading [level=1]: LogiSnap
+          - generic:
+            - generic:
+              - img
+              - combobox:
+                - img
+            - button:
+              - img
+              - text: Logout
+      - generic:
+        - complementary:
+          - generic:
+            - button:
+              - img
+          - navigation:
+            - button:
+              - img
+              - generic: Dashboard
+            - button:
+              - img
+              - generic: Inventory
+            - button:
+              - img
+              - generic: Inbound
+            - button:
+              - img
+              - generic: Outbound
+            - button:
+              - img
+              - generic: layout.waves
+            - button:
+              - img
+              - generic: layout.strategies
+            - button:
+              - img
+              - generic: Products
+            - button:
+              - img
+              - generic: Depositors
+            - button:
+              - img
+              - generic: Warehouses
+            - button:
+              - img
+              - generic: Invoices
+          - generic: v1.0.0
+        - main:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=1]: Inbound Orders
+                - paragraph: Manage purchase orders and incoming shipments
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img
+                        - textbox:
+                          - /placeholder: Search
+                    - generic:
+                      - button:
+                        - img
+                        - text: New Order
+                  - generic:
+                    - generic:
+                      - generic:
+                        - table:
+                          - rowgroup:
+                            - row:
+                              - columnheader:
+                                - checkbox
+                              - columnheader
+                              - columnheader: Order Number
+                              - columnheader: Name
+                              - columnheader: Order Type
+                              - columnheader: Status
+                              - columnheader: Progress
+                              - columnheader: Supplier
+                              - columnheader: Expected Date
+                              - columnheader: Total Items
+                              - columnheader
+                          - rowgroup:
+                            - row:
+                              - cell:
+                                - checkbox
+                              - cell:
+                                - button:
+                                  - img
+                              - cell: PO-5122025
+                              - cell:
+                                - generic: אלקטרוניקה פלוס בע״מ
+                              - cell: Purchase Order (PO)
+                              - cell: DRAFT
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 0%
+                              - cell:
+                                - generic: בגב
+                              - cell: 22.12.2025
+                              - cell: "5"
+                              - cell
+                            - row:
+                              - cell:
+                                - checkbox
+                              - cell:
+                                - button:
+                                  - img
+                              - cell: "1234"
+                              - cell:
+                                - generic: אלקטרוניקה פלוס בע״מ
+                              - cell: Purchase Order (PO)
+                              - cell: DRAFT
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 0%
+                              - cell:
+                                - generic: אנבידיה
+                              - cell: 24.12.2025
+                              - cell: "34"
+                              - cell
+                            - row:
+                              - cell:
+                                - checkbox
+                              - cell:
+                                - button:
+                                  - img
+                              - cell: PO-2025-004
+                              - cell:
+                                - generic: אלקטרוניקה פלוס בע״מ
+                              - cell: Purchase Order (PO)
+                              - cell: PARTIALLY RECEIVED
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 0%
+                              - cell:
+                                - generic: יבואן רשמי
+                              - cell: 19.12.2025
+                              - cell: "53"
+                              - cell
+                            - row:
+                              - cell:
+                                - checkbox
+                              - cell:
+                                - button:
+                                  - img
+                              - cell: RET-2025-003
+                              - cell:
+                                - generic: אלקטרוניקה פלוס בע״מ
+                              - cell: Purchase Order (PO)
+                              - cell: DRAFT
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 0%
+                              - cell:
+                                - generic: לקוח פרטי (החזרה)
+                              - cell: 17.12.2025
+                              - cell: "59"
+                              - cell
+                            - row:
+                              - cell:
+                                - checkbox
+                              - cell:
+                                - button:
+                                  - img
+                              - cell: PO-2025-002
+                              - cell:
+                                - generic: מזון מהיר שיווק
+                              - cell: Purchase Order (PO)
+                              - cell: DRAFT
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 0%
+                              - cell:
+                                - generic: אסם השקעות
+                              - cell: 15.12.2025
+                              - cell: "152"
+                              - cell
+                            - row:
+                              - cell:
+                                - checkbox
+                              - cell:
+                                - button:
+                                  - img
+                              - cell: PO-2025-001
+                              - cell:
+                                - generic: אלקטרוניקה פלוס בע״מ
+                              - cell: Purchase Order (PO)
+                              - cell: CONFIRMED
+                              - cell:
+                                - generic:
+                                  - progressbar
+                                  - generic: 0%
+                              - cell:
+                                - generic: סמסונג העולמית
+                              - cell: 13.12.2025
+                              - cell: "237"
+                              - cell
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: Total 6 records
+                        - generic:
+                          - paragraph: "Rows:"
+                          - combobox:
+                            - generic: "10"
+                            - img
+                      - generic:
+                        - generic: Page 1 of 1
+                        - generic:
+                          - button [disabled]:
+                            - img
+                          - button [disabled]:
+                            - img
+                          - button [disabled]:
+                            - img
+                          - button [disabled]:
+                            - img
+    - region "Notifications alt+T"
+  - dialog "New Order" [ref=e2]:
+    - heading "New Order" [level=2] [ref=e4]
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - img [ref=e9]
+          - heading "New Order" [level=3] [ref=e14]
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - img [ref=e19]
+              - text: Name
+            - combobox "Name" [ref=e22] [cursor=pointer]:
+              - generic: מזון מהיר שיווק
+              - img [ref=e23]
+            - combobox [ref=e25]
+          - generic [ref=e26]:
+            - text: Order Number
+            - textbox "Order Number" [ref=e27]:
+              - /placeholder: PO-2024-001
+              - text: INB-1766270856910
+          - generic [ref=e28]:
+            - text: Order Type
+            - combobox "Order Type" [ref=e29] [cursor=pointer]:
+              - generic: Purchase Order (PO)
+              - img [ref=e30]
+            - combobox [ref=e32]
+          - generic [ref=e33]:
+            - text: Supplier Name
+            - textbox "Supplier Name" [ref=e34]
+          - generic [ref=e35]:
+            - text: Expected Date
+            - generic [ref=e36]:
+              - textbox "Expected Date" [ref=e37]: 2025-12-20
+              - img
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - img [ref=e41]
+            - heading "Order Lines" [level=3] [ref=e45]
+          - button "Add Line" [ref=e46] [cursor=pointer]:
+            - img [ref=e47]
+            - text: Add Line
+        - generic [ref=e50]:
+          - generic [ref=e52]:
+            - text: Product Name
+            - combobox "Product Name" [ref=e53] [cursor=pointer]:
+              - generic: products.selectProduct
+              - img [ref=e54]
+            - combobox [ref=e56]
+          - generic [ref=e58]:
+            - text: Unit
+            - combobox "Unit" [active] [ref=e59] [cursor=pointer]:
+              - generic: קרטון
+              - img [ref=e60]
+            - combobox [ref=e62]
+          - generic [ref=e64]:
+            - text: Expected Qty
+            - spinbutton "Expected Qty" [ref=e65]
+          - generic [ref=e67]:
+            - text: Batch
+            - textbox "Batch" [ref=e68]:
+              - /placeholder: Optional
+          - button [ref=e70] [cursor=pointer]:
+            - img [ref=e71]
+      - generic [ref=e74]:
+        - button "Cancel" [ref=e75] [cursor=pointer]
+        - button "New Order" [ref=e76] [cursor=pointer]
+    - button "Close" [ref=e77] [cursor=pointer]:
+      - img [ref=e78]
+      - generic [ref=e81]: Close
+```

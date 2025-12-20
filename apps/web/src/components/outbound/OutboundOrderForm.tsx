@@ -32,16 +32,17 @@ const FALLBACK_ORDER_TYPES = [
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: '1', label: { he: 'קריטי (1)', en: 'Critical (1)' } },
-  { value: '2', label: { he: 'גבוה (2)', en: 'High (2)' } },
-  { value: '3', label: { he: 'בינוני (3)', en: 'Medium (3)' } },
-  { value: '5', label: { he: 'רגיל (5)', en: 'Normal (5)' } },
-  { value: '10', label: { he: 'נמוך (10)', en: 'Low (10)' } },
+  { value: '1', label: { he: 'קריטי (1)', en: 'Critical (1)', ar: 'حرج (1)', ru: 'Критический (1)' } },
+  { value: '2', label: { he: 'גבוה (2)', en: 'High (2)', ar: 'عالي (2)', ru: 'Высокий (2)' } },
+  { value: '3', label: { he: 'בינוני (3)', en: 'Medium (3)', ar: 'متوسط (3)', ru: 'Средний (3)' } },
+  { value: '5', label: { he: 'רגיל (5)', en: 'Normal (5)', ar: 'عادي (5)', ru: 'Обычный (5)' } },
+  { value: '10', label: { he: 'נמוך (10)', en: 'Low (10)', ar: 'منخفض (10)', ru: 'Низкий (10)' } },
 ];
 
 export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: OutboundOrderFormProps) {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === 'he';
+  const isRTL = i18n.language === 'he' || i18n.language === 'ar';
+  const langKey = (['he', 'en', 'ar', 'ru'].includes(i18n.language) ? i18n.language : 'en') as 'he' | 'en' | 'ar' | 'ru';
 
   // Data Fetching
   const { data: customers } = useQuery({ queryKey: ['depositors'], queryFn: depositorService.getDepositors });
@@ -220,7 +221,7 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
                     <SelectContent>
                       {PRIORITY_OPTIONS.map(opt => (
                         <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label[isRTL ? 'he' : 'en']}
+                          {opt.label[langKey]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -272,7 +273,7 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
               disabled={!selectedCustomerId}
               className="border-dashed border-primary text-primary hover:bg-primary/5"
             >
-              <Plus className="h-4 w-4 ml-2" />
+              <Plus className="h-4 w-4 me-2" />
               {t('outbound.lines.addLine', 'הוסף פריט')}
             </Button>
           </div>
@@ -372,7 +373,7 @@ export function OutboundOrderForm({ onSubmit, onCancel, isSubmitting }: Outbound
           <Button type="submit" size="lg" className="min-w-[150px]" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {t('common.saving', 'שומר...')}
               </>
             ) : (

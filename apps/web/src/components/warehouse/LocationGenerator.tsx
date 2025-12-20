@@ -145,8 +145,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
   };
 
   return (
-    // השינוי הוא כאן: הסרנו את max-h ו-overflow-y-auto
-    <div className="pr-2">
+    <div className="pe-2">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6 pb-20">
           
@@ -235,7 +234,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
           <div className="bg-muted/30 p-4 rounded-lg border border-muted">
             <div className="flex items-center gap-2 mb-4">
               <Route className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-sm">הגדרות מסלול ליקוט</h3>
+              <h3 className="font-semibold text-sm">{t('locations.pickingRouteSettings')}</h3>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -244,7 +243,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
                 name="picking_strategy"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>אסטרטגיית מספור</FormLabel>
+                    <FormLabel>{t('locations.numberingStrategy')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -255,21 +254,21 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
                         <SelectItem value="ASCENDING">
                           <div className="flex items-center gap-2">
                             <ArrowDownUp className="h-4 w-4" />
-                            <span>רגיל (עולה תמיד)</span>
+                            <span>{t('locations.strategyAscending')}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="SNAKE_ODD_EVEN">
                           <div className="flex items-center gap-2">
                             <Route className="h-4 w-4" />
-                            <span>נחש (Z-Pick יעיל)</span>
+                            <span>{t('locations.strategySnake')}</span>
                           </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription className="text-xs">
-                      {field.value === 'ASCENDING' 
-                        ? 'מספור עולה בכל המפרצים (פחות יעיל למלגזה)'
-                        : 'עולה במפרץ אי-זוגי, יורד במפרץ זוגי (חוסך נסיעה)'}
+                      {field.value === 'ASCENDING'
+                        ? t('locations.strategyAscendingDesc')
+                        : t('locations.strategySnakeDesc')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -285,7 +284,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
                     <FormControl>
                       <Input type="number" min="0" {...field} />
                     </FormControl>
-                    <FormDescription className="text-xs">מספר התחלתי לרצף</FormDescription>
+                    <FormDescription className="text-xs">{t('locations.pickSequenceStartDesc')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -341,7 +340,7 @@ export function LocationGenerator({ warehouseId, zones, onSuccess, onCancel }: L
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={bulkCreateMutation.isPending || previewCount === 0}>
-              {bulkCreateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {bulkCreateMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {t('locations.generateLocations')}
             </Button>
           </div>

@@ -73,7 +73,7 @@ export function DataTableToolbar<TData>({
               placeholder={t('common.search', 'חיפוש...')}
               value={localSearch}
               onChange={(event) => setLocalSearch(event.target.value)}
-              className="h-8 w-[150px] lg:w-[200px] ltr:pr-8 rtl:pl-8 text-start"
+              className="h-8 w-[150px] lg:w-[200px] pe-8 text-start"
             />
           </div>
         )}
@@ -117,12 +117,12 @@ export function DataTableToolbar<TData>({
           className="h-8 px-2 lg:px-3 shrink-0"
         >
           {t('common.reset', 'אפס')}
-          <X className="ml-2 h-4 w-4 rtl:mr-2 rtl:ml-0" />
+          <X className="ms-2 h-4 w-4" />
         </Button>
       )}
 
       {/* צד שמאל (RTL): כפתורי פעולה בלבד */}
-      <div className="flex items-center gap-2 shrink-0 ltr:ml-auto rtl:mr-auto">
+      <div className="flex items-center gap-2 shrink-0 ms-auto">
         {actions}
       </div>
     </div>

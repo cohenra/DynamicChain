@@ -46,39 +46,39 @@ export function ProductRowDetail({ product }: ProductRowDetailProps) {
     <div className="bg-muted/50 p-2 border-t text-xs">
       <Tabs defaultValue="uoms" className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
         <TabsList className="h-8">
-          <TabsTrigger value="uoms" className="text-xs">{t('products.tabs.packaging', 'אריזות')}</TabsTrigger>
-          <TabsTrigger value="details" className="text-xs">{t('products.tabs.details', 'פרטים נוספים')}</TabsTrigger>
+          <TabsTrigger value="uoms" className="text-xs">{t('products.tabs.packaging')}</TabsTrigger>
+          <TabsTrigger value="details" className="text-xs">{t('products.tabs.details')}</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: UOMs/Packaging */}
         <TabsContent value="uoms" className="mt-2">
           {sortedUoms.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
-              {t('products.noUoms', 'לא הוגדרו אריזות למוצר זה')}
+              {t('products.noUoms')}
             </div>
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="h-8">
-                    <TableHead className="text-right h-8 text-xs">{t('products.uomName', 'שם יחידה')}</TableHead>
-                    <TableHead className="text-right h-8 text-xs">{t('products.conversionFactor', 'יחס המרה')}</TableHead>
-                    <TableHead className="text-left h-8 text-xs">{t('products.barcode', 'ברקוד')}</TableHead>
-                    <TableHead className="text-center h-8 text-xs">{t('products.dimensions', 'מידות (ס״מ)')}</TableHead>
-                    <TableHead className="text-center h-8 text-xs">{t('products.volume', 'נפח (סמ״ק)')}</TableHead>
-                    <TableHead className="text-center h-8 text-xs">{t('products.weight', 'משקל (ק״ג)')}</TableHead>
+                    <TableHead className="text-start h-8 text-xs">{t('products.uomName')}</TableHead>
+                    <TableHead className="text-start h-8 text-xs">{t('products.conversionFactor')}</TableHead>
+                    <TableHead className="text-start h-8 text-xs">{t('products.barcode')}</TableHead>
+                    <TableHead className="text-center h-8 text-xs">{t('products.dimensions')}</TableHead>
+                    <TableHead className="text-center h-8 text-xs">{t('products.volume')}</TableHead>
+                    <TableHead className="text-center h-8 text-xs">{t('products.weight')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sortedUoms.map((uom) => (
                     <TableRow key={uom.id} className="h-8">
-                      <TableCell className="font-medium text-right text-xs p-2">
+                      <TableCell className="font-medium text-start text-xs p-2">
                         {uom.uom_name} ({uom.uom_code})
                       </TableCell>
-                      <TableCell className="text-right text-xs p-2">
+                      <TableCell className="text-start text-xs p-2">
                         <Badge variant="secondary" className="text-[10px]">{uom.conversion_factor}</Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-left text-xs p-2">
+                      <TableCell className="font-mono text-start text-xs p-2">
                         {uom.barcode || <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="text-center font-mono text-xs p-2">
@@ -103,8 +103,8 @@ export function ProductRowDetail({ product }: ProductRowDetailProps) {
           <div className="bg-white rounded-lg border p-4 space-y-4">
             {/* Custom Attributes */}
             <div>
-              <h4 className="font-semibold mb-2 text-right text-xs">
-                {t('products.customAttributes', 'תכונות מותאמות אישית')}
+              <h4 className="font-semibold mb-2 text-start text-xs">
+                {t('products.customAttributes')}
               </h4>
               {product.custom_attributes && Object.keys(product.custom_attributes).length > 0 ? (
                 <div className="flex flex-wrap gap-2" dir="rtl">
@@ -115,25 +115,25 @@ export function ProductRowDetail({ product }: ProductRowDetailProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-xs text-right">
-                  {t('products.noCustomAttributes', 'אין תכונות מותאמות אישית')}
+                <p className="text-muted-foreground text-xs text-start">
+                  {t('products.noCustomAttributes')}
                 </p>
               )}
             </div>
 
             {/* Timestamps */}
             <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-              <div className="text-right">
+              <div className="text-start">
                 <p className="text-xs text-muted-foreground mb-1">
-                  {t('products.createdAt', 'נוצר בתאריך')}
+                  {t('products.createdAt')}
                 </p>
                 <p className="font-medium text-xs">
                   {format(new Date(product.created_at), 'PPp', { locale: isRTL ? he : undefined })}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-start">
                 <p className="text-xs text-muted-foreground mb-1">
-                  {t('products.updatedAt', 'עודכן בתאריך')}
+                  {t('products.updatedAt')}
                 </p>
                 <p className="font-medium text-xs">
                   {format(new Date(product.updated_at), 'PPp', { locale: isRTL ? he : undefined })}

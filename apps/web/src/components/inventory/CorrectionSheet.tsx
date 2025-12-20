@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Sheet,
@@ -69,7 +69,19 @@ export function CorrectionSheet({
     return (next - current).toFixed(3); // מחזיר מחרוזת לתצוגה
   };
 
+<<<<<<< HEAD
   const dir = i18n.dir();
+=======
+  // Update form when transaction changes
+  useEffect(() => {
+    if (transaction && open) {
+      setNewQuantity(transaction.quantity.toString());
+      setReason('');
+    }
+  }, [transaction, open]);
+
+  if (!transaction) return null;
+>>>>>>> claude/add-i18n-accessibility-5sa1q
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -98,6 +110,7 @@ export function CorrectionSheet({
               </div>
             </div>
 
+<<<<<<< HEAD
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-qty">{t('inventory.newQty', 'New Quantity')}</Label>
@@ -113,6 +126,16 @@ export function CorrectionSheet({
                   <p className="text-xs text-muted-foreground text-right">
                     {t('inventory.delta', 'Difference')}: <span dir="ltr">{calculateDelta()}</span>
                   </p>
+=======
+            <div className="flex gap-2 pt-4">
+              <Button
+                type="submit"
+                disabled={correctionMutation.isPending}
+                className="flex-1"
+              >
+                {correctionMutation.isPending && (
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+>>>>>>> claude/add-i18n-accessibility-5sa1q
                 )}
               </div>
 

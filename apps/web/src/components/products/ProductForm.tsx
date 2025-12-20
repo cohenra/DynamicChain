@@ -367,6 +367,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
             <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-4 rounded-md border border-blue-200 dark:border-blue-800">
               <p className="mb-2">{t('products.packagingHierarchyDescription')}</p>
               <div className="bg-white dark:bg-slate-900 p-3 rounded border mt-3">
+<<<<<<< HEAD
                 <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">?? {t('products.addPackagingTitle', '????? ??????')}</p>
                 <p>
                   {t('products.addPackagingTip', '???? ????? ?????, ???? ?????? ???? ????? (????: ????, ????) ?? ????? ?????:')}
@@ -376,6 +377,17 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                   <li><strong>{t('products.uoms.contains')}:</strong> {t('products.uoms.conversionFactorDescription')}</li>
                   <li><strong>{t('products.uoms.barcode')}:</strong> {t('products.uoms.barcodePlaceholder')}</li>
                   <li><strong>{t('products.uoms.dimensions')}:</strong> {t('products.uoms.dimensionsShort')}</li>
+=======
+                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">{t('products.packaging.tip')}</p>
+                <p>
+                  {t('products.packaging.tipDescription')}
+                </p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
+                  <li><strong>{t('products.packaging.packagingType')}:</strong> {t('products.packaging.packagingTypeDesc')}</li>
+                  <li><strong>{t('products.packaging.contains')}:</strong> {t('products.packaging.containsDesc')}</li>
+                  <li><strong>{t('products.packaging.barcode')}:</strong> {t('products.packaging.barcodeDesc')}</li>
+                  <li><strong>{t('products.packaging.dimensionsWeight')}:</strong> {t('products.packaging.dimensionsWeightDesc')}</li>
+>>>>>>> claude/add-i18n-accessibility-5sa1q
                 </ul>
               </div>
             </div>
@@ -397,7 +409,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                 onClick={handleAddUOM}
                 disabled={isLoadingUOMs}
               >
-                <Plus className="ml-2 h-4 w-4" />
+                <Plus className="me-2 h-4 w-4" />
                 {t('products.addPackaging')}
               </Button>
             </div>
@@ -475,7 +487,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
               onClick={addCustomAttribute}
               disabled={isLoading}
             >
-              <Plus className="ml-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
               {t('products.addAttribute')}
             </Button>
           </div>

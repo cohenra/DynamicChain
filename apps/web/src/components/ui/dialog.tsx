@@ -23,7 +23,7 @@ export const Dialog = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ direction: 'rtl' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="fixed inset-0 bg-black/50 transition-opacity"
         onClick={() => onOpenChange(false)}
@@ -54,7 +54,7 @@ export const DialogHeader = ({
   children: React.ReactNode;
   className?: string
 }) => (
-  <div className={`flex flex-col space-y-1.5 text-center sm:text-right ${className}`}>
+  <div className={`flex flex-col space-y-1.5 text-center sm:text-start ${className}`}>
     {children}
   </div>
 );
@@ -71,7 +71,6 @@ export const DialogTitle = ({
   </h2>
 );
 
-// --- הרכיב שהיה חסר ---
 export const DialogDescription = ({
   children,
   className = ""

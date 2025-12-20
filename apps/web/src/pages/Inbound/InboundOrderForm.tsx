@@ -33,7 +33,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
   const formSchema = z.object({
     order_number: z.string().min(1, t('inbound.fields.orderNumberRequired')),
     order_type: z.enum(['SUPPLIER_DELIVERY', 'CUSTOMER_RETURN', 'TRANSFER_IN']),
-    customer_id: z.string().min(1, t('depositors.nameRequired')), // Depositor
+    customer_id: z.string().min(1, t('depositors.nameRequired')), 
     supplier_name: z.string().min(1, t('inbound.fields.supplierNameRequired')),
     expected_delivery_date: z.string().optional(),
     notes: z.string().optional(),
@@ -57,10 +57,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
     },
   });
 
-  // Watch customer_id to filter products
   const selectedCustomerId = useWatch({ control: form.control, name: 'customer_id' });
-
-  // Filter products based on selected depositor
   const filteredProducts = allProducts?.filter(p => p.depositor_id?.toString() === selectedCustomerId);
 
   const { fields, append, remove } = useFieldArray({
@@ -98,21 +95,20 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
         <div className="space-y-4">
             <div className="flex items-center gap-2 text-primary">
                 <TruckIcon className="h-5 w-5" />
-                <h3 className="font-semibold text-lg">פרטי הזמנה</h3>
+                <h3 className="font-semibold text-lg">{t('inbound.createOrder')}</h3>
             </div>
             
             <Card className="border-none shadow-none bg-muted/10">
                 <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Depositor Selection - Critical for filtering products */}
+                    {/* Depositor Selection */}
                     <FormField control={form.control} name="customer_id" render={({ field }) => (
                         <FormItem>
                             <FormLabel className="flex items-center gap-1"><User className="h-3 w-3" /> {t('depositors.name')}</FormLabel>
                             <Select onValueChange={(val) => {
                                 field.onChange(val);
-                                // Reset lines when depositor changes to avoid invalid products
                                 form.setValue('lines', [{ product_id: '', uom_id: '', expected_quantity: '', expected_batch: '' }]);
                             }} value={field.value}>
-                                <FormControl><SelectTrigger className="bg-white"><SelectValue placeholder="בחר מאחסן" /></SelectTrigger></FormControl>
+                                <FormControl><SelectTrigger className="bg-white"><SelectValue placeholder={t('depositors.selectDepositor')} /></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {depositors?.map(d => <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>)}
                                 </SelectContent>
@@ -124,7 +120,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                     <FormField control={form.control} name="order_number" render={({ field }) => (
                         <FormItem>
                             <FormLabel>{t('inbound.fields.orderNumber')}</FormLabel>
-                            <FormControl><Input {...field} placeholder="לדוגמה: PO-2024-001" className="bg-white" /></FormControl>
+                            <FormControl><Input {...field} placeholder="PO-2024-001" className="bg-white" /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -135,9 +131,9 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                    <SelectItem value="SUPPLIER_DELIVERY">{t('inbound.orderTypes.PO', 'הזמנת רכש (PO)')}</SelectItem>
-                                    <SelectItem value="CUSTOMER_RETURN">{t('inbound.orderTypes.RETURN', 'החזרת לקוח')}</SelectItem>
-                                    <SelectItem value="TRANSFER_IN">{t('inbound.orderTypes.TRANSFER', 'העברה פנימית')}</SelectItem>
+                                    <SelectItem value="SUPPLIER_DELIVERY">{t('inbound.orderTypes.PO')}</SelectItem>
+                                    <SelectItem value="CUSTOMER_RETURN">{t('inbound.orderTypes.RETURN')}</SelectItem>
+                                    <SelectItem value="TRANSFER_IN">{t('inbound.orderTypes.TRANSFER')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -157,7 +153,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                             <FormLabel>{t('inbound.fields.expectedDate')}</FormLabel>
                             <div className="relative">
                                 <FormControl><Input type="date" {...field} className="bg-white" /></FormControl>
-                                <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <CalendarIcon className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -180,17 +176,17 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                     variant="outline" 
                     size="sm" 
                     onClick={() => append({ product_id: '', uom_id: '', expected_quantity: '', expected_batch: '' })} 
-                    disabled={!selectedCustomerId} // Disable adding lines if no depositor selected
+                    disabled={!selectedCustomerId} 
                     className="border-dashed border-primary text-primary hover:bg-primary/5"
                 >
-                    <Plus className="h-4 w-4 ml-2" />
+                    <Plus className="h-4 w-4 ms-2" />
                     {t('inbound.lines.addLine')}
                 </Button>
             </div>
 
             {!selectedCustomerId && (
                 <div className="text-center py-4 bg-yellow-50 text-yellow-800 rounded border border-yellow-200">
-                    יש לבחור מאחסן לפני הוספת פריטים
+                    {t('depositors.selectDepositorFirst', 'Please select a depositor first')}
                 </div>
             )}
 
@@ -203,7 +199,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                                     <FormItem>
                                         <FormLabel className="text-xs text-muted-foreground">{t('products.name')}</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger className="h-10"><SelectValue placeholder="בחר מוצר" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="h-10"><SelectValue placeholder={t('products.selectProduct')} /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {filteredProducts?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name} <span className="text-muted-foreground text-xs mx-1">({p.sku})</span></SelectItem>)}
                                             </SelectContent>
@@ -218,7 +214,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                                     <FormItem>
                                         <FormLabel className="text-xs text-muted-foreground">{t('inbound.lines.uom')}</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger className="h-10"><SelectValue placeholder="יחידה" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="h-10"><SelectValue placeholder={t('products.selectBaseUnit')} /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {uoms?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
                                             </SelectContent>
@@ -242,7 +238,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                                 <FormField control={form.control} name={`lines.${index}.expected_batch`} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-xs text-muted-foreground">{t('inventory.batch')}</FormLabel>
-                                        <FormControl><Input className="h-10" placeholder="אופציונלי" {...field} /></FormControl>
+                                        <FormControl><Input className="h-10" placeholder={t('common.optional')} {...field} /></FormControl>
                                     </FormItem>
                                 )} />
                             </div>
@@ -263,7 +259,7 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
         <div className="flex justify-end gap-3 pt-6 border-t bg-background sticky bottom-0 z-10">
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>{t('common.cancel')}</Button>
           <Button type="submit" size="lg" className="min-w-[150px]" disabled={isSubmitting}>
-            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('common.saving')}</> : t('inbound.createOrder')}
+            {isSubmitting ? <><Loader2 className="me-2 h-4 w-4 animate-spin" /> {t('common.saving')}</> : t('inbound.createOrder')}
           </Button>
         </div>
       </form>

@@ -21,7 +21,8 @@ interface OutboundOrderRowDetailProps {
 }
 
 export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'he' || i18n.language === 'ar';
   const queryClient = useQueryClient();
   const [strategies, setStrategies] = useState<AllocationStrategy[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -69,8 +70,8 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
   const tasks = order.pick_tasks || [];
 
   return (
-    <div className="bg-slate-50/80 p-0 w-full border-t shadow-inner text-xs overflow-hidden" dir="rtl" style={{ direction: 'rtl' }}>
-      
+    <div className="bg-slate-50/80 p-0 w-full border-t shadow-inner text-xs overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+
       {error && (
         <Alert variant="destructive" className="m-2 w-auto">
           <AlertCircle className="h-4 w-4" />
@@ -78,7 +79,7 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
         </Alert>
       )}
 
-      <Tabs defaultValue="lines" className="w-full" dir="rtl">
+      <Tabs defaultValue="lines" className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* FIX: Header Layout Logic
             - 'flex' with 'items-center' keeps everything in one row.
             - 'justify-start' keeps content starting from the Right (in RTL).
@@ -93,13 +94,13 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
                     value="lines" 
                     className="h-full px-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-medium text-muted-foreground data-[state=active]:text-primary"
                 >
-                    {t('outbound.tabs.lines')} <span className="mr-1.5 bg-slate-100 text-slate-600 px-1.5 rounded-full text-[10px]">{lines.length}</span>
+                    {t('outbound.tabs.lines')} <span className="ms-1.5 bg-slate-100 text-slate-600 px-1.5 rounded-full text-[10px]">{lines.length}</span>
                 </TabsTrigger>
                 <TabsTrigger 
                     value="tasks" 
                     className="h-full px-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-medium text-muted-foreground data-[state=active]:text-primary"
                 >
-                    {t('outbound.tabs.tasks')} <span className="mr-1.5 bg-slate-100 text-slate-600 px-1.5 rounded-full text-[10px]">{tasks.length}</span>
+                    {t('outbound.tabs.tasks')} <span className="ms-1.5 bg-slate-100 text-slate-600 px-1.5 rounded-full text-[10px]">{tasks.length}</span>
                 </TabsTrigger>
             </TabsList>
 
@@ -109,13 +110,13 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
                     <>
                         {canAcceptShortages && (
                         <Button onClick={handleAcceptShortages} disabled={!!actionLoading} size="sm" variant="destructive" className="h-6 text-[10px] px-2.5 rounded-full">
-                            {actionLoading === 'accept-shortages' ? <Loader2 className="h-3 w-3 animate-spin ml-1.5" /> : <AlertCircle className="h-3 w-3 ml-1.5" />}
+                            {actionLoading === 'accept-shortages' ? <Loader2 className="h-3 w-3 animate-spin me-1.5" /> : <AlertCircle className="h-3 w-3 me-1.5" />}
                             {t('outbound.actions.acceptShortages')}
                         </Button>
                         )}
                         {canRelease && (
                         <Button onClick={handleRelease} disabled={!!actionLoading} size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-6 text-[10px] px-2.5 rounded-full">
-                            {actionLoading === 'release' ? <Loader2 className="h-3 w-3 animate-spin ml-1.5" /> : <ListChecks className="h-3 w-3 ml-1.5" />}
+                            {actionLoading === 'release' ? <Loader2 className="h-3 w-3 animate-spin me-1.5" /> : <ListChecks className="h-3 w-3 me-1.5" />}
                             {t('outbound.actions.release')}
                         </Button>
                         )}
@@ -127,10 +128,10 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
         {/* Content Area */}
         <div className="p-2">
             <TabsContent value="lines" className="m-0 p-0 border rounded-sm bg-white">
-            <Table className="table-fixed w-full" dir="rtl">
+            <Table className="table-fixed w-full" dir={isRTL ? 'rtl' : 'ltr'}>
                 <TableHeader className="bg-slate-50 h-8">
                     <TableRow className="h-8 hover:bg-transparent border-b border-slate-200">
-                    <TableHead className="text-right h-8 px-2 py-0 font-semibold text-[11px] w-[25%]">{t('outbound.table.product')}</TableHead>
+                    <TableHead className="text-start h-8 px-2 py-0 font-semibold text-[11px] w-[25%]">{t('outbound.table.product')}</TableHead>
                     <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[10%]">{t('outbound.table.ordered')}</TableHead>
                     <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[10%]">{t('outbound.table.allocated')}</TableHead>
                     <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[10%]">{t('outbound.table.picked')}</TableHead>
@@ -169,11 +170,11 @@ export function OutboundOrderRowDetail({ order }: OutboundOrderRowDetailProps) {
             </TabsContent>
 
             <TabsContent value="tasks" className="m-0 p-0 border rounded-sm bg-white">
-                <Table className="table-fixed w-full" dir="rtl">
+                <Table className="table-fixed w-full" dir={isRTL ? 'rtl' : 'ltr'}>
                 <TableHeader className="bg-slate-50 h-8">
                     <TableRow className="h-8 hover:bg-transparent border-b border-slate-200">
-                    <TableHead className="text-right h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.task')}</TableHead>
-                    <TableHead className="text-right h-8 px-2 py-0 font-semibold text-[11px] w-[20%]">{t('outbound.table.fromLocation')}</TableHead>
+                    <TableHead className="text-start h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.task')}</TableHead>
+                    <TableHead className="text-start h-8 px-2 py-0 font-semibold text-[11px] w-[20%]">{t('outbound.table.fromLocation')}</TableHead>
                     <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.qtyToPick')}</TableHead>
                     <TableHead className="text-center h-8 px-2 py-0 font-semibold text-[11px] w-[15%]">{t('outbound.table.status')}</TableHead>
                     <TableHead className="w-auto"></TableHead>

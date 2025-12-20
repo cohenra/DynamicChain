@@ -15,7 +15,7 @@ import { useTableSettings } from '@/hooks/use-table-settings';
 import { inventoryService, InventoryTransaction } from '@/services/inventory';
 
 export function TransactionsTable() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -32,7 +32,8 @@ export function TransactionsTable() {
   });
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('he-IL', {
+    const locale = i18n.language === 'he' ? 'he-IL' : i18n.language === 'ar' ? 'ar-SA' : i18n.language === 'ru' ? 'ru-RU' : 'en-US';
+    return new Date(dateStr).toLocaleString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -77,7 +78,6 @@ export function TransactionsTable() {
         header: t('inventory.type', 'סוג'),
         cell: ({ row }) => {
           const typeKey = row.original.transaction_type;
-          // שימוש במפתח התרגום כדי להציג בעברית
           const translatedType = t(`inventory.transactionTypes.${typeKey}`, typeKey);
           
           return (

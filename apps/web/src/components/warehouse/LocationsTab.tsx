@@ -144,19 +144,43 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent font-bold">
           {t('locations.name')}
+<<<<<<< HEAD
           <ArrowUpDown className="mx-2 h-3 w-3" />
+=======
+          <ArrowUpDown className="ms-2 h-3 w-3" />
+>>>>>>> claude/add-i18n-accessibility-5sa1q
         </Button>
       ),
       cell: ({ row }) => <div className="font-bold">{row.getValue("name")}</div>,
     },
     {
       accessorKey: 'zone_id',
+<<<<<<< HEAD
       header: t('locations.zone'),
+=======
+      id: 'zone_id',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
+          {t('locations.zone')}
+          <ArrowUpDown className="ms-2 h-3 w-3" />
+        </Button>
+      ),
+>>>>>>> claude/add-i18n-accessibility-5sa1q
       cell: ({ row }) => getZoneName(row.original.zone_id),
     },
     {
       accessorKey: 'aisle',
+<<<<<<< HEAD
       header: t('locations.aisle'),
+=======
+      id: 'aisle',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
+          {t('locations.aisle')}
+          <ArrowUpDown className="ms-2 h-3 w-3" />
+        </Button>
+      ),
+>>>>>>> claude/add-i18n-accessibility-5sa1q
     },
     {
       accessorKey: 'bay',
@@ -186,11 +210,25 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
     {
       accessorKey: 'pick_sequence',
+<<<<<<< HEAD
       header: t('locations.pickSequence'),
     },
     {
       id: 'actions',
       header: t('common.actions'),
+=======
+      id: 'pick_sequence',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
+          {t('locations.pickSequence')}
+          <ArrowUpDown className="ms-2 h-3 w-3" />
+        </Button>
+      ),
+    },
+    {
+      id: 'actions',
+      header: () => <div className="text-end w-full pe-2">{t('common.actions')}</div>,
+>>>>>>> claude/add-i18n-accessibility-5sa1q
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditingLocation(row.original); setIsSheetOpen(true); }}>
@@ -242,11 +280,19 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const actions = (
     <>
       <Button variant="outline" size="sm" onClick={() => setIsGeneratorOpen(true)} className="h-9">
+<<<<<<< HEAD
         <Wand2 className={cn("h-3.5 w-3.5", isRtl ? "ml-2" : "mr-2")} />
         {t('locations.generator')}
       </Button>
       <Button size="sm" onClick={() => setIsSheetOpen(true)} className="h-9">
         <Plus className={cn("h-3.5 w-3.5", isRtl ? "ml-2" : "mr-2")} />
+=======
+        <Wand2 className="me-2 h-3.5 w-3.5" />
+        {t('locations.generator')}
+      </Button>
+      <Button size="sm" onClick={() => setIsSheetOpen(true)} className="h-9">
+        <Plus className="me-2 h-3.5 w-3.5" />
+>>>>>>> claude/add-i18n-accessibility-5sa1q
         {t('locations.addLocation')}
       </Button>
     </>

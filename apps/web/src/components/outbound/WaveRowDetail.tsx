@@ -44,26 +44,23 @@ export function WaveRowDetail({ wave }: WaveRowDetailProps) {
 
   return (
     <div className="w-full bg-slate-50/50" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* הוספת dir גם כאן היא קריטית */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
-        
-        {/* ה-justify-start ידחוף לימין בגלל ה-dir=rtl */}
         <div className="border-b border-slate-200 bg-slate-100/50 px-4 w-full">
           <TabsList className="h-10 bg-transparent p-0 w-full justify-start gap-6">
             <TabsTrigger 
               value="orders" 
               className="rounded-none border-b-2 border-transparent px-2 h-10 font-medium text-slate-500 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent shadow-none"
             >
-              {t('outbound.tabs.orders', 'שורות גל / הזמנות')} 
-              <Badge variant="secondary" className="mr-2 ml-0 rtl:mr-0 rtl:ml-2 px-1.5 h-5">{wave.orders?.length || 0}</Badge>
+              {t('outbound.tabs.orders')}
+              <Badge variant="secondary" className="ms-2 px-1.5 h-5">{wave.orders?.length || 0}</Badge>
             </TabsTrigger>
             
             <TabsTrigger 
               value="tasks" 
               className="rounded-none border-b-2 border-transparent px-2 h-10 font-medium text-slate-500 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent shadow-none"
             >
-              {t('outbound.tabs.pickTasks', 'משימות ליקוט')}
-              <Badge variant="secondary" className="mr-2 ml-0 rtl:mr-0 rtl:ml-2 px-1.5 h-5">0</Badge>
+              {t('outbound.tabs.pickTasks')}
+              <Badge variant="secondary" className="ms-2 px-1.5 h-5">0</Badge>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -75,7 +72,7 @@ export function WaveRowDetail({ wave }: WaveRowDetailProps) {
                   table={ordersTable} 
                   columnsLength={orderColumns.length}
                   containerClassName="border-0 shadow-none"
-                  noDataMessage={t('outbound.messages.noOrders', 'אין הזמנות')}
+                  noDataMessage={t('outbound.messages.noOrdersInWave')}
                 />
              </div>
           </TabsContent>
@@ -86,7 +83,7 @@ export function WaveRowDetail({ wave }: WaveRowDetailProps) {
                   table={tasksTable} 
                   columnsLength={taskColumns.length}
                   containerClassName="border-0 shadow-none"
-                  noDataMessage={t('outbound.messages.noTasks', 'טרם נוצרו משימות ליקוט לגל זה')}
+                  noDataMessage={t('outbound.messages.noTasksYet')}
                 />
             </div>
           </TabsContent>
