@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -11,24 +12,31 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useTranslation } from 'react-i18next';
 import { Zone, ZoneCreate, ZoneUpdate } from '@/services/zones';
+import { useMemo } from 'react';
 
 interface ZoneFormProps {
   warehouseId: number;
   zone?: Zone;
-  onSubmit: (data: ZoneCreate | ZoneUpdate) => void;
+  onSubmit: (data: any) => void;
   onCancel: () => void;
-  isSubmitting: boolean;
+  isSubmitting?: boolean;
 }
 
-export function ZoneForm({ warehouseId, zone, onSubmit, onCancel, isSubmitting }: ZoneFormProps) {
+export function ZoneForm({
+  warehouseId,
+  zone,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}: ZoneFormProps) {
   const { t } = useTranslation();
 
-  const formSchema = z.object({
-    name: z.string().min(1, t('zones.nameRequired')),
-    code: z.string().min(1, t('zones.codeRequired')),
-  });
+  // שימוש ב-useMemo כדי שהתרגום יעבוד בתוך ה-Schema
+  const formSchema = useMemo(() => z.object({
+    name: z.string().min(1, t('zones.nameRequired', 'Zone name is required')),
+    code: z.string().min(1, t('zones.codeRequired', 'Zone code is required')),
+  }), [t]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,30 +47,16 @@ export function ZoneForm({ warehouseId, zone, onSubmit, onCancel, isSubmitting }
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    if (zone) {
-      onSubmit(values as ZoneUpdate);
-    } else {
-      onSubmit({ ...values, warehouse_id: warehouseId } as ZoneCreate);
-    }
+    const data = {
+      ...values,
+      warehouse_id: warehouseId,
+    };
+    onSubmit(data);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6">
-        <FormField
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('zones.code')}</FormLabel>
-              <FormControl>
-                <Input placeholder={t('zones.codePlaceholder')} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -77,12 +71,26 @@ export function ZoneForm({ warehouseId, zone, onSubmit, onCancel, isSubmitting }
           )}
         />
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('zones.code')}</FormLabel>
+              <FormControl>
+                <Input placeholder={t('zones.codePlaceholder')} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
             {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? t('common.saving') : zone ? t('common.update') : t('common.create')}
+            {isSubmitting ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </form>

@@ -43,7 +43,10 @@ export function SmartTable<TData>({
   renderSubComponent,
   containerClassName,
 }: SmartTableProps<TData>) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  
+  // בדיקה האם השפה הנוכחית היא מימין לשמאל
+  const isRtl = i18n.dir() === 'rtl';
 
   return (
     <div className="flex flex-col space-y-4">
@@ -62,7 +65,8 @@ export function SmartTable<TData>({
         <div className="w-full overflow-x-auto">
             <Table 
               className="table-fixed" 
-              dir="rtl"
+              // תיקון: שימוש בכיוון הדינמי של השפה במקום RTL קבוע
+              dir={i18n.dir()}
               style={{ minWidth: table.getTotalSize() }}
             >
             <TableHeader className="bg-slate-50">
@@ -71,7 +75,11 @@ export function SmartTable<TData>({
                     {headerGroup.headers.map((header) => (
                     <TableHead 
                         key={header.id} 
-                        className="h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-right text-xs border-l last:border-l-0 border-slate-100 rtl:text-right rtl:border-l-0 rtl:border-r rtl:last:border-r-0"
+                        // תיקון: text-start במקום text-right, ושימוש ב-border-inline-start (border-s)
+                        className={cn(
+                          "h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-xs text-start",
+                          "border-s first:border-s-0 border-slate-100"
+                        )}
                         style={{ width: header.getSize() }}
                     >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -96,7 +104,6 @@ export function SmartTable<TData>({
                     <TableRow
                         data-state={row.getIsSelected() && "selected"}
                         className={`h-9 hover:bg-blue-50/50 transition-colors border-b border-slate-100 ${row.getCanExpand() ? "cursor-pointer" : ""}`}
-                        // תיקון: אם המשתמש לוחץ על טקסט שניתן להעתקה או כפתור פנימי, ההרחבה תקרה רק אם לא בוצע stopPropagation
                         onClick={(e) => {
                            if (!e.defaultPrevented && row.getCanExpand()) {
                                row.toggleExpanded();
@@ -106,7 +113,11 @@ export function SmartTable<TData>({
                         {row.getVisibleCells().map((cell) => (
                         <TableCell 
                           key={cell.id} 
-                          className="py-1 px-2 whitespace-nowrap text-xs text-right border-l last:border-l-0 border-slate-50 rtl:text-right rtl:border-l-0 rtl:border-r rtl:last:border-r-0"
+                          // תיקון: text-start וגבולות לוגיים
+                          className={cn(
+                            "py-1 px-2 whitespace-nowrap text-xs text-start",
+                            "border-s first:border-s-0 border-slate-50"
+                          )}
                           style={{ width: cell.column.getSize() }}
                         >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -128,7 +139,7 @@ export function SmartTable<TData>({
                 ) : (
                 <TableRow>
                     <TableCell colSpan={columnsLength} className="h-24 text-center text-muted-foreground">
-                    {noDataMessage || t("common.noData", "אין נתונים להצגה")}
+                    {noDataMessage || t("common.noData")}
                     </TableCell>
                 </TableRow>
                 )}

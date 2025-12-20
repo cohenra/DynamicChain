@@ -154,10 +154,18 @@
     "noOrders": "No orders found",
     "createSuccess": "Order created successfully",
     "createError": "Error creating order",
+    "fields": {
+      "orderNumber": "Order Number",
+      "orderNumberRequired": "Order Number is required",
+      "supplierName": "Supplier Name",
+      "supplierNameRequired": "Supplier Name is required",
+      "expectedDate": "Expected Date",
+      "notes": "Notes"
+    },
     "orderTypes": {
       "PO": "Purchase Order (PO)",
-      "RETURN": "Return",
-      "TRANSFER": "Transfer"
+      "RETURN": "Customer Return",
+      "TRANSFER": "Transfer In"
     },
     "bulk": {
       "selected": "selected",
@@ -169,6 +177,16 @@
       "error": "Error performing bulk operation",
       "noSelection": "Please select orders",
       "closeConfirm": "Close {{count}} selected orders?"
+    },
+    "lines": {
+      "title": "Order Lines",
+      "addLine": "Add Line",
+      "productRequired": "Product is required",
+      "uomRequired": "Unit is required",
+      "quantityMustBePositive": "Quantity must be positive",
+      "atLeastOneItem": "At least one item is required",
+      "uom": "Unit",
+      "expectedQty": "Expected Qty"
     },
     "sheet": {
       "title": "Receive Item from Shipment",
@@ -461,7 +479,9 @@
     "codeRequired": "Code is a required field",
     "invalidEmail": "Invalid email address",
     "editDepositor": "Edit Depositor",
-    "editDepositorDescription": "Edit depositor details"
+    "editDepositorDescription": "Edit depositor details",
+    "selectDepositor": "Select Depositor",
+    "selectDepositorFirst": "Please select a depositor first"
   },
   "warehouses": {
     "title": "Warehouses",

@@ -1,0 +1,276 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - heading "LogiSnap" [level=1] [ref=e7]
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - img [ref=e10]
+            - combobox [ref=e14] [cursor=pointer]:
+              - img [ref=e15]
+          - button "Logout" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - text: Logout
+    - generic [ref=e21]:
+      - complementary [ref=e22]:
+        - button [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+        - navigation [ref=e27]:
+          - button "Dashboard" [ref=e28] [cursor=pointer]:
+            - img [ref=e29]
+            - generic [ref=e34]: Dashboard
+          - button "Inventory" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+            - generic [ref=e46]: Inventory
+          - button "Inbound" [ref=e47] [cursor=pointer]:
+            - img [ref=e48]
+            - generic [ref=e53]: Inbound
+          - button "Outbound" [ref=e54] [cursor=pointer]:
+            - img [ref=e55]
+            - generic [ref=e58]: Outbound
+          - button "layout.waves" [ref=e59] [cursor=pointer]:
+            - img [ref=e60]
+            - generic [ref=e64]: layout.waves
+          - button "layout.strategies" [ref=e65] [cursor=pointer]:
+            - img [ref=e66]
+            - generic [ref=e69]: layout.strategies
+          - button "Products" [ref=e70] [cursor=pointer]:
+            - img [ref=e71]
+            - generic [ref=e75]: Products
+          - button "Depositors" [ref=e77] [cursor=pointer]:
+            - img [ref=e78]
+            - generic [ref=e83]: Depositors
+          - button "Warehouses" [ref=e84] [cursor=pointer]:
+            - img [ref=e85]
+            - generic [ref=e89]: Warehouses
+          - button "Invoices" [ref=e90] [cursor=pointer]:
+            - img [ref=e91]
+            - generic [ref=e94]: Invoices
+        - generic [ref=e95]: v1.0.0
+      - main [ref=e96]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - heading "Products" [level=1] [ref=e100]
+            - paragraph [ref=e101]: Manage your inventory products with custom attributes
+          - generic [ref=e102]:
+            - tablist [ref=e103]:
+              - tab "Product Catalog" [selected] [ref=e104] [cursor=pointer]
+              - tab "Units of Measure" [ref=e105] [cursor=pointer]
+            - tabpanel "Product Catalog" [ref=e106]:
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - generic [ref=e110]:
+                    - img [ref=e111]
+                    - textbox "Search" [ref=e114]
+                  - button "Add Product" [ref=e116] [cursor=pointer]:
+                    - img [ref=e117]
+                    - text: Add Product
+                - table [ref=e121]:
+                  - rowgroup [ref=e122]:
+                    - row "SKU Product Name Depositor Base Unit (e.g., Bottle/Each) Actions" [ref=e123]:
+                      - columnheader [ref=e124]
+                      - columnheader "SKU" [ref=e125]
+                      - columnheader "Product Name" [ref=e126]
+                      - columnheader "Depositor" [ref=e127]
+                      - columnheader "Base Unit (e.g., Bottle/Each)" [ref=e128]
+                      - columnheader "Actions" [ref=e129]
+                      - columnheader [ref=e130]
+                  - rowgroup [ref=e131]:
+                    - row "SKU-1766270857430 Test Product SKU-1766270857430 אדידס קרטון" [ref=e132] [cursor=pointer]:
+                      - cell [ref=e133]:
+                        - button [ref=e134]:
+                          - img [ref=e135]
+                      - cell "SKU-1766270857430" [ref=e137]
+                      - cell "Test Product SKU-1766270857430" [ref=e138]:
+                        - generic "Test Product SKU-1766270857430" [ref=e139]
+                      - cell "אדידס" [ref=e140]:
+                        - generic [ref=e141]: אדידס
+                      - cell "קרטון" [ref=e142]
+                      - cell [ref=e143]:
+                        - generic [ref=e144]:
+                          - button "Edit" [ref=e145]:
+                            - img [ref=e146]
+                          - button "Delete" [ref=e149]:
+                            - img [ref=e150]
+                      - cell [ref=e153]
+                    - row "SKU-1766269908892 Test Product SKU-1766269908892 אדידס קרטון" [ref=e154] [cursor=pointer]:
+                      - cell [ref=e155]:
+                        - button [ref=e156]:
+                          - img [ref=e157]
+                      - cell "SKU-1766269908892" [ref=e159]
+                      - cell "Test Product SKU-1766269908892" [ref=e160]:
+                        - generic "Test Product SKU-1766269908892" [ref=e161]
+                      - cell "אדידס" [ref=e162]:
+                        - generic [ref=e163]: אדידס
+                      - cell "קרטון" [ref=e164]
+                      - cell [ref=e165]:
+                        - generic [ref=e166]:
+                          - button "Edit" [ref=e167]:
+                            - img [ref=e168]
+                          - button "Delete" [ref=e171]:
+                            - img [ref=e172]
+                      - cell [ref=e175]
+                    - row "SKU-1766182282251 Test Product SKU-1766182282251 אדידס קרטון" [ref=e176] [cursor=pointer]:
+                      - cell [ref=e177]:
+                        - button [ref=e178]:
+                          - img [ref=e179]
+                      - cell "SKU-1766182282251" [ref=e181]
+                      - cell "Test Product SKU-1766182282251" [ref=e182]:
+                        - generic "Test Product SKU-1766182282251" [ref=e183]
+                      - cell "אדידס" [ref=e184]:
+                        - generic [ref=e185]: אדידס
+                      - cell "קרטון" [ref=e186]
+                      - cell [ref=e187]:
+                        - generic [ref=e188]:
+                          - button "Edit" [ref=e189]:
+                            - img [ref=e190]
+                          - button "Delete" [ref=e193]:
+                            - img [ref=e194]
+                      - cell [ref=e197]
+                    - row "SKU-1766182128680 Test Product SKU-1766182128680 אדידס קרטון" [ref=e198] [cursor=pointer]:
+                      - cell [ref=e199]:
+                        - button [ref=e200]:
+                          - img [ref=e201]
+                      - cell "SKU-1766182128680" [ref=e203]
+                      - cell "Test Product SKU-1766182128680" [ref=e204]:
+                        - generic "Test Product SKU-1766182128680" [ref=e205]
+                      - cell "אדידס" [ref=e206]:
+                        - generic [ref=e207]: אדידס
+                      - cell "קרטון" [ref=e208]
+                      - cell [ref=e209]:
+                        - generic [ref=e210]:
+                          - button "Edit" [ref=e211]:
+                            - img [ref=e212]
+                          - button "Delete" [ref=e215]:
+                            - img [ref=e216]
+                      - cell [ref=e219]
+                    - row "SKU-1766181948645 Test Product SKU-1766181948645 אדידס קרטון" [ref=e220] [cursor=pointer]:
+                      - cell [ref=e221]:
+                        - button [ref=e222]:
+                          - img [ref=e223]
+                      - cell "SKU-1766181948645" [ref=e225]
+                      - cell "Test Product SKU-1766181948645" [ref=e226]:
+                        - generic "Test Product SKU-1766181948645" [ref=e227]
+                      - cell "אדידס" [ref=e228]:
+                        - generic [ref=e229]: אדידס
+                      - cell "קרטון" [ref=e230]
+                      - cell [ref=e231]:
+                        - generic [ref=e232]:
+                          - button "Edit" [ref=e233]:
+                            - img [ref=e234]
+                          - button "Delete" [ref=e237]:
+                            - img [ref=e238]
+                      - cell [ref=e241]
+                    - row "2222 מכנס אדידס יחידה" [ref=e242] [cursor=pointer]:
+                      - cell [ref=e243]:
+                        - button [ref=e244]:
+                          - img [ref=e245]
+                      - cell "2222" [ref=e247]
+                      - cell "מכנס" [ref=e248]:
+                        - generic "מכנס" [ref=e249]
+                      - cell "אדידס" [ref=e250]:
+                        - generic [ref=e251]: אדידס
+                      - cell "יחידה" [ref=e252]
+                      - cell [ref=e253]:
+                        - generic [ref=e254]:
+                          - button "Edit" [ref=e255]:
+                            - img [ref=e256]
+                          - button "Delete" [ref=e259]:
+                            - img [ref=e260]
+                      - cell [ref=e263]
+                    - row "1111 חולצה אדידס יחידה" [ref=e264] [cursor=pointer]:
+                      - cell [ref=e265]:
+                        - button [ref=e266]:
+                          - img [ref=e267]
+                      - cell "1111" [ref=e269]
+                      - cell "חולצה" [ref=e270]:
+                        - generic "חולצה" [ref=e271]
+                      - cell "אדידס" [ref=e272]:
+                        - generic [ref=e273]: אדידס
+                      - cell "יחידה" [ref=e274]
+                      - cell [ref=e275]:
+                        - generic [ref=e276]:
+                          - button "Edit" [ref=e277]:
+                            - img [ref=e278]
+                          - button "Delete" [ref=e281]:
+                            - img [ref=e282]
+                      - cell [ref=e285]
+                    - row "4324 שדגשדגשד מזון מהיר שיווק יחידה" [ref=e286] [cursor=pointer]:
+                      - cell [ref=e287]:
+                        - button [ref=e288]:
+                          - img [ref=e289]
+                      - cell "4324" [ref=e291]
+                      - cell "שדגשדגשד" [ref=e292]:
+                        - generic "שדגשדגשד" [ref=e293]
+                      - cell "מזון מהיר שיווק" [ref=e294]:
+                        - generic [ref=e295]: מזון מהיר שיווק
+                      - cell "יחידה" [ref=e296]
+                      - cell [ref=e297]:
+                        - generic [ref=e298]:
+                          - button "Edit" [ref=e299]:
+                            - img [ref=e300]
+                          - button "Delete" [ref=e303]:
+                            - img [ref=e304]
+                      - cell [ref=e307]
+                    - row "TOMATO-SAUCE רוטב עגבניות מזון מהיר שיווק יחידה" [ref=e308] [cursor=pointer]:
+                      - cell [ref=e309]:
+                        - button [ref=e310]:
+                          - img [ref=e311]
+                      - cell "TOMATO-SAUCE" [ref=e313]
+                      - cell "רוטב עגבניות" [ref=e314]:
+                        - generic "רוטב עגבניות" [ref=e315]
+                      - cell "מזון מהיר שיווק" [ref=e316]:
+                        - generic [ref=e317]: מזון מהיר שיווק
+                      - cell "יחידה" [ref=e318]
+                      - cell [ref=e319]:
+                        - generic [ref=e320]:
+                          - button "Edit" [ref=e321]:
+                            - img [ref=e322]
+                          - button "Delete" [ref=e325]:
+                            - img [ref=e326]
+                      - cell [ref=e329]
+                    - row "PASTA-500G פסטה 500 גרם מזון מהיר שיווק יחידה" [ref=e330] [cursor=pointer]:
+                      - cell [ref=e331]:
+                        - button [ref=e332]:
+                          - img [ref=e333]
+                      - cell "PASTA-500G" [ref=e335]
+                      - cell "פסטה 500 גרם" [ref=e336]:
+                        - generic "פסטה 500 גרם" [ref=e337]
+                      - cell "מזון מהיר שיווק" [ref=e338]:
+                        - generic [ref=e339]: מזון מהיר שיווק
+                      - cell "יחידה" [ref=e340]
+                      - cell [ref=e341]:
+                        - generic [ref=e342]:
+                          - button "Edit" [ref=e343]:
+                            - img [ref=e344]
+                          - button "Delete" [ref=e347]:
+                            - img [ref=e348]
+                      - cell [ref=e351]
+                - generic [ref=e353]:
+                  - generic [ref=e354]:
+                    - generic [ref=e355]: Total 14 records
+                    - generic [ref=e356]:
+                      - paragraph [ref=e357]: "Rows:"
+                      - combobox [ref=e358] [cursor=pointer]:
+                        - generic: "10"
+                        - img [ref=e359]
+                  - generic [ref=e361]:
+                    - generic [ref=e362]: Page 1 of 2
+                    - generic [ref=e363]:
+                      - button "First Page" [disabled]:
+                        - img
+                      - button "Previous Page" [disabled]:
+                        - img
+                      - button "Next Page" [ref=e364] [cursor=pointer]:
+                        - img [ref=e365]
+                      - button "Last Page" [ref=e367] [cursor=pointer]:
+                        - img [ref=e368]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e371]:
+        - img [ref=e373]
+        - generic [ref=e376]: Product created successfully
+```
