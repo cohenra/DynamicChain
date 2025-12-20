@@ -39,6 +39,7 @@ import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
+import { cn } from '@/lib/utils';
 
 export default function Products() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -50,7 +51,8 @@ export default function Products() {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
 
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } = 
     useTableSettings({ tableName: 'products_table' });
@@ -120,7 +122,7 @@ export default function Products() {
           onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
           className="h-6 w-6"
         >
-          {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : (isRtl ? <ChevronRight className="h-4 w-4 rotate-180" /> : <ChevronRight className="h-4 w-4" />)}
         </Button>
       ),
     },
@@ -161,7 +163,7 @@ export default function Products() {
       size: undefined,
       cell: () => null
     }
-  ], [t]);
+  ], [t, isRtl]);
 
   const table = useReactTable({
     data: products || [],
@@ -187,8 +189,8 @@ export default function Products() {
         <p className="text-sm text-muted-foreground">{t('products.description')}</p>
       </div>
 
-      <Tabs defaultValue="catalog" className="w-full">
-        <TabsList className="bg-slate-100 h-9 p-1">
+      <Tabs defaultValue="catalog" className="w-full" dir={i18n.dir()}>
+        <TabsList className="bg-slate-100 h-9 p-1 justify-start">
           <TabsTrigger value="catalog" className="text-xs px-4">{t('products.tabs.catalog')}</TabsTrigger>
           <TabsTrigger value="uoms" className="text-xs px-4">{t('products.tabs.uoms')}</TabsTrigger>
         </TabsList>
@@ -203,7 +205,7 @@ export default function Products() {
             noDataMessage={t('products.noProducts')}
             actions={
               <Button onClick={handleAddNew} size="sm" className="h-8 text-xs">
-                <Plus className="ml-2 h-3.5 w-3.5" />
+                <Plus className={cn("h-3.5 w-3.5", isRtl ? "ml-2" : "mr-2")} />
                 {t('products.addProduct')}
               </Button>
             }
@@ -219,7 +221,7 @@ export default function Products() {
       </Tabs>
 
       <Sheet open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if(!open) setEditingProduct(null); }}>
-        <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent side={isRtl ? 'left' : 'right'} className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingProduct ? t('products.editProduct') : t('products.addNewProduct')}</SheetTitle>
             <SheetDescription>{t('products.addProductDescription')}</SheetDescription>

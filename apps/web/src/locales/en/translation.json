@@ -59,6 +59,8 @@
     "inventory": "Inventory",
     "inbound": "Inbound",
     "outbound": "Outbound",
+	"waves": "Waves",
+    "strategies": "Strategies",
     "products": "Products",
     "depositors": "Depositors",
     "warehouses": "Warehouses",

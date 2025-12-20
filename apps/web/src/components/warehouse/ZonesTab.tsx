@@ -7,9 +7,6 @@ import {
   useReactTable,
   getCoreRowModel,
   ColumnDef,
-  getPaginationRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
   SortingState,
 } from '@tanstack/react-table';
 import {
@@ -34,6 +31,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
+import { cn } from '@/lib/utils'; // הוספתי למקרה הצורך
 
 interface ZonesTabProps {
   warehouseId: number;
@@ -49,7 +47,8 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
   const [globalFilter, setGlobalFilter] = useState("");
 
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
 
   // Persistent Settings Hook
   const { 
@@ -60,17 +59,25 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
     isLoading: isLoadingSettings 
   } = useTableSettings({ tableName: 'zones_table' });
 
-  // Fetch zones
-  const { data: zones, isLoading: isLoadingData } = useQuery({
-    queryKey: ['zones', warehouseId],
-    queryFn: () => zoneService.getZones(warehouseId),
+  // Fetch zones (Server-Side Pagination)
+  const { data: zonesData, isLoading: isLoadingData } = useQuery({
+    queryKey: ['zones', warehouseId, pagination.pageIndex, pagination.pageSize],
+    queryFn: () => zoneService.getZones({
+        warehouse_id: warehouseId,
+        skip: pagination.pageIndex * pagination.pageSize,
+        limit: pagination.pageSize
+    }),
+    placeholderData: (previousData) => previousData, // מונע הבהוב בטעינה
   });
+
+  const zones = zonesData?.items || [];
+  const totalCount = zonesData?.total || 0;
 
   // Create zone mutation
   const createZoneMutation = useMutation({
     mutationFn: zoneService.createZone,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['zones', warehouseId] });
+      queryClient.invalidateQueries({ queryKey: ['zones'] });
       setIsSheetOpen(false);
       toast.success(t('zones.createSuccess'));
     },
@@ -84,7 +91,7 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
     mutationFn: ({ id, data }: { id: number; data: ZoneUpdate }) =>
       zoneService.updateZone(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['zones', warehouseId] });
+      queryClient.invalidateQueries({ queryKey: ['zones'] });
       setIsSheetOpen(false);
       setEditingZone(null);
       toast.success(t('zones.updateSuccess'));
@@ -98,7 +105,7 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
   const deleteZoneMutation = useMutation({
     mutationFn: (id: number) => zoneService.deleteZone(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['zones', warehouseId] });
+      queryClient.invalidateQueries({ queryKey: ['zones'] });
       setDeletingZone(null);
       toast.success(t('zones.deleteSuccess'));
     },
@@ -145,22 +152,21 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
   ];
 
   const table = useReactTable({
-    data: zones || [],
+    data: zones,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onPaginationChange,
-    onColumnVisibilityChange,
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    pageCount: Math.ceil(totalCount / pagination.pageSize),
     state: {
       pagination,
       columnVisibility,
       sorting,
       globalFilter,
     },
+    manualPagination: true, // קריטי!
+    onPaginationChange,
+    onColumnVisibilityChange,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
   });
 
   const handleCreateZone = (data: ZoneCreate) => {
@@ -189,15 +195,14 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
         noDataMessage={t('zones.noZones')}
         actions={
           <Button onClick={() => setIsSheetOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className={cn("h-4 w-4", isRtl ? "ml-2" : "mr-2")} />
             {t('zones.addZone')}
           </Button>
         }
       />
 
-      {/* Zone Form Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={handleCloseSheet}>
-        <SheetContent>
+        <SheetContent side={isRtl ? 'left' : 'right'}>
           <SheetHeader>
             <SheetTitle>
               {editingZone ? t('zones.editZone') : t('zones.addZone')}
@@ -216,7 +221,6 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
         </SheetContent>
       </Sheet>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingZone} onOpenChange={() => setDeletingZone(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

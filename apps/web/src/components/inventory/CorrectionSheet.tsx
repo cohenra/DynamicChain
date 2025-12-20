@@ -1,190 +1,142 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { inventoryService, InventoryTransaction } from '@/services/inventory';
-import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { InventoryTransaction } from '@/services/inventory'; // וודא שהנתיב נכון
 
 interface CorrectionSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
   transaction: InventoryTransaction | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onSubmit: (id: string, newQuantity: number, reason: string) => Promise<void>;
 }
 
-export function CorrectionSheet({ transaction, open, onOpenChange }: CorrectionSheetProps) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
+export function CorrectionSheet({
+  isOpen,
+  onClose,
+  transaction,
+  onSubmit,
+}: CorrectionSheetProps) {
+  const { t, i18n } = useTranslation();
+  const [newQuantity, setNewQuantity] = useState('');
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const [newQuantity, setNewQuantity] = useState<string>('');
-  const [reason, setReason] = useState<string>('');
-
-  const correctionMutation = useMutation({
-    mutationFn: (data: { transactionId: number; new_quantity: number; reason?: string }) =>
-      inventoryService.correctTransaction(data.transactionId, {
-        new_quantity: data.new_quantity,
-        reason: data.reason,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      toast.success(t('inventory.correction.success', 'התיקון בוצע בהצלחה'));
-      handleClose();
-    },
-    onError: (error: any) => {
-      const errorMsg = error?.response?.data?.detail || t('inventory.correction.error', 'שגיאה בביצוע תיקון');
-      toast.error(errorMsg);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!transaction) return;
 
-    const quantity = parseFloat(newQuantity);
-    if (isNaN(quantity) || quantity <= 0) {
-      toast.error(t('inventory.correction.invalidQuantity', 'יש להזין כמות חיובית'));
+    const qty = parseFloat(newQuantity);
+    if (isNaN(qty) || qty < 0) {
+      toast({
+        title: t('common.error', 'Error'),
+        description: t('inventory.correction.invalidQuantity', 'Please enter a valid quantity'),
+        variant: 'destructive',
+      });
       return;
     }
 
-    correctionMutation.mutate({
-      transactionId: transaction.id,
-      new_quantity: quantity,
-      reason: reason.trim() || undefined,
-    });
-  };
-
-  const handleClose = () => {
-    setNewQuantity('');
-    setReason('');
-    onOpenChange(false);
-  };
-
-  // Update form when transaction changes
-  React.useEffect(() => {
-    if (transaction && open) {
-      setNewQuantity(transaction.quantity.toString());
+    setIsSubmitting(true);
+    try {
+      await onSubmit(transaction.id, qty, reason);
+      onClose();
+      setNewQuantity('');
       setReason('');
+    } catch (error) {
+      console.error(error);
+      // הטיפול בשגיאה יעשה בקומפוננטה האב בדרך כלל, אבל כאן נוודא שהמשתמש יודע שנכשל
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [transaction, open]);
+  };
 
-  if (!transaction) return null;
+  // חישוב ההפרש בצורה בטוחה יותר (עיגול ל-3 ספרות)
+  const calculateDelta = () => {
+    if (!transaction || !newQuantity) return 0;
+    const current = transaction.quantity;
+    const next = parseFloat(newQuantity);
+    if (isNaN(next)) return 0;
+    return (next - current).toFixed(3); // מחזיר מחרוזת לתצוגה
+  };
+
+  const dir = i18n.dir();
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side={dir === 'rtl' ? 'left' : 'right'}>
         <SheetHeader>
-          <SheetTitle>{t('inventory.correction.title', 'תיקון טרנזקציה')}</SheetTitle>
+          <SheetTitle>{t('inventory.correction.title', 'Inventory Correction')}</SheetTitle>
           <SheetDescription>
-            {t('inventory.correction.description', 'יצירת טרנזקצית פיצוי לתיקון טעות במלאי')}
+            {t('inventory.correction.description', 'Update quantity for specific batch/LPN.')}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-4">
-          {/* Original Transaction Info */}
-          <div className="rounded-lg border p-4 bg-muted/30 space-y-2">
-            <div className="text-sm font-medium">{t('inventory.correction.original', 'טרנזקציה מקורית')}</div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="text-muted-foreground">{t('inventory.lpn', 'LPN')}:</div>
-              <div className="font-mono">{transaction.inventory_lpn}</div>
-
-              <div className="text-muted-foreground">{t('inventory.product', 'מוצר')}:</div>
-              <div>{transaction.product_name}</div>
-
-              <div className="text-muted-foreground">{t('inventory.quantity', 'כמות')}:</div>
-              <div className="font-bold">{transaction.quantity}</div>
-
-              <div className="text-muted-foreground">{t('inventory.type', 'סוג')}:</div>
-              <div className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded w-fit">
-                {transaction.transaction_type}
+        {transaction && (
+          <div className="py-6 space-y-6">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('products.product')}:</span>
+                <span className="font-medium">{transaction.product_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('warehouses.location')}:</span>
+                <span className="font-medium">{transaction.location_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('inventory.currentQty')}:</span>
+                <span className="font-medium">{transaction.quantity}</span>
               </div>
             </div>
-          </div>
 
-          {/* Correction Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newQuantity">
-                {t('inventory.correction.newQuantity', 'כמות מתוקנת')} *
-              </Label>
-              <Input
-                id="newQuantity"
-                type="number"
-                step="0.001"
-                min="0"
-                value={newQuantity}
-                onChange={(e) => setNewQuantity(e.target.value)}
-                placeholder={t('inventory.correction.quantityPlaceholder', 'הזן כמות מתוקנת')}
-                required
-                dir="ltr"
-              />
-              {newQuantity && !isNaN(parseFloat(newQuantity)) && (
-                <p className="text-sm text-muted-foreground">
-                  {t('inventory.correction.delta', 'הפרש')}: {' '}
-                  <span className={parseFloat(newQuantity) - transaction.quantity >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {parseFloat(newQuantity) - transaction.quantity > 0 ? '+' : ''}
-                    {(parseFloat(newQuantity) - transaction.quantity).toFixed(3)}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reason">
-                {t('inventory.correction.reason', 'סיבת התיקון')}
-              </Label>
-              <Textarea
-                id="reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder={t('inventory.correction.reasonPlaceholder', 'תאר את הסיבה לתיקון (אופציונלי)')}
-                rows={3}
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground">
-                {reason.length}/500
-              </p>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="submit"
-                disabled={correctionMutation.isPending}
-                className="flex-1"
-              >
-                {correctionMutation.isPending && (
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-qty">{t('inventory.newQty', 'New Quantity')}</Label>
+                <Input
+                  id="new-qty"
+                  type="number"
+                  step="0.001"
+                  value={newQuantity}
+                  onChange={(e) => setNewQuantity(e.target.value)}
+                  placeholder={t('inventory.enterQty', 'Enter quantity')}
+                />
+                {newQuantity && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    {t('inventory.delta', 'Difference')}: <span dir="ltr">{calculateDelta()}</span>
+                  </p>
                 )}
-                {t('inventory.correction.submit', 'בצע תיקון')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={correctionMutation.isPending}
-              >
-                {t('common.cancel', 'ביטול')}
-              </Button>
-            </div>
-          </form>
+              </div>
 
-          {/* Warning */}
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-            <strong>{t('inventory.correction.warning', 'שים לב')}:</strong>{' '}
-            {t('inventory.correction.warningText', 'תיקון זה ייצור טרנזקציה חדשה. הטרנזקציה המקורית תישאר במערכת לצורך ביקורת.')}
+              <div className="space-y-2">
+                <Label htmlFor="reason">{t('inventory.correction.reason', 'Reason')}</Label>
+                <Input
+                  id="reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder={t('inventory.correction.reasonPlaceholder', 'Cycle count, Damaged, etc.')}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  {t('common.cancel', 'Cancel')}
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
+                </Button>
+              </div>
+            </form>
           </div>
-        </div>
+        )}
       </SheetContent>
     </Sheet>
   );

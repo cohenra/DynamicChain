@@ -1,21 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   locationService,
   Location,
-  LocationCreate,
   LocationUpdate,
 } from '@/services/locations';
 import { zoneService } from '@/services/zones';
+import { cn } from '@/lib/utils'; // <-- התיקון: הוספת הייבוא החסר
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
   ColumnDef,
   SortingState,
 } from '@tanstack/react-table';
@@ -49,6 +46,11 @@ interface LocationsTabProps {
 }
 
 export function LocationsTab({ warehouseId }: LocationsTabProps) {
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
+  const queryClient = useQueryClient();
+
+  // Dialog States
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -62,10 +64,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const [filterZoneId, setFilterZoneId] = useState<number | undefined>();
   const [filterUsageId, setFilterUsageId] = useState<number | undefined>();
 
-  const queryClient = useQueryClient();
-  const { t } = useTranslation();
-
-  // Persistent Settings Hook
+  // Persistent Settings
   const { 
     pagination, 
     onPaginationChange, 
@@ -85,16 +84,23 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     queryFn: locationService.getLocationUsages,
   });
 
-  const { data: locations, isLoading: isLoadingData } = useQuery({
-    queryKey: ['locations', warehouseId, filterZoneId, filterUsageId],
+  // --- Optimized Data Fetching (Server-Side Pagination) ---
+  const { data: locationData, isLoading: isLoadingData } = useQuery({
+    queryKey: ['locations', warehouseId, filterZoneId, filterUsageId, pagination.pageIndex, pagination.pageSize],
     queryFn: () =>
       locationService.getLocations({
         warehouse_id: warehouseId,
         zone_id: filterZoneId,
         usage_id: filterUsageId,
-        limit: 10000, // Load all for client-side features
+        skip: pagination.pageIndex * pagination.pageSize,
+        limit: pagination.pageSize,
       }),
+      placeholderData: (previousData) => previousData,
   });
+
+  // Extract items and total safely
+  const locations = locationData?.items || [];
+  const totalCount = locationData?.total || 0;
 
   // Mutations
   const createLocationMutation = useMutation({
@@ -135,54 +141,37 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   const columns: ColumnDef<Location>[] = [
     {
       accessorKey: 'name',
-      id: 'name',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent font-bold">
           {t('locations.name')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
+          <ArrowUpDown className="mx-2 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => <div className="font-bold">{row.getValue("name")}</div>,
     },
     {
       accessorKey: 'zone_id',
-      id: 'zone_id',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
-          {t('locations.zone')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
-        </Button>
-      ),
+      header: t('locations.zone'),
       cell: ({ row }) => getZoneName(row.original.zone_id),
     },
     {
       accessorKey: 'aisle',
-      id: 'aisle',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
-          {t('locations.aisle')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
-        </Button>
-      ),
+      header: t('locations.aisle'),
     },
     {
       accessorKey: 'bay',
-      id: 'bay',
       header: t('locations.bay'),
     },
     {
       accessorKey: 'level',
-      id: 'level',
       header: t('locations.level'),
     },
     {
       accessorKey: 'slot',
-      id: 'slot',
       header: t('locations.slot'),
     },
     {
       accessorKey: 'usage_id',
-      id: 'usage_id',
       header: t('locations.usage'),
       cell: ({ row }) => {
         const usageName = usages?.find(u => u.id === row.original.usage_id)?.name;
@@ -192,23 +181,16 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     },
     {
       accessorKey: 'type_id',
-      id: 'type_id',
       header: t('locations.type'),
       cell: ({ row }) => row.original.type_definition?.name || row.original.type_id,
     },
     {
       accessorKey: 'pick_sequence',
-      id: 'pick_sequence',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="p-0 hover:bg-transparent">
-          {t('locations.pickSequence')}
-          <ArrowUpDown className="mr-2 h-3 w-3" />
-        </Button>
-      ),
+      header: t('locations.pickSequence'),
     },
     {
       id: 'actions',
-      header: () => <div className="text-left w-full pl-2">{t('common.actions')}</div>,
+      header: t('common.actions'),
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditingLocation(row.original); setIsSheetOpen(true); }}>
@@ -223,25 +205,23 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
   ];
 
   const table = useReactTable({
-    data: locations || [],
+    data: locations,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onPaginationChange,
-    onColumnVisibilityChange,
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    pageCount: Math.ceil(totalCount / pagination.pageSize),
     state: {
       pagination,
       columnVisibility,
       sorting,
       globalFilter,
     },
+    manualPagination: true,
+    onPaginationChange,
+    onColumnVisibilityChange,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
   });
 
-  // הגדרת הפילטרים עבור SmartTable
   const filters: FilterOption[] = [
     {
       key: 'zone',
@@ -259,15 +239,14 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
     }
   ];
 
-  // הגדרת הכפתורים עבור SmartTable
   const actions = (
     <>
       <Button variant="outline" size="sm" onClick={() => setIsGeneratorOpen(true)} className="h-9">
-        <Wand2 className="mr-2 h-3.5 w-3.5" />
+        <Wand2 className={cn("h-3.5 w-3.5", isRtl ? "ml-2" : "mr-2")} />
         {t('locations.generator')}
       </Button>
       <Button size="sm" onClick={() => setIsSheetOpen(true)} className="h-9">
-        <Plus className="mr-2 h-3.5 w-3.5" />
+        <Plus className={cn("h-3.5 w-3.5", isRtl ? "ml-2" : "mr-2")} />
         {t('locations.addLocation')}
       </Button>
     </>
@@ -286,9 +265,8 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
         noDataMessage={t('locations.noLocations')}
       />
 
-      {/* --- Dialogs & Sheets --- */}
       <Sheet open={isSheetOpen} onOpenChange={(v) => { setIsSheetOpen(v); if(!v) setEditingLocation(null); }}>
-        <SheetContent className="overflow-y-auto w-[400px] sm:w-[540px]">
+        <SheetContent side={isRtl ? 'left' : 'right'} className="overflow-y-auto w-[400px] sm:w-[540px]">
           <SheetHeader>
             <SheetTitle>{editingLocation ? t('locations.editLocation') : t('locations.addLocation')}</SheetTitle>
             <SheetDescription>{editingLocation ? t('locations.editDescription') : t('locations.addDescription')}</SheetDescription>
@@ -305,7 +283,7 @@ export function LocationsTab({ warehouseId }: LocationsTabProps) {
       </Sheet>
 
       <Sheet open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
-        <SheetContent className="sm:max-w-[600px] overflow-y-auto">
+        <SheetContent side={isRtl ? 'left' : 'right'} className="sm:max-w-[600px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{t('locations.generator')}</SheetTitle>
             <SheetDescription>{t('locations.generatorDescription')}</SheetDescription>

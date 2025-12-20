@@ -42,6 +42,52 @@ import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
 import { toast } from 'sonner';
 
+// --- Sub-component for Lazy Loading Tabs ---
+// ... (הקוד הקיים, החלף רק את הפונקציה WarehouseDetailsTabs)
+
+function WarehouseDetailsTabs({ warehouseId }: { warehouseId: number }) {
+  const { t, i18n } = useTranslation();
+  const [activeTab, setActiveTab] = useState("zones");
+  // משתנה עזר כדי לדעת אם כבר טענו את המיקומים (כדי לא לטעון סתם בהתחלה אם המשתמש לא לחץ)
+  const [locationsLoaded, setLocationsLoaded] = useState(false);
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val);
+    if (val === 'locations') setLocationsLoaded(true);
+  };
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-900 p-2 border-b">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full" dir={i18n.dir()}>
+        <TabsList className="bg-white border w-full justify-start h-8 p-0">
+          <TabsTrigger value="zones" className="px-4 h-full text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-slate-50">
+            {t('zones.title')}
+          </TabsTrigger>
+          <TabsTrigger value="locations" className="px-4 h-full text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-slate-50">
+            {t('locations.title')}
+          </TabsTrigger>
+        </TabsList>
+        
+        <div className="mt-2 bg-white p-2 rounded border">
+          {/* הטריק: שני הקומפוננטות קיימות ב-DOM, אבל רק אחת מוצגת.
+             זה מונע Unmount/Mount מחדש שגורם לטעינת נתונים חוזרת.
+          */}
+          <div className={activeTab === 'zones' ? 'block' : 'hidden'}>
+             <ZonesTab warehouseId={warehouseId} />
+          </div>
+          
+          <div className={activeTab === 'locations' ? 'block' : 'hidden'}>
+             {/* טוענים את המיקומים רק פעם אחת כשהמשתמש לוחץ, ואז שומרים אותם בזיכרון */}
+             {(activeTab === 'locations' || locationsLoaded) && (
+                <LocationsTab warehouseId={warehouseId} />
+             )}
+          </div>
+        </div>
+      </Tabs>
+    </div>
+  );
+}
+
 type WarehouseFormValues = {
   name: string;
   code: string;
@@ -218,20 +264,7 @@ export default function Warehouses() {
           </Button>
         }
         renderSubComponent={({ row }) => (
-          <div className="bg-gray-50 dark:bg-gray-900 p-2 border-b">
-            <Tabs defaultValue="zones" className="w-full" dir="rtl">
-              <TabsList className="bg-white border w-full justify-start h-8 p-0">
-                <TabsTrigger value="zones" className="px-4 h-full text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-slate-50">{t('zones.title')}</TabsTrigger>
-                <TabsTrigger value="locations" className="px-4 h-full text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-slate-50">{t('locations.title')}</TabsTrigger>
-              </TabsList>
-              <TabsContent value="zones" className="mt-2">
-                <ZonesTab warehouseId={row.original.id} />
-              </TabsContent>
-              <TabsContent value="locations" className="mt-2">
-                <LocationsTab warehouseId={row.original.id} />
-              </TabsContent>
-            </Tabs>
-          </div>
+          <WarehouseDetailsTabs warehouseId={row.original.id} />
         )}
       />
 

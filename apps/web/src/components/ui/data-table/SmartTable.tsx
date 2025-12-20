@@ -43,7 +43,8 @@ export function SmartTable<TData>({
   renderSubComponent,
   containerClassName,
 }: SmartTableProps<TData>) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
 
   return (
     <div className="flex flex-col space-y-4">
@@ -61,8 +62,8 @@ export function SmartTable<TData>({
       <div className={cn("rounded-md border bg-white shadow-sm overflow-hidden", containerClassName)}>
         <div className="w-full overflow-x-auto">
             <Table 
-              className="table-fixed" 
-              dir="rtl"
+              className="table-fixed w-full" 
+              // הוסר dir="rtl" קשיח
               style={{ minWidth: table.getTotalSize() }}
             >
             <TableHeader className="bg-slate-50">
@@ -71,7 +72,12 @@ export function SmartTable<TData>({
                     {headerGroup.headers.map((header) => (
                     <TableHead 
                         key={header.id} 
-                        className="h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-right text-xs border-l last:border-l-0 border-slate-100 rtl:text-right rtl:border-l-0 rtl:border-r rtl:last:border-r-0"
+                        className={cn(
+                          "h-9 font-bold text-slate-700 whitespace-nowrap px-2 text-xs",
+                          // תמיכה ב-LTR/RTL בגבולות
+                          "border-l border-slate-100 last:border-l-0 rtl:border-l-0 rtl:border-r rtl:last:border-r-0",
+                          isRtl ? "text-right" : "text-left"
+                        )}
                         style={{ width: header.getSize() }}
                     >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -84,9 +90,9 @@ export function SmartTable<TData>({
                 {isLoading ? (
                 <TableRow>
                     <TableCell colSpan={columnsLength} className="h-24 text-center">
-                    <div className="flex justify-center items-center">
+                    <div className="flex justify-center items-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="mr-2">{t("common.loading", "טוען נתונים...")}</span>
+                        <span>{t("common.loading", "Loading data...")}</span>
                     </div>
                     </TableCell>
                 </TableRow>
@@ -96,7 +102,6 @@ export function SmartTable<TData>({
                     <TableRow
                         data-state={row.getIsSelected() && "selected"}
                         className={`h-9 hover:bg-blue-50/50 transition-colors border-b border-slate-100 ${row.getCanExpand() ? "cursor-pointer" : ""}`}
-                        // תיקון: אם המשתמש לוחץ על טקסט שניתן להעתקה או כפתור פנימי, ההרחבה תקרה רק אם לא בוצע stopPropagation
                         onClick={(e) => {
                            if (!e.defaultPrevented && row.getCanExpand()) {
                                row.toggleExpanded();
@@ -106,7 +111,11 @@ export function SmartTable<TData>({
                         {row.getVisibleCells().map((cell) => (
                         <TableCell 
                           key={cell.id} 
-                          className="py-1 px-2 whitespace-nowrap text-xs text-right border-l last:border-l-0 border-slate-50 rtl:text-right rtl:border-l-0 rtl:border-r rtl:last:border-r-0"
+                          className={cn(
+                            "py-1 px-2 whitespace-nowrap text-xs",
+                            "border-l border-slate-50 last:border-l-0 rtl:border-l-0 rtl:border-r rtl:last:border-r-0",
+                            isRtl ? "text-right" : "text-left"
+                          )}
                           style={{ width: cell.column.getSize() }}
                         >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -128,7 +137,7 @@ export function SmartTable<TData>({
                 ) : (
                 <TableRow>
                     <TableCell colSpan={columnsLength} className="h-24 text-center text-muted-foreground">
-                    {noDataMessage || t("common.noData", "אין נתונים להצגה")}
+                    {noDataMessage || t("common.noData", "No data available")}
                     </TableCell>
                 </TableRow>
                 )}

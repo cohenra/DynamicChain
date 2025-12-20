@@ -4,7 +4,7 @@
     "saving": "שומר...",
     "creating": "יוצר...",
     "save": "שמור",
-    "cancel": "בטל",
+    "cancel": "ביטול",
     "delete": "מחק",
     "edit": "ערוך",
     "view": "צפה",
@@ -100,11 +100,16 @@
     "to": "למיקום",
     "performedBy": "בוצע ע״י",
     "reference": "אסמכתא",
+    "referenceDoc": "מסמך אסמכתא",
+    "referencePlaceholder": "לדוגמה: PO-123",
     "correct": "תקן",
     "noTransactions": "אין תנועות להצגה",
+    "receiveSuccess": "מלאי נקלט בהצלחה",
+    "receiveError": "שגיאה בקליטת מלאי",
+    "autoIfEmpty": "אוטומטי אם ריק",
     "tabs": {
       "inventory": "מלאי נוכחי",
-      "transactions": "היסטוריית תנועות"
+      "transactions": "תנועות מלאי"
     },
     "statuses": {
       "AVAILABLE": "זמין",
@@ -137,8 +142,14 @@
       "reasonPlaceholder": "לדוגמה: טעות בהקלדה, ספירה חוזרת...",
       "submit": "בצע תיקון",
       "warning": "שים לב",
-      "warningText": "פעולה זו לא תמחק את השורה המקורית אלא תיצור שורה חדשה ביומן עם ההפרש."
-    }
+      "warningText": "פעולה זו לא תמחק את השורה המקורית אלא תיצור שורה חדשה ביומן עם ההפרש.",
+      "success": "התיקון בוצע בהצלחה",
+      "error": "שגיאה בביצוע תיקון",
+      "invalidQuantity": "יש להזין כמות חיובית"
+    },
+    "currentQty": "כמות נוכחית",
+    "newQty": "כמות חדשה",
+    "enterQty": "הזן כמות"
   },
   "inbound": {
     "title": "הזמנות קבלה",
@@ -363,7 +374,14 @@
     "title": "אסטרטגיות הקצאה",
     "description": "הגדר ונהל את החוקים להקצאת מלאי עבור הזמנות יציאה",
     "create": "צור אסטרטגיה",
-    "rules": "חוקים"
+    "rules": "חוקים",
+    "fifo": "FIFO סטנדרטי",
+    "lifo": "LIFO",
+    "rules_expire": {
+        "expirationDate": "תאריך תפוגה",
+        "locationSequence": "רצף מיקום",
+        "receptionDate": "תאריך קליטה"
+    }
   },
   "products": {
     "title": "מוצרים",
@@ -372,9 +390,13 @@
       "catalog": "קטלוג פריטים",
       "uoms": "הגדרת יחידות מידה"
     },
+    "product": "מוצר",
+    "selectProduct": "בחר מוצר",
     "addProduct": "הוסף מוצר",
     "addNewProduct": "הוסף מוצר חדש",
     "addProductDescription": "מלא את פרטי המוצר והוסף תכונות מותאמות אישית לפי הצורך",
+    "addPackagingTitle": "הוספת אריזות",
+    "addPackagingTip": "לאחר יצירת המוצר, תוכל להוסיף רמות אריזה (למשל: ארגז, משטח) עם פרטים מלאים:",
     "loading": "טוען מוצרים...",
     "loadingError": "שגיאה בטעינת המוצרים",
     "noProducts": "אין מוצרים להצגה",
@@ -522,6 +544,7 @@
     "country": "מדינה",
     "zipcode": "מיקוד",
     "location": "מיקום",
+    "selectLocation": "בחר מיקום",
     "locationOptional": "מיקום (אופציונלי)",
     "saveWarehouse": "שמור מחסן",
     "createError": "שגיאה ביצירת המחסן",

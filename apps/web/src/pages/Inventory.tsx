@@ -21,10 +21,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { InventoryReceiveForm } from '@/components/inventory/InventoryReceiveForm';
 import { TransactionsTable } from '@/components/inventory/TransactionsTable';
+import { cn } from '@/lib/utils';
 
 export default function InventoryPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const isRtl = i18n.dir() === 'rtl';
   
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -43,10 +45,10 @@ export default function InventoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       setIsReceiveSheetOpen(false);
-      toast.success("מלאי נקלט בהצלחה");
+      toast.success(t('inventory.receiveSuccess', 'מלאי נקלט בהצלחה'));
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.detail || "שגיאה בקליטת מלאי");
+      toast.error(error?.response?.data?.detail || t('inventory.receiveError', 'שגיאה בקליטת מלאי'));
     }
   });
 
@@ -105,7 +107,7 @@ export default function InventoryPage() {
     {
       id: 'filler',
       header: '',
-      size: undefined, // תופס את שאר המקום
+      size: undefined,
       cell: () => null
     }
   ], [t]);
@@ -131,10 +133,10 @@ export default function InventoryPage() {
         <p className="text-sm text-muted-foreground">{t('inventory.subtitle')}</p>
       </div>
 
-      <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="bg-slate-100 h-9 p-1">
-          <TabsTrigger value="inventory" className="text-xs px-4">{t('inventory.tabs.inventory', 'מלאי')}</TabsTrigger>
-          <TabsTrigger value="transactions" className="text-xs px-4">{t('inventory.tabs.transactions', 'טרנזקציות')}</TabsTrigger>
+      <Tabs defaultValue="inventory" className="w-full" dir={i18n.dir()}>
+        <TabsList className="bg-slate-100 h-9 p-1 justify-start">
+          <TabsTrigger value="inventory" className="text-xs px-4">{t('inventory.tabs.inventory')}</TabsTrigger>
+          <TabsTrigger value="transactions" className="text-xs px-4">{t('inventory.tabs.transactions')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory" className="space-y-2 pt-4">
@@ -147,7 +149,7 @@ export default function InventoryPage() {
             noDataMessage={t('inventory.noInventory')}
             actions={
               <Button onClick={() => setIsReceiveSheetOpen(true)} size="sm" className="h-8 text-xs">
-                <PackagePlus className="ml-2 h-3.5 w-3.5" />
+                <PackagePlus className={cn("h-3.5 w-3.5", isRtl ? "ml-2" : "mr-2")} />
                 {t('inventory.receiveStock')}
               </Button>
             }
@@ -160,7 +162,7 @@ export default function InventoryPage() {
       </Tabs>
 
       <Sheet open={isReceiveSheetOpen} onOpenChange={setIsReceiveSheetOpen}>
-        <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent side={isRtl ? 'left' : 'right'} className="w-full sm:max-w-md overflow-y-auto">
             <SheetHeader>
                 <SheetTitle>{t('inventory.receiveStock')}</SheetTitle>
             </SheetHeader>

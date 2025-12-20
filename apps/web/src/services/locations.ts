@@ -19,19 +19,23 @@ export interface Location {
   warehouse_id: number;
   zone_id: number;
   tenant_id: number;
-  name: string; // e.g. A-01-01-01
+  name: string;
   aisle: string;
   bay: string;
   level: string;
   slot: string;
-  type_id: number;  // שונה מ-Enum ל-ID (Foreign Key)
-  usage_id: number; // שונה מ-Enum ל-ID (Foreign Key)
+  type_id: number;
+  usage_id: number;
   pick_sequence: number;
   created_at: string;
   updated_at: string;
-  // שדות אופציונליים להרחבה
   type_definition?: LocationTypeDefinition;
   usage_definition?: LocationUsageDefinition;
+}
+
+export interface PaginatedLocations {
+  items: Location[];
+  total: number;
 }
 
 export interface LocationCreate {
@@ -71,6 +75,7 @@ export interface LocationBulkCreateConfig {
   type_id: number;
   usage_id: number;
   pick_sequence_start?: number;
+  picking_strategy?: string;
 }
 
 export interface LocationBulkCreateResponse {
@@ -87,25 +92,21 @@ export interface LocationListParams {
 }
 
 export const locationService = {
-  // קבלת רשימת מיקומים
-  async getLocations(params?: LocationListParams): Promise<Location[]> {
-    const response = await api.get<Location[]>('/api/locations/', { params });
+  // קבלת רשימת מיקומים (מעודכן לפגינציה)
+  async getLocations(params?: LocationListParams): Promise<PaginatedLocations> {
+    const response = await api.get<PaginatedLocations>('/api/locations/', { params });
     return response.data;
   },
 
-  // יצירת מיקום בודד
   async createLocation(data: LocationCreate): Promise<Location> {
     const response = await api.post<Location>('/api/locations/', data);
     return response.data;
   },
 
-  // יצירת מיקומים המונית
   async bulkCreateLocations(config: LocationBulkCreateConfig): Promise<LocationBulkCreateResponse> {
     const response = await api.post<LocationBulkCreateResponse>('/api/locations/bulk', config);
     return response.data;
   },
-
-  // --- מתודות חדשות להגדרות דינמיות ---
   
   async getLocationTypes(): Promise<LocationTypeDefinition[]> {
     const response = await api.get<LocationTypeDefinition[]>('/api/location-type-definitions/');
@@ -117,7 +118,6 @@ export const locationService = {
     return response.data;
   },
 
-  // מחיקה ועדכון
   async updateLocation(id: number, data: LocationUpdate): Promise<Location> {
     const response = await api.patch<Location>(`/api/locations/${id}`, data);
     return response.data;

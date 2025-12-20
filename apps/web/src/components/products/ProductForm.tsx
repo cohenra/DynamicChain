@@ -11,7 +11,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -53,13 +52,6 @@ interface CustomAttribute {
   value: string;
 }
 
-interface PackagingLevel {
-  id: string;
-  uom_id: string;
-  quantity: string;
-  barcode: string;
-}
-
 interface ProductFormProps {
   onSubmit: (data: ProductCreate) => void;
   isLoading?: boolean;
@@ -69,7 +61,6 @@ interface ProductFormProps {
 
 export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: ProductFormProps) {
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
-  const [packagingLevels, setPackagingLevels] = useState<PackagingLevel[]>([]);
   const [uomDialogOpen, setUomDialogOpen] = useState(false);
   const [editingUom, setEditingUom] = useState<ProductUOM | null>(null);
   const { t } = useTranslation();
@@ -183,27 +174,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
     );
   };
 
-  const addPackagingLevel = () => {
-    setPackagingLevels([
-      ...packagingLevels,
-      { id: Math.random().toString(36).substr(2, 9), uom_id: '', quantity: '', barcode: '' },
-    ]);
-  };
-
-  const removePackagingLevel = (id: string) => {
-    setPackagingLevels(packagingLevels.filter((level) => level.id !== id));
-  };
-
-  const updatePackagingLevel = (id: string, field: 'uom_id' | 'quantity' | 'barcode', value: string) => {
-    setPackagingLevels(
-      packagingLevels.map((level) =>
-        level.id === id ? { ...level, [field]: value } : level
-      )
-    );
-  };
-
   const handleSubmit = (values: ProductFormValues) => {
-    // Convert custom attributes array to object
     const customAttrsObject = customAttributes.reduce(
       (acc, attr) => {
         if (attr.key.trim()) {
@@ -396,15 +367,15 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
             <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-4 rounded-md border border-blue-200 dark:border-blue-800">
               <p className="mb-2">{t('products.packagingHierarchyDescription')}</p>
               <div className="bg-white dark:bg-slate-900 p-3 rounded border mt-3">
-                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">💡 הוספת אריזות</p>
+                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">?? {t('products.addPackagingTitle', '????? ??????')}</p>
                 <p>
-                  לאחר יצירת המוצר, תוכל להוסיף רמות אריזה (למשל: ארגז, משטח) עם פרטים מלאים:
+                  {t('products.addPackagingTip', '???? ????? ?????, ???? ?????? ???? ????? (????: ????, ????) ?? ????? ?????:')}
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-                  <li><strong>סוג אריזה:</strong> בחירה מרשימה מוגדרת</li>
-                  <li><strong>מכיל (יח' בסיס):</strong> כמות יחידות בכל אריזה</li>
-                  <li><strong>ברקוד אריזה:</strong> ברקוד ייחודי לאריזה</li>
-                  <li><strong>מידות ומשקל:</strong> פרטים פיזיים של האריזה</li>
+                  <li><strong>{t('products.uoms.packagingType')}:</strong> {t('products.uoms.packagingTypeDescription')}</li>
+                  <li><strong>{t('products.uoms.contains')}:</strong> {t('products.uoms.conversionFactorDescription')}</li>
+                  <li><strong>{t('products.uoms.barcode')}:</strong> {t('products.uoms.barcodePlaceholder')}</li>
+                  <li><strong>{t('products.uoms.dimensions')}:</strong> {t('products.uoms.dimensionsShort')}</li>
                 </ul>
               </div>
             </div>
@@ -456,7 +427,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                         <TableCell>{uom.barcode || '-'}</TableCell>
                         <TableCell>
                           {uom.length && uom.width && uom.height
-                            ? `${uom.length} × ${uom.width} × ${uom.height} cm`
+                            ? `${uom.length} �� ${uom.width} �� ${uom.height} cm`
                             : '-'}
                         </TableCell>
                         <TableCell>{uom.weight ? `${uom.weight} kg` : '-'}</TableCell>

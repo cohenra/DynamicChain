@@ -17,6 +17,13 @@ class ZoneService:
         self.warehouse_repo = WarehouseRepository(db)
         self.inventory_repo = InventoryRepository(db)
 
+    # הוסף פונקציה זו בתוך המחלקה ZoneService
+    async def count_zones(self, tenant_id: int, warehouse_id: Optional[int] = None) -> int:
+        return await self.zone_repo.count(
+            tenant_id=tenant_id,
+            warehouse_id=warehouse_id
+        )
+        
     async def create_zone(
         self,
         zone_data: ZoneCreate,

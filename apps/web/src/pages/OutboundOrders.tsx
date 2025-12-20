@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { OutboundOrderRowDetail } from '@/components/outbound/OutboundOrderRowDetail';
 import { OutboundOrderForm } from '@/components/outbound/OutboundOrderForm';
-import { Plus, ChevronRight, ChevronDown, Package, XCircle, Loader2, Layers } from 'lucide-react';
+import { Plus, ChevronRight, ChevronDown, Package, XCircle, Loader2, Layers, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
@@ -44,6 +44,7 @@ import {
   getStrategyForOrder
 } from '@/services/outboundService';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function OutboundOrders() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -54,7 +55,8 @@ export default function OutboundOrders() {
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
 
   const { pagination, onPaginationChange, columnVisibility, onColumnVisibilityChange } =
     useTableSettings({ tableName: 'outbound_orders_table' });
@@ -71,7 +73,6 @@ export default function OutboundOrders() {
     queryFn: () => getStrategies(),
   });
 
-  // --- Create Order Mutation ---
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: (order) => {
@@ -82,24 +83,14 @@ export default function OutboundOrders() {
       setIsSheetOpen(false);
     },
     onError: (error: any) => {
-      // Handle 422 validation errors from Pydantic
       const detail = error.response?.data?.detail;
-      let errorMessage: string;
-
+      let errorMessage = t('outbound.createOrderError');
       if (Array.isArray(detail)) {
-        errorMessage = detail.map((e: any) => {
-          const field = e.loc?.slice(-1)?.[0] || 'field';
-          return `${field}: ${e.msg || 'Invalid value'}`;
-        }).join(', ');
+        errorMessage = detail.map((e: any) => `${e.loc?.slice(-1)?.[0]}: ${e.msg}`).join(', ');
       } else if (typeof detail === 'string') {
         errorMessage = detail;
-      } else {
-        errorMessage = t('outbound.createOrderError');
       }
-
-      toast.error(t('common.error'), {
-        description: errorMessage,
-      });
+      toast.error(t('common.error'), { description: errorMessage });
     },
   });
 
@@ -107,7 +98,6 @@ export default function OutboundOrders() {
     createOrderMutation.mutate(data);
   };
 
-  // --- Bulk Allocate Handler ---
   const handleBulkAllocate = async () => {
     const selectedIds = Object.keys(rowSelection).map(Number);
     if (selectedIds.length === 0) return;
@@ -118,7 +108,6 @@ export default function OutboundOrders() {
     for (const id of selectedIds) {
         const order = orders?.find(o => o.id === id);
         if (!order || (order.status !== 'DRAFT')) continue;
-
         try {
             const strategy = getStrategyForOrder(order, strategies || []);
             if (strategy) {
@@ -136,16 +125,13 @@ export default function OutboundOrders() {
     toast.success(t('outbound.actions.allocateSuccess', { count: successCount }));
   };
 
-  // --- Bulk Cancel Handler ---
   const handleBulkCancel = async () => {
       const selectedIds = Object.keys(rowSelection).map(Number);
       if (selectedIds.length === 0 || !confirm(t('outbound.actions.cancelConfirm'))) return;
 
       setBulkLoading(true);
       for (const id of selectedIds) {
-          try {
-              await cancelOrder(id);
-          } catch (e) { console.error(e); }
+          try { await cancelOrder(id); } catch (e) { console.error(e); }
       }
       setBulkLoading(false);
       setRowSelection({});
@@ -153,7 +139,6 @@ export default function OutboundOrders() {
       toast.success(t('outbound.actions.cancelSelected', { count: selectedIds.length }));
   };
 
-  // --- Create Wave Handler ---
   const handleCreateWave = async () => {
       const selectedIds = Object.keys(rowSelection).map(Number);
       if (selectedIds.length === 0) return;
@@ -171,12 +156,11 @@ export default function OutboundOrders() {
       }
   };
 
-  // --- Columns Definitions with FIXED WIDTHS ---
   const columns = useMemo<ColumnDef<OutboundOrder>[]>(
     () => [
       {
         id: 'select',
-        size: 40, // Fixed small width
+        size: 40,
         header: ({ table }) => (
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
@@ -197,44 +181,38 @@ export default function OutboundOrders() {
       },
       {
         id: 'expander',
-        size: 40, // Fixed small width
+        size: 40,
         header: () => null,
-        cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation(); // Fixed: prevent row click conflict
-              row.toggleExpanded();
-            }}
-            className="h-6 w-6"
-          >
-            {row.getIsExpanded() ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </Button>
-        ),
+        cell: ({ row }) => {
+            const Icon = row.getIsExpanded() ? ChevronDown : (isRtl ? ChevronLeft : ChevronRight);
+            return (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}
+                    className="h-6 w-6"
+                >
+                    <Icon className="h-4 w-4" />
+                </Button>
+            );
+        },
       },
       {
         accessorKey: 'order_number',
         id: 'order_number',
-        size: 140, // Fixed width
+        size: 140,
         header: t('outbound.orderNumber'),
         cell: ({ row }) => (
           <div>
             <div className="font-bold text-primary text-xs">{row.original.order_number}</div>
-            <div className="text-[10px] text-muted-foreground">
-              {row.original.order_type}
-            </div>
+            <div className="text-[10px] text-muted-foreground">{row.original.order_type}</div>
           </div>
         ),
       },
       {
         accessorKey: 'wave.wave_number',
         id: 'wave',
-        size: 110, // Fixed width
+        size: 110,
         header: t('outbound.waveNumber'),
         cell: ({ row }) => row.original.wave ? (
             <Badge variant="outline" className="text-[10px] h-5 px-1">{row.original.wave.wave_number}</Badge>
@@ -243,21 +221,19 @@ export default function OutboundOrders() {
       {
         accessorKey: 'customer',
         id: 'customer',
-        size: 180, // Fixed width, will truncate
+        size: 180,
         header: t('outbound.customer'),
         cell: ({ row }) =>
           row.original.customer ? (
             <div className="font-medium text-xs truncate max-w-[170px]" title={row.original.customer.name}>
               {row.original.customer.name}
             </div>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          ),
+          ) : <span className="text-muted-foreground">-</span>,
       },
       {
         accessorKey: 'status',
         id: 'status',
-        size: 100, // Fixed width
+        size: 100,
         header: t('outbound.status'),
         cell: ({ row }) => {
           const color = getStatusColor(row.original.status);
@@ -271,7 +247,7 @@ export default function OutboundOrders() {
       {
         accessorKey: 'priority',
         id: 'priority',
-        size: 90, // Fixed width
+        size: 90,
         header: t('outbound.priority'),
         cell: ({ row }) => {
           const { label, color } = getPriorityInfo(row.original.priority);
@@ -285,7 +261,7 @@ export default function OutboundOrders() {
       {
         id: 'progress',
         header: t('outbound.progress'),
-        size: 120, // Fixed width
+        size: 120,
         cell: ({ row }) => {
           const progress = calculateOrderProgress(row.original);
           return (
@@ -301,40 +277,28 @@ export default function OutboundOrders() {
       {
         accessorKey: 'requested_delivery_date',
         id: 'requested_delivery_date',
-        size: 100, // Fixed width
+        size: 100,
         header: t('outbound.deliveryDate'),
         cell: ({ row }) =>
           row.original.requested_delivery_date ? (
             <span className="text-xs">
               {format(new Date(row.original.requested_delivery_date), 'dd/MM/yyyy')}
             </span>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          ),
+          ) : <span className="text-muted-foreground">-</span>,
       },
       {
         id: 'metrics',
-        size: 80, // Fixed width
+        size: 80,
         header: t('outbound.linesCount'),
         cell: ({ row }) => {
           const metrics = row.original.metrics;
           const linesCount = metrics?.total_lines || row.original.lines?.length || 0;
-          return (
-            <div className="text-xs text-muted-foreground font-mono">
-              {linesCount}
-            </div>
-          );
+          return <div className="text-xs text-muted-foreground font-mono">{linesCount}</div>;
         },
       },
-      // Filler column to take up remaining space
-      {
-          id: 'filler',
-          header: '',
-          size: undefined, // Let it shrink
-          cell: () => null,
-      }
+      { id: 'filler', header: '', size: undefined, cell: () => null }
     ],
-    [t]
+    [t, isRtl]
   );
 
   const table = useReactTable({
@@ -366,28 +330,23 @@ export default function OutboundOrders() {
         <p className="text-sm text-muted-foreground">{t('outbound.description')}</p>
       </div>
 
-      {/* Bulk Actions Bar */}
       {selectedCount > 0 && (
         <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 p-2 rounded-md mb-2 animate-in fade-in slide-in-from-top-2">
-            <span className="text-sm font-medium text-blue-900 ml-2">
+            <span className="text-sm font-medium text-blue-900 mx-2">
                 {t('common.selected', { count: selectedCount })}
             </span>
-            
             <Button size="sm" onClick={handleBulkAllocate} disabled={bulkLoading} className="bg-blue-600 hover:bg-blue-700 h-8">
                 {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Package className="h-3 w-3 mr-2" />}
                 {t('outbound.actions.allocateSelected', { count: selectedCount })}
             </Button>
-
             <Button size="sm" variant="outline" onClick={handleCreateWave} disabled={bulkLoading} className="bg-white hover:bg-slate-50 text-blue-700 border-blue-200 h-8">
                 {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Layers className="h-3 w-3 mr-2" />}
                 {t('outbound.actions.createWave')}
             </Button>
-
             <Button size="sm" variant="destructive" onClick={handleBulkCancel} disabled={bulkLoading} className="h-8">
                 <XCircle className="h-3 w-3 mr-2" />
                 {t('outbound.actions.cancelSelected', { count: selectedCount })}
             </Button>
-
             <Button variant="ghost" size="sm" onClick={() => setRowSelection({})} className="h-8">
                 {t('common.clearSelection')}
             </Button>
@@ -404,7 +363,7 @@ export default function OutboundOrders() {
             noDataMessage={t('common.noData')}
             actions={
                 <Button onClick={() => setIsSheetOpen(true)} size="sm" className="h-8">
-                    <Plus className="ml-2 h-3 w-3" />
+                    <Plus className={cn("h-3 w-3", isRtl ? "ml-2" : "mr-2")} />
                     {t('outbound.createOrder')}
                 </Button>
             }
@@ -415,12 +374,10 @@ export default function OutboundOrders() {
       </div>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent side="left" className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetContent side={isRtl ? 'left' : 'right'} className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{t('outbound.createOrder')}</SheetTitle>
-            <SheetDescription>
-              {t('outbound.createOrderDescription')}
-            </SheetDescription>
+            <SheetDescription>{t('outbound.createOrderDescription')}</SheetDescription>
           </SheetHeader>
           <div className="mt-6">
             <OutboundOrderForm

@@ -18,6 +18,14 @@ class LocationService:
         self.zone_repo = ZoneRepository(db)
         self.warehouse_repo = WarehouseRepository(db)
         self.inventory_repo = InventoryRepository(db)
+        
+    async def count_locations(self, tenant_id: int, warehouse_id: Optional[int] = None, zone_id: Optional[int] = None, usage_id: Optional[int] = None) -> int:
+        return await self.location_repo.count(
+            tenant_id=tenant_id,
+            warehouse_id=warehouse_id,
+            zone_id=zone_id,
+            usage_id=usage_id
+        )    
 
     async def create_location(
         self,
