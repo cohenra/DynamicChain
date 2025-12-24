@@ -31,7 +31,6 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SmartTable } from '@/components/ui/data-table/SmartTable';
 import { useTableSettings } from '@/hooks/use-table-settings';
-import { cn } from '@/lib/utils'; // הוספתי למקרה הצורך
 
 interface ZonesTabProps {
   warehouseId: number;
@@ -195,11 +194,7 @@ export function ZonesTab({ warehouseId }: ZonesTabProps) {
         noDataMessage={t('zones.noZones')}
         actions={
           <Button onClick={() => setIsSheetOpen(true)}>
-<<<<<<< HEAD
-            <Plus className={cn("h-4 w-4", isRtl ? "ml-2" : "mr-2")} />
-=======
             <Plus className="me-2 h-4 w-4" />
->>>>>>> claude/add-i18n-accessibility-5sa1q
             {t('zones.addZone')}
           </Button>
         }

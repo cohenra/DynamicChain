@@ -1,6 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from sqlalchemy import select, and_
 
@@ -37,20 +38,6 @@ class InboundService:
         order_data: InboundOrderCreateRequest,
         tenant_id: int
     ) -> InboundOrder:
-        
-        # FIX: Check for duplicate order number BEFORE insertion to prevent 500 Error
-        stmt = select(InboundOrder).where(
-            and_(
-                InboundOrder.order_number == order_data.order_number,
-                InboundOrder.tenant_id == tenant_id
-            )
-        )
-        result = await self.db.execute(stmt)
-        if result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Order number '{order_data.order_number}' already exists."
-            )
 
         # 1. Create Header
         order = InboundOrder(
@@ -79,7 +66,15 @@ class InboundService:
             )
             self.db.add(line)
 
-        await self.db.commit()
+        # FIX: Handle race condition with IntegrityError for duplicate order numbers
+        try:
+            await self.db.commit()
+        except IntegrityError:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Order number '{order_data.order_number}' already exists."
+            )
         return await self.get_order(order.id, tenant_id)
 
     # ... (Keep rest of the file unchanged) ...

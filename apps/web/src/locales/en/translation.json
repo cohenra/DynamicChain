@@ -41,7 +41,8 @@
     "unknown": "Unknown",
     "dataRefreshed": "Data refreshed",
     "adding": "Adding...",
-    "success": "Success"
+    "success": "Success",
+    "required": "Required"
   },
   "auth": {
     "login": "System Login",
@@ -188,8 +189,37 @@
       "quantityMustBePositive": "Quantity must be positive",
       "atLeastOneItem": "At least one item is required",
       "uom": "Unit",
-      "expectedQty": "Expected Qty"
+      "expectedQty": "Expected Qty",
+      "product": "Product",
+      "sku": "SKU",
+      "receivedQty": "Received",
+      "batch": "Batch",
+      "editLine": "Edit Line",
+      "noLines": "No lines in this order",
+      "addSuccess": "Line added successfully",
+      "updateSuccess": "Line updated successfully"
     },
+    "shipments": {
+      "title": "Shipments",
+      "addShipment": "Add Shipment",
+      "shipmentNumber": "Shipment Number",
+      "container": "Container/Vehicle",
+      "driver": "Driver",
+      "status": "Status",
+      "arrived": "Arrival Date",
+      "receive": "Receive",
+      "noShipments": "No shipments created yet",
+      "createSuccess": "Shipment created successfully",
+      "noItemsReceived": "No items received from this shipment yet",
+      "receivedItems": "Received items",
+      "statuses": {
+        "SCHEDULED": "Scheduled",
+        "ARRIVED": "Arrived",
+        "RECEIVING": "Receiving",
+        "CLOSED": "Closed"
+      }
+    },
+    "confirmDepositorChange": "Changing the depositor will clear all order lines. Continue?",
     "sheet": {
       "title": "Receive Item from Shipment",
       "shipment": "Shipment",

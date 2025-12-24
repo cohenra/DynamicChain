@@ -105,6 +105,22 @@ export function InboundOrderForm({ onSubmit, onCancel, isSubmitting }: InboundOr
                         <FormItem>
                             <FormLabel className="flex items-center gap-1"><User className="h-3 w-3" /> {t('depositors.name')}</FormLabel>
                             <Select onValueChange={(val) => {
+                                // FIX: Check if there are filled lines before clearing
+                                const currentLines = form.getValues('lines');
+                                const hasFilledLines = currentLines.some(line =>
+                                    line.product_id || line.uom_id || line.expected_quantity || line.expected_batch
+                                );
+
+                                // If changing depositor and there are filled lines, confirm first
+                                if (field.value && field.value !== val && hasFilledLines) {
+                                    const confirmed = window.confirm(
+                                        t('inbound.confirmDepositorChange', 'Changing the depositor will clear all order lines. Continue?')
+                                    );
+                                    if (!confirmed) {
+                                        return; // Cancel the change
+                                    }
+                                }
+
                                 field.onChange(val);
                                 form.setValue('lines', [{ product_id: '', uom_id: '', expected_quantity: '', expected_batch: '' }]);
                             }} value={field.value}>

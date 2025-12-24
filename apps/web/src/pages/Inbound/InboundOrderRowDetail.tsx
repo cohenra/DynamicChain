@@ -37,19 +37,19 @@ function ShipmentReceivedItems({ shipmentId }: { shipmentId: number }) {
     });
 
     if (isLoading) return <div className="p-4 flex justify-center"><Loader2 className="animate-spin h-4 w-4" /></div>;
-    if (!data?.items || data.items.length === 0) return <div className="p-4 text-center text-sm text-muted-foreground">טרם נקלטו פריטים ממשלוח זה</div>;
+    if (!data?.items || data.items.length === 0) return <div className="p-4 text-center text-sm text-muted-foreground">{t('inbound.shipments.noItemsReceived')}</div>;
 
     return (
         <div className="bg-slate-50 p-2 rounded-b border-t">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2 mr-2">פריטים שנקלטו:</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2 mr-2">{t('inbound.shipments.receivedItems')}:</h4>
             <Table>
                 <TableHeader>
                     <TableRow className="h-8">
-                        <TableHead className="h-8 text-xs">מוצר</TableHead>
-                        <TableHead className="h-8 text-xs">כמות</TableHead>
-                        <TableHead className="h-8 text-xs">LPN</TableHead>
-                        <TableHead className="h-8 text-xs">מיקום</TableHead>
-                        <TableHead className="h-8 text-xs">תאריך</TableHead>
+                        <TableHead className="h-8 text-xs">{t('inbound.lines.product')}</TableHead>
+                        <TableHead className="h-8 text-xs">{t('inventory.quantity')}</TableHead>
+                        <TableHead className="h-8 text-xs">{t('inventory.lpn')}</TableHead>
+                        <TableHead className="h-8 text-xs">{t('warehouses.location')}</TableHead>
+                        <TableHead className="h-8 text-xs">{t('inventory.timestamp')}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -73,20 +73,20 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
 
-const getShipmentStatusBadge = (status: string) => {
+const getShipmentStatusBadge = (status: string, t: any) => {
   switch (status) {
-    case 'SCHEDULED': return <Badge variant="outline" className="bg-slate-100 text-slate-700">מתוכנן</Badge>;
-    case 'ARRIVED': return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">הגיע</Badge>;
-    case 'RECEIVING': return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">בקליטה</Badge>;
-    case 'CLOSED': return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">נסגר</Badge>;
+    case 'SCHEDULED': return <Badge variant="outline" className="bg-slate-100 text-slate-700">{t('inbound.shipments.statuses.SCHEDULED')}</Badge>;
+    case 'ARRIVED': return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">{t('inbound.shipments.statuses.ARRIVED')}</Badge>;
+    case 'RECEIVING': return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">{t('inbound.shipments.statuses.RECEIVING')}</Badge>;
+    case 'CLOSED': return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">{t('inbound.shipments.statuses.CLOSED')}</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
   }
 };
 
-function CompactPagination({ table, total }: { table: any, total: number }) {
+function CompactPagination({ table, total, t }: { table: any, total: number, t: any }) {
     return (
         <div className="flex items-center gap-1 text-xs bg-slate-50 rounded-md px-2 py-1 border shrink-0">
-            <span className="text-muted-foreground mx-1 hidden sm:inline">סה״כ: {total}</span>
+            <span className="text-muted-foreground mx-1 hidden sm:inline">{t('common.totalRecords', { count: total })}</span>
             <div className="h-3 w-px bg-slate-300 mx-1"></div>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}><ChevronRight className="h-3 w-3" /></Button>
             <span className="min-w-[2rem] text-center font-medium">
@@ -113,7 +113,7 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
   const isOrderEditable = order.status === 'DRAFT' || order.status === 'CONFIRMED' || order.status === 'PARTIALLY_RECEIVED';
 
   // --- Forms setup (Same as before) ---
-  const shipmentSchema = z.object({ shipment_number: z.string().min(1, 'חובה'), container_number: z.string().optional(), driver_details: z.string().optional(), arrival_date: z.string().optional(), notes: z.string().optional() });
+  const shipmentSchema = z.object({ shipment_number: z.string().min(1, t('common.required', 'Required')), container_number: z.string().optional(), driver_details: z.string().optional(), arrival_date: z.string().optional(), notes: z.string().optional() });
   const shipmentForm = useForm<z.infer<typeof shipmentSchema>>({ resolver: zodResolver(shipmentSchema), defaultValues: { shipment_number: '', container_number: '', driver_details: '', arrival_date: '', notes: '' } });
   const createShipmentMutation = useMutation({ mutationFn: (data: CreateShipmentRequest) => inboundService.createShipment(order.id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['inbound-orders'] }); setIsShipmentSheetOpen(false); shipmentForm.reset(); toast.success(t('inbound.shipments.createSuccess')); }, onError: (err: any) => toast.error(err?.response?.data?.detail || 'Error') });
   const handleCreateShipment = (values: any) => createShipmentMutation.mutate({ ...values, arrival_date: values.arrival_date ? new Date(values.arrival_date).toISOString() : null });
@@ -184,7 +184,7 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
       { accessorKey: 'container_number', header: t('inbound.shipments.container'), cell: ({row}) => row.original.container_number || '-' },
       { accessorKey: 'driver_details', header: t('inbound.shipments.driver'), cell: ({row}) => row.original.driver_details || '-' },
       { accessorKey: 'arrival_date', header: t('inbound.shipments.arrived'), cell: ({row}) => formatDate(row.original.arrival_date) },
-      { accessorKey: 'status', header: t('inbound.shipments.status'), cell: ({row}) => getShipmentStatusBadge(row.original.status) },
+      { accessorKey: 'status', header: t('inbound.shipments.status'), cell: ({row}) => getShipmentStatusBadge(row.original.status, t) },
       { 
           id: 'actions', 
           header: () => isOrderEditable && <Button onClick={() => setIsShipmentSheetOpen(true)} variant="ghost" size="sm" className="h-6 px-2 text-primary hover:bg-primary/10 whitespace-nowrap"><Plus className="h-3.5 w-3.5 mr-1" /> {t('inbound.shipments.addShipment')}</Button>,
@@ -245,18 +245,18 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
                         <CheckCircle className="h-3.5 w-3.5 mr-1" /> {t('inbound.closeOrder')}
                     </Button>
                 ) : (
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><Lock className="h-3 w-3 mr-1" /> הושלם</Badge>
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><Lock className="h-3 w-3 mr-1" /> {t('outbound.statuses.COMPLETED')}</Badge>
                 )}
 
                 <div className="h-4 w-px bg-slate-200 mx-1"></div>
 
                 <TabsContent value="lines" className="m-0 border-0 p-0 flex items-center gap-2">
                     <DataTableViewOptions table={linesTable} />
-                    <CompactPagination table={linesTable} total={order.lines?.length || 0} />
+                    <CompactPagination table={linesTable} total={order.lines?.length || 0} t={t} />
                 </TabsContent>
                 <TabsContent value="shipments" className="m-0 border-0 p-0 flex items-center gap-2">
                     <DataTableViewOptions table={shipmentsTable} />
-                    <CompactPagination table={shipmentsTable} total={order.shipments?.length || 0} />
+                    <CompactPagination table={shipmentsTable} total={order.shipments?.length || 0} t={t} />
                 </TabsContent>
             </div>
         </div>
@@ -359,7 +359,7 @@ export function InboundOrderRowDetail({ order }: InboundOrderRowDetailProps) {
                 <FormField control={shipmentForm.control} name="container_number" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.container')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={shipmentForm.control} name="driver_details" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.driver')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={shipmentForm.control} name="arrival_date" render={({ field }) => (<FormItem><FormLabel>{t('inbound.shipments.arrived')}</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={shipmentForm.control} name="notes" render={({ field }) => (<FormItem><FormLabel>הערות</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={shipmentForm.control} name="notes" render={({ field }) => (<FormItem><FormLabel>{t('inbound.fields.notes')}</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
               </form>
             </Form>
           </div>

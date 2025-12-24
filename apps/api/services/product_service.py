@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from repositories.product_repository import ProductRepository
 from schemas.product import ProductCreate, ProductUpdate
@@ -21,18 +22,6 @@ class ProductService:
         """
         Create a new product with SKU uniqueness validation.
         """
-        # Check if SKU already exists for this tenant
-        existing_product = await self.product_repo.get_by_sku(
-            sku=product_data.sku,
-            tenant_id=tenant_id
-        )
-
-        if existing_product:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product with SKU '{product_data.sku}' already exists for this tenant"
-            )
-
         # Create new product
         product = Product(
             tenant_id=tenant_id,
@@ -44,9 +33,16 @@ class ProductService:
             custom_attributes=product_data.custom_attributes
         )
 
-        created_product = await self.product_repo.create(product)
-        
-        # FIX: Re-fetch the product to ensure relationships (UOMs, etc.) are loaded
+        # FIX: Handle race condition with IntegrityError for duplicate SKUs
+        try:
+            created_product = await self.product_repo.create(product)
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Product with SKU '{product_data.sku}' already exists for this tenant"
+            )
+
+        # Re-fetch the product to ensure relationships (UOMs, etc.) are loaded
         # This prevents the "MissingGreenlet" error in Pydantic validation
         return await self.get_product(created_product.id, tenant_id)
 

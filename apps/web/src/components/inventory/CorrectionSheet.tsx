@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { InventoryTransaction } from '@/services/inventory'; // וודא שהנתיב נכון
+import { InventoryTransaction } from '@/services/inventory';
 
 interface CorrectionSheetProps {
   isOpen: boolean;
@@ -31,6 +31,14 @@ export function CorrectionSheet({
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Update form when transaction changes
+  useEffect(() => {
+    if (transaction && isOpen) {
+      setNewQuantity(transaction.quantity.toString());
+      setReason('');
+    }
+  }, [transaction, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,34 +62,22 @@ export function CorrectionSheet({
       setReason('');
     } catch (error) {
       console.error(error);
-      // הטיפול בשגיאה יעשה בקומפוננטה האב בדרך כלל, אבל כאן נוודא שהמשתמש יודע שנכשל
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // חישוב ההפרש בצורה בטוחה יותר (עיגול ל-3 ספרות)
   const calculateDelta = () => {
     if (!transaction || !newQuantity) return 0;
     const current = transaction.quantity;
     const next = parseFloat(newQuantity);
     if (isNaN(next)) return 0;
-    return (next - current).toFixed(3); // מחזיר מחרוזת לתצוגה
+    return (next - current).toFixed(3);
   };
 
-<<<<<<< HEAD
   const dir = i18n.dir();
-=======
-  // Update form when transaction changes
-  useEffect(() => {
-    if (transaction && open) {
-      setNewQuantity(transaction.quantity.toString());
-      setReason('');
-    }
-  }, [transaction, open]);
 
   if (!transaction) return null;
->>>>>>> claude/add-i18n-accessibility-5sa1q
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -93,73 +89,60 @@ export function CorrectionSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {transaction && (
-          <div className="py-6 space-y-6">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('products.product')}:</span>
-                <span className="font-medium">{transaction.product_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('warehouses.location')}:</span>
-                <span className="font-medium">{transaction.location_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('inventory.currentQty')}:</span>
-                <span className="font-medium">{transaction.quantity}</span>
-              </div>
+        <div className="py-6 space-y-6">
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t('products.product')}:</span>
+              <span className="font-medium">{transaction.product_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t('warehouses.location')}:</span>
+              <span className="font-medium">{transaction.location_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t('inventory.currentQty')}:</span>
+              <span className="font-medium">{transaction.quantity}</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-qty">{t('inventory.newQty', 'New Quantity')}</Label>
+              <Input
+                id="new-qty"
+                type="number"
+                step="0.001"
+                value={newQuantity}
+                onChange={(e) => setNewQuantity(e.target.value)}
+                placeholder={t('inventory.enterQty', 'Enter quantity')}
+              />
+              {newQuantity && (
+                <p className="text-xs text-muted-foreground text-end">
+                  {t('inventory.delta', 'Difference')}: <span dir="ltr">{calculateDelta()}</span>
+                </p>
+              )}
             </div>
 
-<<<<<<< HEAD
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-qty">{t('inventory.newQty', 'New Quantity')}</Label>
-                <Input
-                  id="new-qty"
-                  type="number"
-                  step="0.001"
-                  value={newQuantity}
-                  onChange={(e) => setNewQuantity(e.target.value)}
-                  placeholder={t('inventory.enterQty', 'Enter quantity')}
-                />
-                {newQuantity && (
-                  <p className="text-xs text-muted-foreground text-right">
-                    {t('inventory.delta', 'Difference')}: <span dir="ltr">{calculateDelta()}</span>
-                  </p>
-=======
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="submit"
-                disabled={correctionMutation.isPending}
-                className="flex-1"
-              >
-                {correctionMutation.isPending && (
-                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
->>>>>>> claude/add-i18n-accessibility-5sa1q
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="reason">{t('inventory.correction.reason', 'Reason')}</Label>
+              <Input
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={t('inventory.correction.reasonPlaceholder', 'Cycle count, Damaged, etc.')}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reason">{t('inventory.correction.reason', 'Reason')}</Label>
-                <Input
-                  id="reason"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder={t('inventory.correction.reasonPlaceholder', 'Cycle count, Damaged, etc.')}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  {t('common.cancel', 'Cancel')}
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                {t('common.cancel', 'Cancel')}
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
+              </Button>
+            </div>
+          </form>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -42,7 +42,8 @@
     "dataRefreshed": "הנתונים רועננו",
     "adding": "מוסיף...",
     "success": "בוצע בהצלחה",
-    "add": "הוסף"
+    "add": "הוסף",
+    "required": "חובה"
   },
   "auth": {
     "login": "התחברות למערכת",
@@ -104,15 +105,11 @@
     "referencePlaceholder": "לדוגמה: PO-123",
     "correct": "תקן",
     "noTransactions": "אין תנועות להצגה",
-<<<<<<< HEAD
     "receiveSuccess": "מלאי נקלט בהצלחה",
     "receiveError": "שגיאה בקליטת מלאי",
-    "autoIfEmpty": "אוטומטי אם ריק",
-=======
     "lpnAutoGenerate": "אוטומטי אם ריק",
     "referenceDoc": "מסמך אסמכתא",
     "referenceDocPlaceholder": "לדוגמה: PO-123",
->>>>>>> claude/add-i18n-accessibility-5sa1q
     "tabs": {
       "inventory": "מלאי נוכחי",
       "transactions": "תנועות מלאי"
@@ -234,8 +231,17 @@
       "arrived": "תאריך הגעה",
       "receive": "קליטה",
       "noShipments": "טרם נוצרו משלוחים",
-      "createSuccess": "משלוח נוצר בהצלחה"
+      "createSuccess": "משלוח נוצר בהצלחה",
+      "noItemsReceived": "טרם נקלטו פריטים ממשלוח זה",
+      "receivedItems": "פריטים שנקלטו",
+      "statuses": {
+        "SCHEDULED": "מתוכנן",
+        "ARRIVED": "הגיע",
+        "RECEIVING": "בקליטה",
+        "CLOSED": "נסגר"
+      }
     },
+    "confirmDepositorChange": "שינוי המאחסן ימחק את כל השורות. להמשיך?",
     "sheet": {
       "title": "קליטת פריט ממשלוח",
       "shipment": "משלוח",

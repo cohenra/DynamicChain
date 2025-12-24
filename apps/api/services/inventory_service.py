@@ -204,6 +204,15 @@ class InventoryService:
         if move_qty > source_inventory.quantity:
             raise HTTPException(status_code=400, detail="Move quantity exceeds available quantity")
 
+        # FIX: Block partial moves/consolidations if inventory has allocations
+        # This prevents orphaning pick_tasks that reference this inventory
+        is_partial_move = move_qty < source_inventory.quantity
+        if source_inventory.allocated_quantity > 0 and is_partial_move:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot perform partial move: inventory has {source_inventory.allocated_quantity} units allocated. Move full quantity or deallocate first."
+            )
+
         from_location_id = source_inventory.location_id
         now = datetime.utcnow()
 
@@ -424,6 +433,15 @@ class InventoryService:
             raise HTTPException(status_code=400, detail="Move quantity must be positive")
         if move_qty > source_inventory.quantity:
             raise HTTPException(status_code=400, detail="Move quantity exceeds available quantity")
+
+        # FIX: Block partial moves/consolidations if inventory has allocations
+        # This prevents orphaning pick_tasks that reference this inventory
+        is_partial_move = move_qty < source_inventory.quantity
+        if source_inventory.allocated_quantity > 0 and is_partial_move:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot perform partial move: inventory has {source_inventory.allocated_quantity} units allocated. Move full quantity or deallocate first."
+            )
 
         from_location_id = source_inventory.location_id
         now = datetime.utcnow()

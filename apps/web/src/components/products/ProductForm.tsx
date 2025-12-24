@@ -367,17 +367,6 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
             <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-4 rounded-md border border-blue-200 dark:border-blue-800">
               <p className="mb-2">{t('products.packagingHierarchyDescription')}</p>
               <div className="bg-white dark:bg-slate-900 p-3 rounded border mt-3">
-<<<<<<< HEAD
-                <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">?? {t('products.addPackagingTitle', '????? ??????')}</p>
-                <p>
-                  {t('products.addPackagingTip', '???? ????? ?????, ???? ?????? ???? ????? (????: ????, ????) ?? ????? ?????:')}
-                </p>
-                <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-                  <li><strong>{t('products.uoms.packagingType')}:</strong> {t('products.uoms.packagingTypeDescription')}</li>
-                  <li><strong>{t('products.uoms.contains')}:</strong> {t('products.uoms.conversionFactorDescription')}</li>
-                  <li><strong>{t('products.uoms.barcode')}:</strong> {t('products.uoms.barcodePlaceholder')}</li>
-                  <li><strong>{t('products.uoms.dimensions')}:</strong> {t('products.uoms.dimensionsShort')}</li>
-=======
                 <p className="font-semibold text-blue-700 dark:text-blue-300 mb-2">{t('products.packaging.tip')}</p>
                 <p>
                   {t('products.packaging.tipDescription')}
@@ -387,7 +376,6 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                   <li><strong>{t('products.packaging.contains')}:</strong> {t('products.packaging.containsDesc')}</li>
                   <li><strong>{t('products.packaging.barcode')}:</strong> {t('products.packaging.barcodeDesc')}</li>
                   <li><strong>{t('products.packaging.dimensionsWeight')}:</strong> {t('products.packaging.dimensionsWeightDesc')}</li>
->>>>>>> claude/add-i18n-accessibility-5sa1q
                 </ul>
               </div>
             </div>
@@ -439,7 +427,7 @@ export function ProductForm({ onSubmit, isLoading, product, mode = 'create' }: P
                         <TableCell>{uom.barcode || '-'}</TableCell>
                         <TableCell>
                           {uom.length && uom.width && uom.height
-                            ? `${uom.length} ¡Á ${uom.width} ¡Á ${uom.height} cm`
+                            ? `${uom.length} Ã— ${uom.width} Ã— ${uom.height} cm`
                             : '-'}
                         </TableCell>
                         <TableCell>{uom.weight ? `${uom.weight} kg` : '-'}</TableCell>
